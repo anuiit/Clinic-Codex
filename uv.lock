@@ -85,6 +85,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pillow" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "ultralytics" },
 ]
 
@@ -96,6 +97,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pillow", specifier = ">=11.3.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "ultralytics", specifier = ">=8.3.214" },
 ]
 
