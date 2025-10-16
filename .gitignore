@@ -1,0 +1,62 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Dataset directories (downloaded separately)
+/Elements
+/Glyphs
+/original_data/Elements
+/original_data/Glyphs
+
+original_data/
+
+/synthetic_dataset
+
+# Temporary files
+*.tmp
+*.temp
+codex.rar
+codex-dataset.zip
+
+# Model files (large)
+*.pt
+*.pth
+*.onnx
+!yolov8n.pt
+
+# Training outputs
+/runs/*/weights/*.pt
+/runs/*/weights/*.onnx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated data files (recreated at setup)
+image_data*.csv
+
+
+main.ipynb
+r&d.ipynb
+
+/runs
+
+models/*

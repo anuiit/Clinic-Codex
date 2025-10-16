@@ -1,0 +1,32 @@
+[project]
+name = "codex"
+version = "0.1.0"
+description = "Ancient Mesoamerican glyph detection using YOLOv8"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.3",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.3.3",
+    "pillow>=11.3.0",
+    "pyyaml>=6.0.3",
+    "ultralytics>=8.3.214",
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/codex"
+Repository = "https://github.com/yourusername/codex.git"
+Issues = "https://github.com/yourusername/codex/issues"
+
+[project.scripts]
+setup-codex-data = "setup_data:main"
+generate-csv = "data_processing:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
