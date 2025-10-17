@@ -8,6 +8,13 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 import os
+import sys
+
+# Configure UTF-8 output for Windows compatibility
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
 def create_image_dataframe(base_path, folders=['Elements', 'Glyphs']):
@@ -129,23 +136,17 @@ def generate_csv_files(base_path):
     
     try:
         # 1. Complete dataframe with all columns
-        all_data_path = base_path / "image_data_alljpg.csv"
+        all_data_path = base_path / "image_all_data.csv"
         df_images.to_csv(all_data_path, index=False)
         results["all_data"] = {"path": all_data_path, "rows": len(df_images)}
         print(f"✓ Generated {all_data_path.name} ({len(df_images)} rows)")
         
         # 2. Summary version (without file size columns)
         df_summary = df_images.drop(columns=['file_extension', 'file_size_bytes', 'file_size_kb'], errors='ignore')
-        summary_path = base_path / "image_data_summary_v2.csv"
+        summary_path = base_path / "image_data_main.csv"
         df_summary.to_csv(summary_path, index=False)
         results["summary"] = {"path": summary_path, "rows": len(df_summary)}
         print(f"✓ Generated {summary_path.name} ({len(df_summary)} rows)")
-        
-        # 3. Legacy summary format (for backwards compatibility)
-        legacy_path = base_path / "image_data_summary.csv" 
-        df_images.to_csv(legacy_path, index=False)
-        results["legacy"] = {"path": legacy_path, "rows": len(df_images)}
-        print(f"✓ Generated {legacy_path.name} ({len(df_images)} rows)")
         
         # Print statistics
         print(f"\n📈 Dataset Statistics:")
@@ -177,10 +178,19 @@ def main():
     """CLI entry point for generating CSV files."""
     import sys
     from pathlib import Path
-    
-    # Get the base path (directory containing this script)
-    base_path = Path(__file__).parent
-    
+
+    # Get the base path (parent of the directory containing this script, i.e., project root)
+    project_root = Path(__file__).parent.parent
+
+    # Check if data is in a 'data' subdirectory
+    data_dir = project_root / "data"
+    if data_dir.exists() and (data_dir / "Elements").exists():
+        base_path = data_dir
+        print(f"📂 Found data in subdirectory: {data_dir}")
+    else:
+        base_path = project_root
+        print(f"📂 Using project root: {project_root}")
+
     print("🚀 Starting CSV generation...")
     results = generate_csv_files(base_path)
     

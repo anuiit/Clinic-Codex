@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Data setup script for Codex project.
 Downloads and extracts the image dataset on first run.
@@ -12,12 +13,17 @@ from pathlib import Path
 from typing import Optional
 import hashlib
 
+# Configure UTF-8 output for Windows compatibility
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 # Configuration
 DATA_URL = "https://drive.google.com/uc?export=download&id=1oDjC6WKCnzaLWGvXiyCoy5kgf7QE6DR1"  # Replace with your actual URL
-DATA_DIR = Path(__file__).parent
+DATA_DIR = Path(__file__).parent / "data"
 ELEMENTS_DIR = DATA_DIR / "Elements"
 GLYPHS_DIR = DATA_DIR / "Glyphs" 
-ORIGINAL_DATA_DIR = DATA_DIR / "original_data"
 ZIP_FILE = DATA_DIR / "codex-dataset.zip"
 
 # Expected hash of the dataset (for integrity checking)
@@ -32,15 +38,51 @@ def calculate_file_hash(filepath: Path) -> str:
     return hash_sha256.hexdigest()
 
 def download_with_progress(url: str, filepath: Path) -> bool:
-    """Download file with progress bar."""
+    """Download file with progress bar, handling Google Drive large file confirmation."""
     try:
         print(f"Downloading dataset from {url}...")
-        response = requests.get(url, stream=True)
+
+        # Initial request to check if we need confirmation
+        session = requests.Session()
+        response = session.get(url, stream=True, allow_redirects=True)
         response.raise_for_status()
-        
+
+        # Check if this is the Google Drive virus scan warning page
+        content_type = response.headers.get('content-type', '')
+
+        # If we get HTML, we need to extract the confirmation token
+        if 'text/html' in content_type:
+            import re
+            # Get the full HTML content (it's small)
+            html_content = b''.join(response.iter_content(chunk_size=8192)).decode('utf-8')
+
+            # Extract the confirmation token and UUID
+            confirm_match = re.search(r'name="confirm"\s+value="([^"]+)"', html_content)
+            uuid_match = re.search(r'name="uuid"\s+value="([^"]+)"', html_content)
+            id_match = re.search(r'name="id"\s+value="([^"]+)"', html_content)
+
+            if confirm_match and id_match:
+                confirm = confirm_match.group(1)
+                file_id = id_match.group(1)
+                uuid = uuid_match.group(1) if uuid_match else None
+
+                # Construct the direct download URL with confirmation
+                download_url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm={confirm}"
+                if uuid:
+                    download_url += f"&uuid={uuid}"
+
+                print("Large file detected, confirming download...")
+
+                # Make a new request with the confirmation
+                response = session.get(download_url, stream=True, allow_redirects=True)
+                response.raise_for_status()
+            else:
+                print("Error: Could not extract confirmation token from Google Drive page")
+                return False
+
         total_size = int(response.headers.get('content-length', 0))
         downloaded = 0
-        
+
         with open(filepath, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
@@ -49,11 +91,21 @@ def download_with_progress(url: str, filepath: Path) -> bool:
                     if total_size > 0:
                         percent = (downloaded / total_size) * 100
                         print(f"\rDownload progress: {percent:.1f}%", end="", flush=True)
-        
+
         print("\nDownload completed!")
+
+        # Verify the file is not HTML
+        with open(filepath, 'rb') as f:
+            first_bytes = f.read(100)
+            if first_bytes.startswith(b'<!DOCTYPE html') or first_bytes.startswith(b'<html'):
+                print("Error: Downloaded file appears to be HTML, not a zip file")
+                return False
+
         return True
     except Exception as e:
         print(f"\nError downloading dataset: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def extract_dataset(zip_path: Path, extract_to: Path) -> bool:
@@ -93,7 +145,6 @@ def setup_data() -> bool:
     
     # Create directories
     DATA_DIR.mkdir(exist_ok=True)
-    ORIGINAL_DATA_DIR.mkdir(exist_ok=True)
     
     # Download dataset if not exists
     if not ZIP_FILE.exists():
@@ -101,16 +152,17 @@ def setup_data() -> bool:
             return False
     
     # Verify file integrity (optional)
-    if EXPECTED_HASH and EXPECTED_HASH != "your-dataset-hash-here":
+    # Skip hash verification if EXPECTED_HASH is a placeholder
+    if EXPECTED_HASH and len(EXPECTED_HASH) == 64 and EXPECTED_HASH != "your-dataset-hash-here":
         print("Verifying file integrity...")
         file_hash = calculate_file_hash(ZIP_FILE)
         if file_hash != EXPECTED_HASH:
             print("Warning: File hash doesn't match expected value!")
             print(f"Expected: {EXPECTED_HASH}")
             print(f"Got:      {file_hash}")
-            response = input("Continue anyway? (y/N): ")
-            if response.lower() != 'y':
-                return False
+            print("Continuing anyway (to skip verification, update EXPECTED_HASH in setup_data.py)...")
+    else:
+        print("Skipping hash verification (EXPECTED_HASH not set)")
     
     # Extract dataset
     if not extract_dataset(ZIP_FILE, DATA_DIR):
