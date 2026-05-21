@@ -57,6 +57,16 @@ type DragState = {
   origBbox?: BBox;
 } | null;
 
+type PendingMoveState = {
+  type: 'move';
+  idx: number;
+  startX: number;
+  startY: number;
+  startClientX: number;
+  startClientY: number;
+  origBbox: BBox;
+} | null;
+
 interface ElementNameComboboxProps {
   value: string;
   classNames: string[];
@@ -231,7 +241,7 @@ export default function AnnotationPage() {
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState>(null);
-  const bboxHistoryRef = useRef<BboxHistoryEntry[]>([]);
+  const pendingMoveRef = useRef<PendingMoveState>(null);
   const pendingTempBboxRef = useRef<[number, number, number, number] | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; offset: { x: number; y: number } } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -549,6 +559,7 @@ export default function AnnotationPage() {
       setActiveDragState({ type: 'draw', idx: elements.length, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
+      pendingMoveRef.current = null;
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
@@ -562,6 +573,7 @@ export default function AnnotationPage() {
       setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.handle, startX: x, startY: y, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
+      pendingMoveRef.current = null;
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
@@ -577,6 +589,8 @@ export default function AnnotationPage() {
         idx: hitIdx,
         startX: x,
         startY: y,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
         origBbox: bbox,
       };
       setTempBbox(null);
@@ -584,6 +598,7 @@ export default function AnnotationPage() {
       e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       setFocusedIdx(null);
+      pendingMoveRef.current = null;
       if (zoom > 1) {
         setIsPanning(true);
         panStartRef.current = { clientX: e.clientX, clientY: e.clientY, offset: { ...panOffset } };
@@ -612,38 +627,46 @@ export default function AnnotationPage() {
     const { x, y } = coords;
     const [origW, origH] = [imgW, imgH];
 
-    let activeDragState = dragStateRef.current ?? dragState;
+    const pendingMove = pendingMoveRef.current;
+    const activeDragState = dragStateRef.current ?? dragState;
+    const dragStateToUse = activeDragState ?? (
+      pendingMove && isDragIntent({ x: pendingMove.startClientX, y: pendingMove.startClientY }, { x: e.clientX, y: e.clientY }, 5)
+        ? pendingMove
+        : null
+    );
 
-    if (activeDragState) {
+    if (!activeDragState && pendingMove && dragStateToUse) {
+      setActiveDragState({
+        type: 'move',
+        idx: pendingMove.idx,
+        startX: pendingMove.startX,
+        startY: pendingMove.startY,
+        origBbox: [...pendingMove.origBbox],
+      });
+      pendingMoveRef.current = null;
+    }
+
+    if (dragStateToUse) {
       let nextBbox: [number, number, number, number] | null = null;
-      if (activeDragState.type === 'draw') {
-        const minX = Math.min(activeDragState.startX, x);
-        const minY = Math.min(activeDragState.startY, y);
-        const maxX = Math.max(activeDragState.startX, x);
-        const maxY = Math.max(activeDragState.startY, y);
+      if (dragStateToUse.type === 'draw') {
+        const minX = Math.min(dragStateToUse.startX, x);
+        const minY = Math.min(dragStateToUse.startY, y);
+        const maxX = Math.max(dragStateToUse.startX, x);
+        const maxY = Math.max(dragStateToUse.startY, y);
         nextBbox = [
           Math.max(0, minX),
           Math.max(0, minY),
           Math.min(origW - Math.max(0, minX), maxX - minX),
           Math.min(origH - Math.max(0, minY), maxY - minY)
         ];
-      } else if (activeDragState.type === 'move' && activeDragState.origBbox) {
-        if (activeDragState.startClientX === undefined || activeDragState.startClientY === undefined) {
-          return;
-        }
-        if (!isDragIntent(
-          { x: activeDragState.startClientX, y: activeDragState.startClientY },
-          { x: e.clientX, y: e.clientY },
-        )) {
-          return;
-        }
+      } else if (dragStateToUse.type === 'move' && dragStateToUse.origBbox) {
         nextBbox = moveBBox(
-          activeDragState.origBbox,
-          { x: x - activeDragState.startX, y: y - activeDragState.startY },
+          dragStateToUse.origBbox,
+          { x: x - dragStateToUse.startX, y: y - dragStateToUse.startY },
           { width: origW, height: origH },
         );
-      } else if (activeDragState.type === 'resize' && activeDragState.origBbox && activeDragState.corner) {
-        nextBbox = resizeBBox(activeDragState.origBbox, activeDragState.corner, { x, y }, { width: origW, height: origH });
+      } else if (dragStateToUse.type === 'resize' && dragStateToUse.origBbox && dragStateToUse.corner) {
+        nextBbox = resizeBBox(dragStateToUse.origBbox, dragStateToUse.corner, { x, y }, { width: origW, height: origH });
       }
 
       if (nextBbox) {
@@ -701,6 +724,7 @@ export default function AnnotationPage() {
       if (activeDragState) {
         setActiveDragState(null);
       }
+      pendingMoveRef.current = null;
       pendingTempBboxRef.current = null;
       return;
     }
@@ -743,6 +767,7 @@ export default function AnnotationPage() {
     }
     setActiveDragState(null);
     setTempBbox(null);
+    pendingMoveRef.current = null;
     pendingTempBboxRef.current = null;
   };
 
@@ -1027,7 +1052,7 @@ export default function AnnotationPage() {
                   });
                   const labelY = Math.max(0, y - 28);
                   return (
-                    <g key={idx}>
+                    <g key={idx} className="pointer-events-none select-none">
                       <rect
                         x={x}
                         y={y}

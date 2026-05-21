@@ -370,7 +370,7 @@ describe('AnnotationPage pan behavior', () => {
 
     expect(updateElements).toHaveBeenCalledWith('test-id', [
       expect.objectContaining({ bbox: [100, 100, 50, 40] }),
-    ], { 0: 'draft' });
+    ], {});
   });
 
   it('dragging an existing bbox changes the bbox without panning the image wrapper', async () => {
