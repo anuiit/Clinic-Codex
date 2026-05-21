@@ -11,11 +11,10 @@ import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeC
 
 type StageSize = { width: number; height: number };
 
-type BboxHistorySnapshot = {
-  elements: DetectedElement[];
-  annotationStatus: Record<number, AnnotationStatus>;
-  focusedIdx: number | null;
-};
+type BboxHistoryEntry =
+  | { type: 'create'; idx: number; focusedIdx: number | null }
+  | { type: 'delete'; idx: number; element: DetectedElement; status?: AnnotationStatus; focusedIdx: number | null }
+  | { type: 'update'; idx: number; previousBbox: [number, number, number, number]; focusedIdx: number | null };
 
 function cloneElements(elements: DetectedElement[]): DetectedElement[] {
   return elements.map((element) => ({
@@ -210,7 +209,7 @@ export default function AnnotationPage() {
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [dragState, setDragState] = useState<DragState>(null);
-  const [bboxHistory, setBboxHistory] = useState<BboxHistorySnapshot[]>([]);
+  const [bboxHistory, setBboxHistory] = useState<BboxHistoryEntry[]>([]);
   const [tempBbox, setTempBbox] = useState<[number, number, number, number] | null>(null);
   const [namingFocusToken, setNamingFocusToken] = useState(0);
   const [stageSize, setStageSize] = useState<StageSize | null>(null);
@@ -219,7 +218,7 @@ export default function AnnotationPage() {
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState>(null);
-  const bboxHistoryRef = useRef<BboxHistorySnapshot[]>([]);
+  const bboxHistoryRef = useRef<BboxHistoryEntry[]>([]);
   const pendingTempBboxRef = useRef<[number, number, number, number] | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; offset: { x: number; y: number } } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -263,28 +262,20 @@ export default function AnnotationPage() {
     setDragState(nextDragState);
   };
 
-  const setBboxHistorySnapshots = useCallback((nextHistory: BboxHistorySnapshot[]) => {
+  const setBboxHistoryEntries = useCallback((nextHistory: BboxHistoryEntry[]) => {
     bboxHistoryRef.current = nextHistory;
     setBboxHistory(nextHistory);
   }, []);
 
-  const pushBboxHistory = useCallback((snapshotFocusedIdx = focusedIdx) => {
-    const snapshot: BboxHistorySnapshot = {
-      elements: cloneElements(elements),
-      annotationStatus: { ...annotationStatus },
-      focusedIdx: snapshotFocusedIdx,
-    };
-    setBboxHistorySnapshots([...bboxHistoryRef.current, snapshot].slice(-20));
-  }, [annotationStatus, elements, focusedIdx, setBboxHistorySnapshots]);
+  const pushBboxHistory = useCallback((entry: BboxHistoryEntry) => {
+    setBboxHistoryEntries([...bboxHistoryRef.current, entry].slice(-20));
+  }, [setBboxHistoryEntries]);
 
   const undoLastBboxChange = useCallback(() => {
     const previousHistory = bboxHistoryRef.current;
-    const snapshot = previousHistory[previousHistory.length - 1];
-    if (!snapshot) return;
+    const entry = previousHistory[previousHistory.length - 1];
+    if (!entry) return;
 
-    setElements(cloneElements(snapshot.elements));
-    setAnnotationStatus({ ...snapshot.annotationStatus });
-    setFocusedIdx(snapshot.focusedIdx);
     setActiveDragState(null);
     setTempBbox(null);
     pendingTempBboxRef.current = null;
@@ -292,8 +283,44 @@ export default function AnnotationPage() {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-    setBboxHistorySnapshots(previousHistory.slice(0, -1));
-  }, [setBboxHistorySnapshots]);
+
+    if (entry.type === 'create') {
+      setElements((prev) => prev.filter((_, idx) => idx !== entry.idx));
+      setAnnotationStatus((prev) => {
+        const next: Record<number, AnnotationStatus> = {};
+        Object.entries(prev).forEach(([key, status]) => {
+          const idx = Number(key);
+          if (idx < entry.idx) next[idx] = status;
+          if (idx > entry.idx) next[idx - 1] = status;
+        });
+        return next;
+      });
+      setFocusedIdx(entry.focusedIdx);
+    } else if (entry.type === 'delete') {
+      setElements((prev) => {
+        const next = cloneElements(prev);
+        next.splice(entry.idx, 0, cloneElements([entry.element])[0]);
+        return next;
+      });
+      setAnnotationStatus((prev) => {
+        const next: Record<number, AnnotationStatus> = {};
+        Object.entries(prev).forEach(([key, status]) => {
+          const idx = Number(key);
+          next[idx >= entry.idx ? idx + 1 : idx] = status;
+        });
+        if (entry.status) next[entry.idx] = entry.status;
+        return next;
+      });
+      setFocusedIdx(entry.idx);
+    } else {
+      setElements((prev) => prev.map((element, idx) => (
+        idx === entry.idx ? { ...element, bbox: [...entry.previousBbox] } : element
+      )));
+      setFocusedIdx(entry.idx);
+    }
+
+    setBboxHistoryEntries(previousHistory.slice(0, -1));
+  }, [setBboxHistoryEntries]);
 
   const commitElementName = (idx: number, nextName: string) => {
     const normalizedName = normalizeClassName(nextName);
@@ -313,7 +340,13 @@ export default function AnnotationPage() {
 
   const removeElement = useCallback((idxToRemove: number) => {
     if (!elements[idxToRemove]) return;
-    pushBboxHistory(focusedIdx);
+    pushBboxHistory({
+      type: 'delete',
+      idx: idxToRemove,
+      element: cloneElements([elements[idxToRemove]])[0],
+      status: annotationStatus[idxToRemove],
+      focusedIdx,
+    });
     setElements(prev => prev.filter((_, idx) => idx !== idxToRemove));
     setAnnotationStatus(prev => {
       const next: Record<number, AnnotationStatus> = {};
@@ -329,7 +362,7 @@ export default function AnnotationPage() {
     } else if (focusedIdx !== null && focusedIdx > idxToRemove) {
       setFocusedIdx(focusedIdx - 1);
     }
-  }, [elements, focusedIdx, pushBboxHistory]);
+  }, [annotationStatus, elements, focusedIdx, pushBboxHistory]);
 
   const setElementValidation = (idx: number, status: AnnotationStatus) => {
     setAnnotationStatus(prev => ({ ...prev, [idx]: status }));
@@ -368,7 +401,7 @@ export default function AnnotationPage() {
       // Deep copy elements so we can mutate safely
       setElements(cloneElements(rec.result.elements));
       setAnnotationStatus(rec.annotationStatus ?? {});
-      setBboxHistorySnapshots([]);
+      setBboxHistoryEntries([]);
 
       try {
         const classesResult = await getClasses();
@@ -380,7 +413,7 @@ export default function AnnotationPage() {
       }
     }
     loadData();
-  }, [id, setBboxHistorySnapshots]);
+  }, [id, setBboxHistoryEntries]);
 
   useEffect(() => {
     if (!record) {
@@ -719,7 +752,7 @@ export default function AnnotationPage() {
     let shouldCommitElements = false;
     if (activeDragState.type === 'draw') {
       if (finalTempBbox[2] > 5 && finalTempBbox[3] > 5) {
-        pushBboxHistory(focusedIdx);
+        pushBboxHistory({ type: 'create', idx: newElements.length, focusedIdx });
         newElements.push({
           bbox: finalTempBbox,
           class_name: '',
@@ -736,7 +769,12 @@ export default function AnnotationPage() {
     } else if ((activeDragState.type === 'move' || activeDragState.type === 'resize') && activeDragState.idx < newElements.length) {
       const originalBbox = newElements[activeDragState.idx].bbox;
       if (!areBboxesEqual(originalBbox, finalTempBbox)) {
-        pushBboxHistory(focusedIdx);
+        pushBboxHistory({
+          type: 'update',
+          idx: activeDragState.idx,
+          previousBbox: [...originalBbox],
+          focusedIdx,
+        });
         newElements[activeDragState.idx] = { ...newElements[activeDragState.idx], bbox: finalTempBbox };
         setAnnotationStatus(prev => ({ ...prev, [activeDragState.idx]: 'draft' }));
         shouldCommitElements = true;
