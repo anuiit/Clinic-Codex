@@ -1,17 +1,43 @@
-import type { AnalysisRecord } from '../types';
+import type { AnalysisRecord, AnnotationStatus } from '../types';
 
 const STORAGE_KEY = 'codex_analyses';
 
+function normalizeAnnotationStatus(status: unknown, elementCount: number): Record<number, AnnotationStatus> {
+  if (!status || typeof status !== 'object') {
+    return {};
+  }
+
+  const normalized: Record<number, AnnotationStatus> = {};
+  Object.entries(status as Record<string, unknown>).forEach(([key, value]) => {
+    const idx = Number(key);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= elementCount) return;
+    if (value === 'validated' || value === 'draft') {
+      normalized[idx] = value;
+    }
+  });
+  return normalized;
+}
+
+export function normalizeAnalysisRecord(record: AnalysisRecord): AnalysisRecord {
+  const elements = record.result?.elements ?? [];
+  return {
+    ...record,
+    annotations: record.annotations ?? {},
+    annotationStatus: normalizeAnnotationStatus(record.annotationStatus, elements.length),
+  };
+}
+
 export function saveAnalysis(record: AnalysisRecord): void {
   const history = getHistory();
-  history.unshift(record);
+  history.unshift(normalizeAnalysisRecord(record));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
 }
 
 export function getHistory(): AnalysisRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AnalysisRecord[]) : [];
+    const parsed = raw ? JSON.parse(raw) as AnalysisRecord[] : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeAnalysisRecord) : [];
   } catch {
     return [];
   }
@@ -34,18 +60,24 @@ export function updateAnnotations(id: string, annotations: Record<number, string
   }
 }
 
-export function updateElements(id: string, elements: AnalysisRecord['result']['elements']): boolean {
+export function updateElements(
+  id: string,
+  elements: AnalysisRecord['result']['elements'],
+  annotationStatus?: Record<number, AnnotationStatus>,
+): boolean {
   const history = getHistory();
   const idx = history.findIndex((r) => r.id === id);
   if (idx === -1) return false;
   try {
-    history[idx] = { 
-      ...history[idx], 
+    const nextStatus = normalizeAnnotationStatus(annotationStatus ?? history[idx].annotationStatus, elements.length);
+    history[idx] = {
+      ...history[idx],
+      annotationStatus: nextStatus,
       result: {
         ...history[idx].result,
         elements,
-        num_elements: elements.length
-      } 
+        num_elements: elements.length,
+      },
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     return true;

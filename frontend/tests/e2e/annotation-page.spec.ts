@@ -21,6 +21,7 @@ const TEST_RECORD = {
     ],
   },
   annotations: {},
+  annotationStatus: { 0: 'validated' },
 };
 
 async function seedAndNavigate(page: Page, record = TEST_RECORD) {
@@ -114,6 +115,8 @@ test('Cas 4 — zoom does not misalign boxes', async ({ page }) => {
 
   const relXBefore = rectBefore!.x - imgBefore!.x;
   const relYBefore = rectBefore!.y - imgBefore!.y;
+  const normalizedXBefore = relXBefore / imgBefore!.width;
+  const normalizedYBefore = relYBefore / imgBefore!.height;
 
   const zoomGroup = page.locator('.flex.items-center.gap-1.rounded-lg.border');
   const zoomInButton = zoomGroup.locator('button').first();
@@ -131,9 +134,11 @@ test('Cas 4 — zoom does not misalign boxes', async ({ page }) => {
 
   const relXAfter = rectAfter!.x - imgAfter!.x;
   const relYAfter = rectAfter!.y - imgAfter!.y;
+  const normalizedXAfter = relXAfter / imgAfter!.width;
+  const normalizedYAfter = relYAfter / imgAfter!.height;
 
-  expect(Math.abs(relXAfter - relXBefore)).toBeLessThanOrEqual(2);
-  expect(Math.abs(relYAfter - relYBefore)).toBeLessThanOrEqual(2);
+  expect(Math.abs(normalizedXAfter - normalizedXBefore)).toBeLessThanOrEqual(0.01);
+  expect(Math.abs(normalizedYAfter - normalizedYBefore)).toBeLessThanOrEqual(0.01);
 });
 
 test('Cas 5 — pan while zoomed moves image+boxes as one unit', async ({ page }) => {

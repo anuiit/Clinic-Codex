@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -65,6 +65,8 @@ export default function WorkspacePage() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(() => !resolveCurrentRecord(getHistory(), initialPreferredId));
   const [overlayMode, setOverlayMode] = useState<OverlayMode>('all');
   const [trustData, setTrustData] = useState<TrustResult | null>(null);
@@ -73,19 +75,25 @@ export default function WorkspacePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const currentFileRef = useRef<File | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const workspacePanStartRef = useRef<{ clientX: number; clientY: number; offset: { x: number; y: number } } | null>(null);
   const cropCanvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const detailCanvasRef = useRef<HTMLCanvasElement>(null);
   const t = appText.workspace;
+
+  const resetWorkspaceView = useCallback(() => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+    setIsPanning(false);
+    workspacePanStartRef.current = null;
+  }, []);
 
   const resetInspectionState = useCallback(() => {
     cropCanvasRefs.current = [];
     setHoveredIdx(null);
     setFocusedIdx(null);
-  if (zoom !== 1) {
-      setZoom(1);
-    }
+    resetWorkspaceView();
     setOverlayMode('all');
-  }, [zoom]);
+  }, [resetWorkspaceView]);
 
   const selectRecord = useCallback((record: AnalysisRecord | null) => {
     resetInspectionState();
@@ -300,6 +308,48 @@ export default function WorkspacePage() {
         ? `/annotate/${currentRecord.id}?element=${focusedIdx}`
         : `/annotate/${currentRecord.id}`,
     );
+  };
+
+  const startWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (zoom <= 1 || event.button !== 0) {
+      return;
+    }
+
+    const target = event.target;
+    if (target instanceof Element && target.closest('[data-overlay-region="true"]')) {
+      return;
+    }
+
+    setIsPanning(true);
+    workspacePanStartRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      offset: { ...panOffset },
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!workspacePanStartRef.current) {
+      return;
+    }
+
+    setPanOffset({
+      x: workspacePanStartRef.current.offset.x + event.clientX - workspacePanStartRef.current.clientX,
+      y: workspacePanStartRef.current.offset.y + event.clientY - workspacePanStartRef.current.clientY,
+    });
+  };
+
+  const stopWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!workspacePanStartRef.current && !isPanning) {
+      return;
+    }
+
+    setIsPanning(false);
+    workspacePanStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
@@ -608,25 +658,45 @@ export default function WorkspacePage() {
                     </div>
                   </div>
 
-                  <div 
-                    className="relative mt-5 flex flex-1 min-h-[360px] items-center justify-center overflow-hidden rounded-[24px] border border-stone-800 bg-stone-950"
-                    onWheel={(e) => { 
-                      e.preventDefault(); 
+                  <div
+                    className={`relative mt-5 flex flex-1 min-h-[360px] items-center justify-center overflow-hidden rounded-[24px] border border-stone-800 bg-stone-950 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    onPointerDown={startWorkspacePan}
+                    onPointerMove={moveWorkspacePan}
+                    onPointerUp={stopWorkspacePan}
+                    onPointerCancel={stopWorkspacePan}
+                    onWheel={(e) => {
+                      e.preventDefault();
                       const zoomChange = e.deltaY < 0 ? 0.15 : -0.15;
-                      setZoom(z => Math.max(0.25, Math.min(4, z + zoomChange)));
+                      setZoom((currentZoom) => {
+                        const nextZoom = Math.max(0.25, Math.min(4, currentZoom + zoomChange));
+                        if (nextZoom <= 1) {
+                          setPanOffset({ x: 0, y: 0 });
+                        }
+                        return nextZoom;
+                      });
                     }}
                   >
-                    <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.1s ease', willChange: 'transform' }} className="relative inline-block">
+                    <div
+                      style={{
+                        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+                        transformOrigin: 'center center',
+                        transition: isPanning ? 'none' : 'transform 0.1s ease',
+                        willChange: 'transform',
+                      }}
+                      className="relative inline-block"
+                    >
                       <img
                         ref={imageRef}
                         src={currentRecord.imageDataUrl}
                         alt={currentRecord.imageName}
+                        draggable={false}
                         className="block max-h-[72vh] max-w-full rounded-lg object-contain"
                       />
                       {currentRecord && overlayMode !== 'hidden' && (
                         <svg
                           className="absolute left-0 top-0 w-full h-full pointer-events-none"
                           viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
+                          preserveAspectRatio="none"
                           style={{ width: '100%', height: '100%' }}
                         >
                           {currentRecord.result.elements.map((el, idx) => {
@@ -637,7 +707,7 @@ export default function WorkspacePage() {
                             const strokeColor = el.rejected ? '#ef4444' : isFocused ? '#ffffff' : isHovered ? '#fbbf24' : '#f59e0b';
                             const badgeColor = strokeColor;
                             return (
-                              <g key={idx} className="pointer-events-auto" style={{ cursor: 'pointer' }}
+                              <g key={idx} data-overlay-region="true" className="pointer-events-auto" style={{ cursor: 'pointer' }}
                                  onClick={(e) => { e.stopPropagation(); setFocusedIdx(idx); }}
                                  onMouseEnter={() => setHoveredIdx(idx)}
                                  onMouseLeave={() => setHoveredIdx(null)}>
@@ -655,10 +725,23 @@ export default function WorkspacePage() {
                       <button type="button" onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.zoomIn}>
                         <ZoomIn size={16} />
                       </button>
-                      <button type="button" onClick={() => { setZoom(1); }} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.fitToView}>
+                      <button type="button" onClick={resetWorkspaceView} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.fitToView}>
                         <Maximize2 size={16} />
                       </button>
-                      <button type="button" onClick={() => setZoom(z => Math.max(0.25, z - 0.25))} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.zoomOut}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setZoom((currentZoom) => {
+                            const nextZoom = Math.max(0.25, currentZoom - 0.25);
+                            if (nextZoom <= 1) {
+                              setPanOffset({ x: 0, y: 0 });
+                            }
+                            return nextZoom;
+                          });
+                        }}
+                        className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100"
+                        title={t.zoomOut}
+                      >
                         <ZoomOut size={16} />
                       </button>
                     </div>

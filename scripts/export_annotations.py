@@ -3,17 +3,57 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
-# Add backend/ to sys.path so services.annotation_storage is importable
+# Add backend/ to sys.path so services.annotation_storage is importable when main writes files.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
-from services.annotation_storage import save_annotation, decode_image_data_url
+
+def _is_named(class_name: str) -> bool:
+    return bool(class_name and class_name.strip() and class_name.strip().lower() != "unknown")
+
+
+def iter_export_annotations(record: dict[str, Any], include_unvalidated: bool = False) -> list[dict[str, Any]]:
+    """Return annotation payload rows that are eligible for training export.
+
+    Default behavior is validated-only. Legacy/unvalidated records are exported only
+    when include_unvalidated is true.
+    """
+    result_elements = record.get("result", {}).get("elements", [])
+    user_annotations = record.get("annotations", {}) or {}
+    annotation_status = record.get("annotationStatus", {}) or {}
+    has_status = isinstance(annotation_status, dict) and bool(annotation_status)
+
+    if has_status:
+        candidate_indexes = [
+            int(idx_str)
+            for idx_str, status in annotation_status.items()
+            if status == "validated" and str(idx_str).isdigit()
+        ]
+    elif include_unvalidated:
+        if user_annotations:
+            candidate_indexes = [int(idx_str) for idx_str in user_annotations.keys() if str(idx_str).isdigit()]
+        else:
+            candidate_indexes = list(range(len(result_elements)))
+    else:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    for idx in sorted(set(candidate_indexes)):
+        if idx < 0 or idx >= len(result_elements):
+            continue
+        element = result_elements[idx]
+        class_name = user_annotations.get(str(idx), element.get("class_name", ""))
+        if not _is_named(class_name):
+            continue
+        rows.append({"index": idx, "bbox": element["bbox"], "class_name": class_name})
+    return rows
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Export localStorage annotations to Elements/ training dataset"
+        description="Export validated localStorage annotations to Elements/ training dataset"
     )
     parser.add_argument("input_json", help="Path to localStorage export JSON file")
     parser.add_argument(
@@ -26,7 +66,14 @@ def main():
         default="backend/annotations",
         help="Annotations base directory (default: backend/annotations)",
     )
+    parser.add_argument(
+        "--include-unvalidated",
+        action="store_true",
+        help="Legacy escape hatch: export unvalidated/legacy annotations too (default: validated only)",
+    )
     args = parser.parse_args()
+
+    from services.annotation_storage import save_annotation, decode_image_data_url
 
     input_path = Path(args.input_json)
     elements_dir = Path(args.output)
@@ -43,27 +90,13 @@ def main():
 
     for i, record in enumerate(records, 1):
         analysis_id = record.get("id", "")
-        user_annotations = record.get("annotations", {})
-
-        if not user_annotations:
-            print(f"[{i}/{len(records)}] Skipping {analysis_id} (no annotations)", file=sys.stderr)
-            continue
-
-        result_elements = record.get("result", {}).get("elements", [])
-        image_data_url = record.get("imageDataUrl", "")
-
-        ann_list = []
-        for idx_str, class_name in user_annotations.items():
-            idx = int(idx_str)
-            if idx >= len(result_elements):
-                print(f"  WARNING: index {idx} out of range for {analysis_id}", file=sys.stderr)
-                continue
-            bbox = result_elements[idx]["bbox"]
-            ann_list.append({"index": idx, "bbox": bbox, "class_name": class_name})
+        ann_list = iter_export_annotations(record, include_unvalidated=args.include_unvalidated)
 
         if not ann_list:
-            print(f"[{i}/{len(records)}] Skipping {analysis_id} (no valid annotations)", file=sys.stderr)
+            print(f"[{i}/{len(records)}] Skipping {analysis_id} (no validated annotations)", file=sys.stderr)
             continue
+
+        image_data_url = record.get("imageDataUrl", "")
 
         try:
             image = decode_image_data_url(image_data_url)

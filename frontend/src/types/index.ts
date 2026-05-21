@@ -60,6 +60,8 @@ export interface TrustResult {
   trust: TrustSignals;
 }
 
+export type AnnotationStatus = 'draft' | 'validated';
+
 export interface AnalysisRecord {
   id: string;
   imageName: string;
@@ -67,6 +69,7 @@ export interface AnalysisRecord {
   timestamp: number;
   result: SegmentResult;
   annotations: Record<number, string>;
+  annotationStatus?: Record<number, AnnotationStatus>;
 }
 
 export interface SaveAnnotationPayload {

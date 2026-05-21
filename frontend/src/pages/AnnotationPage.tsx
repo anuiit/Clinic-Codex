@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2, ZoomIn, ZoomOut, Maximize2, PenTool, MousePointer2, Trash2, Upload } from 'lucide-react';
 import { getAnalysisById, updateElements } from '../services/storage';
 import { getClasses, saveAnnotation } from '../services/api';
 import { t as translate } from '../i18n/annotation.fr';
 import { appText } from '../i18n/text';
-import type { AnalysisRecord, DetectedElement, SaveAnnotationResult } from '../types';
+import type { AnalysisRecord, AnnotationStatus, DetectedElement, SaveAnnotationResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
+import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeClassName } from '../utils/fuzzyClasses';
+
+type StageSize = { width: number; height: number };
 
 type DragState = {
   type: 'draw' | 'move' | 'resize';
@@ -16,6 +19,142 @@ type DragState = {
   startY: number;
   origBbox?: [number, number, number, number];
 } | null;
+
+interface ElementNameComboboxProps {
+  value: string;
+  classNames: string[];
+  customClassNames: string[];
+  topK: DetectedElement['top_k'];
+  autoFocusToken: number;
+  labels: typeof appText.annotation;
+  index: number;
+  onCommit: (name: string) => void;
+}
+
+function ElementNameCombobox({
+  value,
+  classNames,
+  customClassNames,
+  topK,
+  autoFocusToken,
+  labels,
+  index,
+  onCommit,
+}: ElementNameComboboxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = useState(() => (isUnnamedClass(value) ? '' : value));
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(0);
+  const suggestions = getFuzzyClassSuggestions(inputValue, classNames, topK, customClassNames);
+  const normalizedInput = normalizeClassName(inputValue);
+  const allCandidateNames = [...classNames, ...customClassNames, ...topK.map((item) => item.class_name)];
+  const canCreate = normalizedInput.length > 0 && !hasExactClassName(normalizedInput, allCandidateNames);
+
+  useEffect(() => {
+    setInputValue(isUnnamedClass(value) ? '' : value);
+  }, [value]);
+
+  useEffect(() => {
+    if (autoFocusToken <= 0) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+    setIsOpen(true);
+  }, [autoFocusToken]);
+
+  const commitName = (name: string) => {
+    const normalizedName = normalizeClassName(name);
+    if (!normalizedName) return;
+    onCommit(normalizedName);
+    setInputValue(normalizedName);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsOpen(true);
+      setHighlightedIdx((current) => Math.min(current + 1, Math.max(suggestions.length - 1, 0)));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedIdx((current) => Math.max(current - 1, 0));
+      return;
+    }
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+      setInputValue(isUnnamedClass(value) ? '' : value);
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const highlightedSuggestion = suggestions[highlightedIdx];
+      commitName(highlightedSuggestion?.name ?? inputValue);
+    }
+  };
+
+  return (
+    <div className="relative" onClick={(event) => event.stopPropagation()}>
+      <label className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500" htmlFor={`element-name-${index}`}>
+        {labels.renameElement}
+      </label>
+      <input
+        ref={inputRef}
+        id={`element-name-${index}`}
+        aria-label={`${labels.nameElement} ${index}`}
+        value={inputValue}
+        onChange={(event) => {
+          setInputValue(event.target.value);
+          setHighlightedIdx(0);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => {
+          if (normalizedInput) {
+            commitName(inputValue);
+          } else {
+            setIsOpen(false);
+          }
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={labels.elementNamePlaceholder}
+        className="w-full rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-colors placeholder:text-stone-600 focus:border-amber-500"
+      />
+      {isOpen && (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-stone-700 bg-stone-950 shadow-xl">
+          <div className="border-b border-stone-800 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-stone-500">
+            {labels.suggestions}
+          </div>
+          {suggestions.length === 0 && !canCreate && (
+            <div className="px-3 py-2 text-sm text-stone-500">{labels.noSuggestion}</div>
+          )}
+          {suggestions.map((suggestion, suggestionIdx) => (
+            <button
+              key={`${suggestion.source}-${suggestion.name}`}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => commitName(suggestion.name)}
+              className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${suggestionIdx === highlightedIdx ? 'bg-amber-500/15 text-amber-100' : 'text-stone-100 hover:bg-stone-800'}`}
+            >
+              <span>{suggestion.name}</span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-stone-500">{suggestion.source}</span>
+            </button>
+          ))}
+          {canCreate && (
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => commitName(normalizedInput)}
+              className="w-full border-t border-stone-800 px-3 py-2 text-left text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/10"
+            >
+              {labels.createElementName} « {normalizedInput} »
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AnnotationPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +169,9 @@ export default function AnnotationPage() {
   
   const [record, setRecord] = useState<AnalysisRecord | null>(null);
   const [elements, setElements] = useState<DetectedElement[]>([]);
+  const [annotationStatus, setAnnotationStatus] = useState<Record<number, AnnotationStatus>>({});
   const [classes, setClasses] = useState<string[]>([]);
+  const [customClasses, setCustomClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
@@ -44,14 +185,103 @@ export default function AnnotationPage() {
   const [isPanning, setIsPanning] = useState(false);
   const [dragState, setDragState] = useState<DragState>(null);
   const [tempBbox, setTempBbox] = useState<[number, number, number, number] | null>(null);
+  const [namingFocusToken, setNamingFocusToken] = useState(0);
+  const [stageSize, setStageSize] = useState<StageSize | null>(null);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
+  const dragStateRef = useRef<DragState>(null);
   const pendingTempBboxRef = useRef<[number, number, number, number] | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; offset: { x: number; y: number } } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const t = appText.annotation;
+
+  const getStageSize = useCallback((): StageSize | null => {
+    if (!record) return null;
+    const [imgW, imgH] = record.result.image_size;
+    if (imgW <= 0 || imgH <= 0) return null;
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    const availableW = rect?.width && rect.width > 0 ? rect.width : imgW;
+    const availableH = rect?.height && rect.height > 0 ? rect.height : imgH;
+    const scale = Math.min(1, availableW / imgW, availableH / imgH);
+
+    return {
+      width: Math.max(1, Math.round(imgW * scale)),
+      height: Math.max(1, Math.round(imgH * scale)),
+    };
+  }, [record]);
+
+  const updateStageSize = useCallback(() => {
+    const nextSize = getStageSize();
+    if (!nextSize) {
+      setStageSize(null);
+      return;
+    }
+
+    setStageSize((current) => (
+      current?.width === nextSize.width && current?.height === nextSize.height ? current : nextSize
+    ));
+  }, [getStageSize]);
+
+  const resolvedStageSize = stageSize ?? (record ? {
+    width: record.result.image_size[0],
+    height: record.result.image_size[1],
+  } : null);
+
+  const setActiveDragState = (nextDragState: DragState) => {
+    dragStateRef.current = nextDragState;
+    setDragState(nextDragState);
+  };
+
+  const commitElementName = (idx: number, nextName: string) => {
+    const normalizedName = normalizeClassName(nextName);
+    if (!normalizedName) return;
+    const previousName = normalizeClassName(elements[idx]?.class_name ?? '');
+    if (previousName === normalizedName) return;
+
+    setElements(prev => prev.map((el, elementIdx) => (
+      elementIdx === idx ? { ...el, class_name: normalizedName } : el
+    )));
+    setAnnotationStatus(prev => ({ ...prev, [idx]: 'draft' }));
+
+    setCustomClasses(prev => (
+      hasExactClassName(normalizedName, [...classes, ...prev]) ? prev : [...prev, normalizedName]
+    ));
+  };
+
+  const removeElement = useCallback((idxToRemove: number) => {
+    setElements(prev => prev.filter((_, idx) => idx !== idxToRemove));
+    setAnnotationStatus(prev => {
+      const next: Record<number, AnnotationStatus> = {};
+      Object.entries(prev).forEach(([key, status]) => {
+        const idx = Number(key);
+        if (idx < idxToRemove) next[idx] = status;
+        if (idx > idxToRemove) next[idx - 1] = status;
+      });
+      return next;
+    });
+    if (focusedIdx === idxToRemove) {
+      setFocusedIdx(null);
+    } else if (focusedIdx !== null && focusedIdx > idxToRemove) {
+      setFocusedIdx(focusedIdx - 1);
+    }
+  }, [focusedIdx]);
+
+  const setElementValidation = (idx: number, status: AnnotationStatus) => {
+    setAnnotationStatus(prev => ({ ...prev, [idx]: status }));
+  };
+
+  const submitNamedElements = () => {
+    setAnnotationStatus((prev) => {
+      const next: Record<number, AnnotationStatus> = { ...prev };
+      elements.forEach((el, idx) => {
+        next[idx] = isUnnamedClass(el.class_name) ? 'draft' : 'validated';
+      });
+      return next;
+    });
+  };
 
   const scheduleTempBbox = (bbox: [number, number, number, number]) => {
     pendingTempBboxRef.current = bbox;
@@ -75,6 +305,7 @@ export default function AnnotationPage() {
       if (!rec) { setLoading(false); return; }
       // Deep copy elements so we can mutate safely
       setElements(JSON.parse(JSON.stringify(rec.result.elements)));
+      setAnnotationStatus(rec.annotationStatus ?? {});
 
       try {
         const classesResult = await getClasses();
@@ -89,6 +320,30 @@ export default function AnnotationPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!record) {
+      setStageSize(null);
+      return;
+    }
+    if (loading || !containerRef.current) return;
+
+    updateStageSize();
+
+    const container = containerRef.current;
+    const handleResize = () => updateStageSize();
+    window.addEventListener('resize', handleResize);
+
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => updateStageSize());
+    observer?.observe(container);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      observer?.disconnect();
+    };
+  }, [loading, record, updateStageSize]);
+
+  useEffect(() => {
     if (!record || !imageRef.current || !previewCanvasRef.current || focusedIdx === null) return;
     const el = elements[focusedIdx];
     if (!el) return;
@@ -99,13 +354,14 @@ export default function AnnotationPage() {
     if (!ctx) return;
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (imageRef.current.complete) {
+    if (imageRef.current.complete && w > 0 && h > 0) {
       ctx.imageSmoothingEnabled = false;
-      const scaledW = w * 3;
-      const scaledH = h * 3;
-      const drawX = (canvas.width - scaledW) / 2;
-      const drawY = (canvas.height - scaledH) / 2;
-      ctx.drawImage(imageRef.current, x, y, w, h, drawX, drawY, scaledW, scaledH);
+      const scale = Math.min(canvas.width / w, canvas.height / h);
+      const fittedW = w * scale;
+      const fittedH = h * scale;
+      const drawX = (canvas.width - fittedW) / 2;
+      const drawY = (canvas.height - fittedH) / 2;
+      ctx.drawImage(imageRef.current, x, y, w, h, drawX, drawY, fittedW, fittedH);
     }
   }, [record, elements, focusedIdx, tempBbox, dragState]);
 
@@ -125,15 +381,15 @@ export default function AnnotationPage() {
     }
   }, [zoom]);
 
-  const clampPan = (offset: { x: number; y: number }, zoomLevel = zoom): { x: number; y: number } => {
+  const clampPan = useCallback((offset: { x: number; y: number }, zoomLevel = zoom): { x: number; y: number } => {
     if (!containerRef.current || !record || zoomLevel <= 1) {
       return { x: 0, y: 0 };
     }
 
     const cRect = containerRef.current.getBoundingClientRect();
-    const [imgW, imgH] = record.result.image_size;
-    const scaledW = imgW * zoomLevel;
-    const scaledH = imgH * zoomLevel;
+    const stage = stageSize ?? { width: record.result.image_size[0], height: record.result.image_size[1] };
+    const scaledW = stage.width * zoomLevel;
+    const scaledH = stage.height * zoomLevel;
     const maxPanX = (scaledW / 2) + (cRect.width / 2) - scaledW * 0.2;
     const maxPanY = (scaledH / 2) + (cRect.height / 2) - scaledH * 0.2;
 
@@ -141,7 +397,7 @@ export default function AnnotationPage() {
       x: Math.max(-maxPanX, Math.min(maxPanX, offset.x)),
       y: Math.max(-maxPanY, Math.min(maxPanY, offset.y)),
     };
-  };
+  }, [record, stageSize, zoom]);
 
   const applyZoom = (nextZoom: number, anchor?: { clientX: number; clientY: number }) => {
     const clampedZoom = Math.max(0.25, Math.min(4, nextZoom));
@@ -168,6 +424,10 @@ export default function AnnotationPage() {
       return clampPan(nextOffset, clampedZoom);
     });
   };
+
+  useEffect(() => {
+    setPanOffset((prev) => clampPan(prev, zoom));
+  }, [clampPan, stageSize, zoom]);
 
   const getHitHandle = (x: number, y: number, bbox: [number, number, number, number]) => {
     const [bx, by, bw, bh] = bbox;
@@ -203,7 +463,7 @@ export default function AnnotationPage() {
 
     if (drawMode) {
       const bbox: [number, number, number, number] = [x, y, 0, 0];
-      setDragState({ type: 'draw', idx: elements.length, startX: x, startY: y });
+      setActiveDragState({ type: 'draw', idx: elements.length, startX: x, startY: y });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -216,7 +476,7 @@ export default function AnnotationPage() {
       const el = elements[handleHit.idx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(handleHit.idx);
-      setDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.corner, startX: x, startY: y, origBbox: bbox });
+      setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.corner, startX: x, startY: y, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -240,7 +500,7 @@ export default function AnnotationPage() {
       const el = elements[hitIdx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(hitIdx);
-      setDragState({ type: 'move', idx: hitIdx, startX: x, startY: y, origBbox: bbox });
+      setActiveDragState({ type: 'move', idx: hitIdx, startX: x, startY: y, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -274,46 +534,48 @@ export default function AnnotationPage() {
     const { x, y } = coords;
     const [origW, origH] = [imgW, imgH];
 
-    if (dragState) {
+    const activeDragState = dragStateRef.current ?? dragState;
+
+    if (activeDragState) {
       let nextBbox: [number, number, number, number] | null = null;
-      if (dragState.type === 'draw') {
-        const minX = Math.min(dragState.startX, x);
-        const minY = Math.min(dragState.startY, y);
-        const maxX = Math.max(dragState.startX, x);
-        const maxY = Math.max(dragState.startY, y);
+      if (activeDragState.type === 'draw') {
+        const minX = Math.min(activeDragState.startX, x);
+        const minY = Math.min(activeDragState.startY, y);
+        const maxX = Math.max(activeDragState.startX, x);
+        const maxY = Math.max(activeDragState.startY, y);
         nextBbox = [
           Math.max(0, minX),
           Math.max(0, minY),
           Math.min(origW - Math.max(0, minX), maxX - minX),
           Math.min(origH - Math.max(0, minY), maxY - minY)
         ];
-      } else if (dragState.type === 'move' && dragState.origBbox) {
-        const dx = x - dragState.startX;
-        const dy = y - dragState.startY;
-        const [origBx, origBy, bw, bh] = dragState.origBbox;
+      } else if (activeDragState.type === 'move' && activeDragState.origBbox) {
+        const dx = x - activeDragState.startX;
+        const dy = y - activeDragState.startY;
+        const [origBx, origBy, bw, bh] = activeDragState.origBbox;
         const bx = Math.max(0, Math.min(origW - bw, origBx + dx));
         const by = Math.max(0, Math.min(origH - bh, origBy + dy));
         nextBbox = [bx, by, bw, bh];
-      } else if (dragState.type === 'resize' && dragState.origBbox && dragState.corner) {
-        let [bx, by, bw, bh] = dragState.origBbox;
-        if (dragState.corner === 'tl') {
+      } else if (activeDragState.type === 'resize' && activeDragState.origBbox && activeDragState.corner) {
+        let [bx, by, bw, bh] = activeDragState.origBbox;
+        if (activeDragState.corner === 'tl') {
           const nx = Math.min(bx + bw - 1, Math.max(0, x));
           const ny = Math.min(by + bh - 1, Math.max(0, y));
           bw = bx + bw - nx;
           bh = by + bh - ny;
           bx = nx;
           by = ny;
-        } else if (dragState.corner === 'tr') {
+        } else if (activeDragState.corner === 'tr') {
           const ny = Math.min(by + bh - 1, Math.max(0, y));
           bw = Math.min(origW - bx, Math.max(1, x - bx));
           bh = by + bh - ny;
           by = ny;
-        } else if (dragState.corner === 'bl') {
+        } else if (activeDragState.corner === 'bl') {
           const nx = Math.min(bx + bw - 1, Math.max(0, x));
           bw = bx + bw - nx;
           bx = nx;
           bh = Math.min(origH - by, Math.max(1, y - by));
-        } else if (dragState.corner === 'br') {
+        } else if (activeDragState.corner === 'br') {
           bw = Math.min(origW - bx, Math.max(1, x - bx));
           bh = Math.min(origH - by, Math.max(1, y - by));
         }
@@ -381,30 +643,37 @@ export default function AnnotationPage() {
     }
 
     const finalTempBbox = pendingTempBboxRef.current ?? tempBbox;
-    if (!dragState || !finalTempBbox) {
+    const activeDragState = dragStateRef.current ?? dragState;
+    if (!activeDragState || !finalTempBbox) {
+      if (activeDragState) {
+        setActiveDragState(null);
+      }
       pendingTempBboxRef.current = null;
       return;
     }
 
     const newElements = [...elements];
-    if (dragState.type === 'draw') {
+    if (activeDragState.type === 'draw') {
       if (finalTempBbox[2] > 5 && finalTempBbox[3] > 5) {
         newElements.push({
           bbox: finalTempBbox,
-          class_name: 'unknown',
+          class_name: '',
           class_label: 0,
           confidence: 1.0,
           top_k: [],
           rejected: false
         });
+        setAnnotationStatus(prev => ({ ...prev, [newElements.length - 1]: 'draft' }));
         setFocusedIdx(newElements.length - 1);
+        setNamingFocusToken((current) => current + 1);
       }
-    } else if ((dragState.type === 'move' || dragState.type === 'resize') && dragState.idx < newElements.length) {
-      newElements[dragState.idx].bbox = finalTempBbox;
+    } else if ((activeDragState.type === 'move' || activeDragState.type === 'resize') && activeDragState.idx < newElements.length) {
+      newElements[activeDragState.idx].bbox = finalTempBbox;
+      setAnnotationStatus(prev => ({ ...prev, [activeDragState.idx]: 'draft' }));
     }
 
     setElements(newElements);
-    setDragState(null);
+    setActiveDragState(null);
     setTempBbox(null);
     pendingTempBboxRef.current = null;
   };
@@ -412,19 +681,25 @@ export default function AnnotationPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && focusedIdx !== null) {
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
-        setElements(prev => prev.filter((_, idx) => idx !== focusedIdx));
-        setFocusedIdx(null);
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+        removeElement(focusedIdx);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusedIdx]);
+  }, [focusedIdx, removeElement]);
+
+  const submittedCount = elements.filter((el, idx) => annotationStatus[idx] === 'validated' && !isUnnamedClass(el.class_name)).length;
+
+  useEffect(() => {
+    if (focusedIdx === null) return;
+    cardRefs.current[focusedIdx]?.scrollIntoView?.({ block: 'nearest' });
+  }, [focusedIdx, elements.length]);
 
   const handleSave = () => {
     if (!id) return;
     setSaving(true);
-    const ok = updateElements(id, elements);
+    const ok = updateElements(id, elements, annotationStatus);
     if (!ok) {
       setToast({ msg: translate('save.networkError'), ok: false });
       setSaving(false);
@@ -437,8 +712,37 @@ export default function AnnotationPage() {
     }, 300);
   };
 
-  const handleSendForTraining = async () => {
+  const handleSendSubmittedForReview = async () => {
     if (!record || !id) return;
+    const submittedCandidates = elements
+      .map((el, idx) => ({ el, idx }))
+      .filter(({ idx }) => annotationStatus[idx] === 'validated');
+    const unnamedSubmittedIndexes = submittedCandidates
+      .map(({ el, idx }) => isUnnamedClass(el.class_name) ? idx : null)
+      .filter((idx): idx is number => idx !== null);
+    if (unnamedSubmittedIndexes.length > 0) {
+      setToast({
+        msg: `${t.submitBlockedUnnamed} (${unnamedSubmittedIndexes.map((idx) => `#${idx}`).join(', ')})`,
+        ok: false,
+      });
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
+    const submittedElements = submittedCandidates.filter(({ el }) => !isUnnamedClass(el.class_name));
+    if (submittedElements.length === 0) {
+      const unnamedIndexes = elements
+        .map((el, idx) => isUnnamedClass(el.class_name) ? idx : null)
+        .filter((idx): idx is number => idx !== null);
+      setToast({
+        msg: unnamedIndexes.length > 0
+          ? `${t.submitBlockedUnnamed} (${unnamedIndexes.map((idx) => `#${idx}`).join(', ')})`
+          : t.submitBlockedNone,
+        ok: false,
+      });
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
+
     setSending(true);
     try {
       const payload = {
@@ -446,7 +750,7 @@ export default function AnnotationPage() {
         image_name: record.imageName,
         image_data_url: record.imageDataUrl,
         timestamp: record.timestamp,
-        annotations: elements.map((el, idx) => ({
+        annotations: submittedElements.map(({ el, idx }) => ({
           index: idx,
           bbox: el.bbox,
           class_name: el.class_name,
@@ -536,6 +840,16 @@ export default function AnnotationPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-1.5 text-xs text-stone-300">
+            {t.submittedSummary}: <span className="font-semibold text-emerald-300">{submittedCount}</span> / {elements.length}
+          </div>
+          <button
+            type="button"
+            onClick={submitNamedElements}
+            className="rounded-lg border border-emerald-700/60 px-3 py-1.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/10"
+          >
+            {t.submitNamed}
+          </button>
           <button
             onClick={handleSave}
             disabled={saving}
@@ -545,14 +859,18 @@ export default function AnnotationPage() {
             {t.saveChanges}
           </button>
           <button
-            onClick={handleSendForTraining}
+            onClick={handleSendSubmittedForReview}
             disabled={sending}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
           >
             {sending ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-            Envoyer pour entraînement
+            {t.sendSubmittedForReview}
           </button>
         </div>
+      </div>
+
+      <div className="shrink-0 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        {t.adminApprovalNotice}
       </div>
 
       <div className="flex min-h-0 flex-1 gap-2">
@@ -567,18 +885,32 @@ export default function AnnotationPage() {
             applyZoom(zoom - e.deltaY * 0.01, { clientX: e.clientX, clientY: e.clientY });
           }
         }}>
-          <div style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isPanning ? 'none' : 'transform 0.1s ease', willChange: 'transform' }} className="relative inline-block max-w-full max-h-full">
+          <div
+            data-testid="annotation-stage"
+            style={{
+              width: resolvedStageSize ? `${resolvedStageSize.width}px` : undefined,
+              height: resolvedStageSize ? `${resolvedStageSize.height}px` : undefined,
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+              transition: isPanning ? 'none' : 'transform 0.1s ease',
+              willChange: 'transform',
+            }}
+            className="relative shrink-0"
+          >
             <img
               ref={imageRef}
               src={record!.imageDataUrl}
               alt={record!.imageName}
-              className="block max-w-full max-h-full w-auto h-auto pointer-events-none"
+              draggable={false}
+              onLoad={updateStageSize}
+              className="block h-full w-full object-fill pointer-events-none"
             />
             {record && (
               <svg
-                className="absolute left-0 top-0 w-full h-full"
+                data-testid="annotation-overlay"
+                className="absolute left-0 top-0 h-full w-full"
                 viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
-                preserveAspectRatio="xMidYMid meet"
+                preserveAspectRatio="none"
                 style={{ width: '100%', height: '100%' }}
                 onPointerDown={handleSvgPointerDown}
                 onPointerMove={handleSvgPointerMove}
@@ -629,7 +961,8 @@ export default function AnnotationPage() {
           <div className="flex-1 space-y-3 overflow-y-auto pr-2 sidebar-body">
             {elements.map((el, idx) => {
               const isFocused = idx === focusedIdx;
-              const classOptions = Array.from(new Set([el.class_name, ...classes]));
+              const displayName = isUnnamedClass(el.class_name) ? t.unnamedElement : el.class_name;
+              const isSubmitted = annotationStatus[idx] === 'validated';
 
               return (
                 <div
@@ -643,15 +976,17 @@ export default function AnnotationPage() {
                       <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-500 text-stone-950 font-bold text-sm shrink-0">
                         {idx}
                       </span>
-                      <div className="font-semibold text-stone-100 text-sm truncate">
-                        {el.class_name}
+                      <div className={`font-semibold text-sm truncate ${isUnnamedClass(el.class_name) ? 'text-amber-300' : 'text-stone-100'}`}>
+                        {displayName}
                       </div>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${isSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
+                        {isSubmitted ? t.submitted : t.draft}
+                      </span>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setElements(prev => prev.filter((_, i) => i !== idx));
-                        if (focusedIdx === idx) setFocusedIdx(null);
+                        removeElement(idx);
                       }}
                       className="p-1.5 text-stone-500 hover:text-red-400 hover:bg-stone-800 rounded transition-colors"
                     >
@@ -660,27 +995,29 @@ export default function AnnotationPage() {
                   </div>
                   
                   {isFocused && (
-                    <div className="relative mt-1">
-                      <select
-                        value={el.class_name}
-                        onChange={(e) => {
-                          const newElements = [...elements];
-                          newElements[idx].class_name = e.target.value;
-                          setElements(newElements);
+                    <>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setElementValidation(idx, isSubmitted ? 'draft' : 'validated');
                         }}
-                        onClick={e => e.stopPropagation()}
-                        className="w-full bg-stone-900 border border-stone-700 text-stone-100 rounded-lg pl-3 pr-10 py-2 text-sm outline-none focus:border-amber-500 transition-colors appearance-none"
+                        disabled={isUnnamedClass(el.class_name)}
+                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSubmitted ? 'bg-stone-800 text-stone-200 hover:bg-stone-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
                       >
-                        {classOptions.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-stone-500">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
+                        {isSubmitted ? t.markDraft : t.markSubmitted}
+                      </button>
+                      <ElementNameCombobox
+                        value={el.class_name}
+                        classNames={[el.class_name, ...classes]}
+                        customClassNames={customClasses}
+                        topK={el.top_k}
+                        autoFocusToken={namingFocusToken}
+                        labels={t}
+                        index={idx}
+                        onCommit={(name) => commitElementName(idx, name)}
+                      />
+                    </>
                   )}
                 </div>
               );

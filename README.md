@@ -1,60 +1,69 @@
 # Clinic Codex
 
-Clinic Codex is an annotation tool for Nahuatl glyphs (codices). It uses machine learning to segment and classify individual elements within complex historical glyphs, helping researchers identify archetypes and analyze historical manuscripts.
+Clinic Codex is a browser-based annotation and retraining tool for Nahuatl codex glyphs. It segments uploaded manuscript images, lets a human correct element boxes and labels, saves only validated annotations for training, and retrains the local classifier from those curated crops.
 
----
+## Main workflow
 
-## For Researchers (Non-Technical)
+1. **Upload/analyze** a glyph image on `/`.
+2. **Inspect** segmentation results and model suggestions on the workspace.
+3. **Annotate** on `/annotate/:id`: move/resize/draw boxes, select or type labels with fuzzy suggestions, create missing labels, and rename labels without deleting boxes.
+4. **Validate** each element that is ready for training. Draft elements stay visible but are excluded from training exports.
+5. **Send/export validated annotations** to `backend/annotations/<analysis_id>/`.
+6. **Retrain** with `scripts/retrain.sh` or `scripts/retrain.ps1`, then restart the backend to load new weights.
 
-### What it does
-- **Analyze codices**: Upload images of historical Nahuatl manuscripts.
-- **Auto-segmentation**: Automatically identify individual glyph elements using AI.
-- **Similarity search**: Find historical archetypes similar to a selected glyph element.
-- **Collaborative annotation**: Mark and identify elements to build a shared dataset.
+See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining procedure.
 
-### How to install
-Please refer to the [INSTALL.md](INSTALL.md) file for step-by-step instructions on setting up the tool on your computer.
+## For researchers
 
-### How to run
-Once installed, you can start both the backend and frontend with a single command:
+- Upload codex images and review automatic segmentation.
+- Use model confidence, top-k suggestions, similarity, and trust signals to decide whether a prediction is reliable.
+- Correct boxes directly: pan/zoom the image, move boxes, resize handles, draw missing elements, or delete bad detections.
+- Type the first letters of an element name to get suggestions. If the element is absent, create the new label during annotation.
+- Mark only reviewed elements as **validated** before sending them for training.
+
+## Architecture
+
+- **Backend**: Flask API serving segmentation, classification, similarity/trust helpers, classes, and annotation persistence. Default port: `7117`.
+- **Frontend**: React + Vite + Tailwind application. Default port: `7118`.
+- **Annotation storage**: backend-owned filesystem data under `backend/annotations/<analysis_id>/`.
+- **Training scripts**: `scripts/export_annotations.py`, `scripts/retrain.sh`, and `scripts/retrain.ps1`.
+
+## Environment variables
+
+Backend:
+
+- `PORT=7117`
+- `HOST=0.0.0.0`
+- `CORS_ORIGINS=http://localhost:7118`
+- `MODEL_DIR=/path/to/model/dir` (optional override)
+
+Frontend:
+
+- `VITE_API_BASE_URL=http://localhost:7117`
+
+## Development commands
+
 ```bash
+# Start backend + frontend
 bash scripts/run-dev.sh
+
+# Frontend only
+cd frontend
+npm install
+npm run dev
+npm run lint
+npm run test
+npm run build
+
+# Backend tests
+backend/.venv/bin/python -m pytest backend/tests scripts/test_export_annotations.py
 ```
-This will launch the application in your web browser.
 
-### Screenshots
-*Placeholders for screenshots showing the annotation interface and similarity results.*
+PowerShell equivalents are available for Windows setup/dev where present (`scripts/install.ps1`, `scripts/run-dev.ps1`, `scripts/retrain.ps1`).
 
----
+## Key documentation
 
-## For Developers (Technical)
-
-### Architecture Overview
-The project follows a decoupled client-server architecture:
-- **Backend**: Flask API serving ML models (DINOv2-ViT-S/14). Runs on port `7117`.
-- **Frontend**: React application built with Vite and Tailwind CSS. Runs on port `7118`.
-
-### Environment Variables
-Configure the following in your `.env` file (see `.env.example` if available):
-- `PORT=7117`: Backend port.
-- `HOST=0.0.0.0`: Server host.
-- `CORS_ORIGINS`: Allowed origins for cross-domain requests.
-- `MODEL_DIR`: Path to the machine learning model weights.
-- `VITE_API_BASE_URL=http://localhost:7117`: Frontend setting to point to the backend API.
-
-### Project Structure
-- `backend/`: Python Flask server and ML pipeline (`backend/examples/flask_api.py`).
-- `frontend/`: React + Vite frontend source code.
-- `scripts/`: Production and utility scripts (e.g., `run-dev.sh`).
-- `dev-scripts/`: Development-only automation and helper scripts.
-- `_legacy/`: Archived previous implementations.
-
-### Development Setup
-1. Follow [INSTALL.md](INSTALL.md) to set up the Python and Node environments.
-2. Launch the development stack:
-   ```bash
-   bash scripts/run-dev.sh
-   ```
-
-### Contributing
-Please ensure you follow the established project structure and keep the `_legacy/` directory clean by archiving deprecated modules there.
+- [frontend/README.md](frontend/README.md) — UI routes, annotation behavior, and frontend commands.
+- [backend/README.md](backend/README.md) — Flask endpoints, payloads, storage, and backend limits.
+- [ANNOTATIONS.md](ANNOTATIONS.md) — validated-only annotation and retraining workflow.
+- [INSTALL.md](INSTALL.md) — installation notes.

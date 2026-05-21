@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { clientToImage, imageToClient } from './imageCoords';
 
 function makeSvg(rect: { left: number; top: number; width: number; height: number }): SVGSVGElement {

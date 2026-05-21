@@ -1,116 +1,179 @@
 # Annotations & Retraining Workflow
 
-> How to correct model predictions and retrain Codex with your annotations.
+This document describes the supported Clinic Codex loop:
+
+```text
+browser annotation → validate elements → save/export validated data → retrain → restart backend
+```
+
+Only **validated** and **named** elements are eligible for training. Draft boxes remain useful for review, but they are not exported by default.
 
 ## TL;DR
 
-1. Open an analysis in the browser → adjust bounding boxes and class labels.
-2. Click **"Envoyer pour entraînement"** (or run `scripts/export_annotations.py`).
-3. Run `bash scripts/retrain.sh` to retrain the model on the new crops.
+1. Run the app with `bash scripts/run-dev.sh`.
+2. Upload/analyze an image on `/`.
+3. Open `/annotate/:id`.
+4. Correct boxes and labels with the fuzzy label input.
+5. Validate each element that should enter the dataset.
+6. Click **Envoyer pour entraînement** or export from a localStorage dump with `scripts/export_annotations.py`.
+7. Retrain with `bash scripts/retrain.sh` or `pwsh -NoProfile -File scripts/retrain.ps1`.
+8. Restart the backend to use the new weights.
 
----
+## 1. Annotate in the browser
 
-## Step 1 — Annotate in the browser
+From the workspace `/`, open an analysis and choose **Aller à l'annotation**.
 
-1. From the dashboard, open any analysis and click **"Aller à l'annotation"**.
-2. In the annotation view:
-   - **Select mode** (default): click a bounding box to select it, then change its class in the dropdown.
-   - **Draw mode**: click the pen icon to draw new bounding boxes on the image.
-   - **Delete**: click the trash icon on any element card to remove it.
-3. Click **"Enregistrer les modifications"** to persist changes to localStorage.
+In `/annotate/:id`:
 
----
+- **Select** a box to inspect its class and confidence.
+- **Move/resize** a box when the detected square is visually wrong.
+- **Pan/zoom** the image; the image and SVG overlay move together.
+- **Draw** a new missing element.
+- **Type labels** in the combobox. Suggestions appear from the first letters; prefix matches are prioritized over contains matches.
+- **Create labels** by entering a name that is not already returned by `/classes`.
+- **Rename labels** directly in the combobox without deleting and redrawing the square.
+- **Validate** reviewed elements. Any edit to label or geometry returns that element to draft until you validate it again.
 
-## Step 2 — Send annotations to disk
+A valid training candidate has:
 
-Two options:
-- **Live upload** (backend running): click "Envoyer pour entraînement"
-- **Batch export** (offline): use `scripts/export_annotations.py`
+- bbox `[x, y, width, height]` in image pixels;
+- non-empty `class_name` that is not `unknown`;
+- `annotationStatus[index] === "validated"`.
 
-### Option A: Live upload
+## 2. Save validated annotations through the backend
 
-With the Flask backend running (`bash scripts/run-dev.sh`):
+With the Flask backend running, click **Envoyer pour entraînement**. The frontend filters locally and posts only validated, named elements to `POST /save-annotation`.
 
-1. Open the annotation view for an analysis.
-2. Click **"Envoyer pour entraînement"** in the top toolbar.
-3. A green toast confirms: `Envoyé : N éléments dans K classes`.
+Payload shape:
 
-### Stockage des annotations
-
-Les annotations sont sauvegardées directement dans le dossier du backend comme source unique de vérité.
-
-- **Emplacement** : `backend/annotations/<analysis_id>/`
-- **Fichiers créés** :
-  - `image.png` : L'image originale de l'analyse.
-  - `elements/el_<idx>.png` : Chaque recadrage d'élément annoté.
-  - `metadata.json` : Contient les boîtes englobantes, les étiquettes et les horodatages.
-
-Contrairement aux versions précédentes, le backend n'écrit plus directement dans `training_data/` et n'utilise plus de liens symboliques (symlinks).
-
-### Option B: Standalone export
-
-Use this when the backend is not running, or to export in bulk from the command line.
-
-```bash
-# Export a single analysis by ID
-backend/.venv/bin/python3 scripts/export_annotations.py --analysis-id <id>
-
-# Export all analyses from localStorage JSON dump
-backend/.venv/bin/python3 scripts/export_annotations.py --all --input analyses.json
+```json
+{
+  "analysis_id": "analysis_123",
+  "image_name": "387_769v.jpg",
+  "image_data_url": "data:image/jpeg;base64,...",
+  "timestamp": 1779376522290,
+  "annotations": [
+    { "index": 0, "bbox": [120, 240, 80, 60], "class_name": "atl" }
+  ]
+}
 ```
 
----
+Success response:
 
-## Step 3 — Migration et Nettoyage
+```json
+{
+  "status": "ok",
+  "analysis_id": "analysis_123",
+  "saved_count": 1,
+  "classes": ["atl"],
+  "saved_at": "2026-05-21T18:00:00+00:00"
+}
+```
 
-Si vous effectuez une mise à jour depuis une version plus ancienne utilisant des liens symboliques, vous devez nettoyer votre environnement :
+### Storage layout
 
-1. **Vérifier les liens orphelins** :
-   ```bash
-   python scripts/migrate_annotation_symlinks.py --dry-run
-   ```
-2. **Appliquer le nettoyage** :
-   ```bash
-   python scripts/migrate_annotation_symlinks.py --apply
-   ```
+The backend stores annotations as the canonical training review data:
 
-Cette étape supprime les anciens liens symboliques dans `training_data/Elements/` qui pointaient vers des fichiers déplacés ou supprimés.
+```text
+backend/annotations/<analysis_id>/
+├── image.png
+├── metadata.json
+└── elements/
+    └── <index>.png
+```
 
----
+`metadata.json` records `analysis_id`, upload time, class names, clamped bboxes, and crop paths. The backend sanitizes class names and clamps bboxes to image bounds before writing files.
 
-## Step 4 — Retrain
+## 3. Export from localStorage JSON
 
-Once crops are on disk under `backend/annotations/`:
+Use this option when the backend was not running during annotation or when exporting many browser records at once.
+
+```bash
+backend/.venv/bin/python scripts/export_annotations.py analyses.json
+```
+
+Default behavior is **validated-only**. Records with no validated annotations are skipped.
+
+For legacy data that predates `annotationStatus`, use the explicit escape hatch:
+
+```bash
+backend/.venv/bin/python scripts/export_annotations.py analyses.json --include-unvalidated
+```
+
+Optional paths:
+
+```bash
+backend/.venv/bin/python scripts/export_annotations.py analyses.json \
+  --annotations-dir backend/annotations \
+  --output backend/training_data/Elements
+```
+
+`--output` is kept for compatibility with older workflows; current storage writes the canonical data under `backend/annotations/`.
+
+## 4. Retrain
+
+Once validated crops exist under `backend/annotations/`, run one retraining command from the repository root.
+
+Linux/macOS:
 
 ```bash
 bash scripts/retrain.sh
 ```
 
-This runs the four pipeline steps in order:
+Windows/PowerShell:
 
-| Step | Script | What it does |
-|------|--------|--------------|
-| 1/4 | `build_metadata.py` | Scans `annotations/` and writes `metadata.json` |
-| 2/4 | `precompute_embeddings.py` | Extracts DINOv2 embeddings for all crops |
-| 3/4 | `train.py` | Trains prototype classifiers |
-| 4/4 | `export_model.py` | Writes `codex_model/weights/{prototypes.pt,projection.pt}` |
+```powershell
+pwsh -NoProfile -File scripts/retrain.ps1
+```
 
-A lockfile at `backend/.retrain.lock` prevents concurrent runs. If a previous run crashed, delete the lockfile manually:
+Dry-run the PowerShell step list without running the pipeline:
+
+```powershell
+pwsh -NoProfile -File scripts/retrain.ps1 -WhatIf
+```
+
+Both retraining scripts execute the same four steps:
+
+| Step | Script | Purpose |
+| --- | --- | --- |
+| 1/4 | `build_metadata.py` | Scan saved annotations and build training metadata. |
+| 2/4 | `precompute_embeddings.py` | Compute DINOv2 embeddings for crops. |
+| 3/4 | `train.py` | Train prototype classifiers. |
+| 4/4 | `export_model.py` | Export `codex_model/weights/{prototypes.pt,projection.pt}`. |
+
+A lockfile at `backend/.retrain.lock` prevents concurrent runs. If a run crashed and no retrain process is active, remove the stale lockfile:
 
 ```bash
 rm -f backend/.retrain.lock
 ```
 
-> **Note**: The running Flask server does **not** hot-reload new weights. Restart the backend after retraining to pick up the new model.
+Restart the Flask backend after retraining; running processes do not hot-load new weights.
 
----
+## FAQ
+
+### Why does my new class not appear in predictions immediately?
+
+Creating a label in the frontend only creates annotation data. The model will not predict that class until enough validated examples are saved, the retraining pipeline exports new weights, and the backend is restarted.
+
+### Why is an edited element draft again?
+
+Geometry or label edits can invalidate a previous review decision. Validate it again once the corrected box and label are ready for training.
+
+### Why did export skip my analysis?
+
+The default export is validated-only. Validate at least one named element, or pass `--include-unvalidated` only for legacy data you intentionally want to migrate.
+
+### What dataset size is required?
+
+The scripts do not enforce a universal minimum, but retraining is only meaningful with enough validated examples per class to represent visual variation. If a class has too few examples, add and validate more crops before trusting predictions.
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `POST /save-annotation` returns 400 | Missing required field in payload | Check browser console for the error message |
-| `POST /save-annotation` returns 413 | Image data URL too large (>50 MB) | Reduce image resolution before uploading |
-| `retrain.sh` exits immediately with "already running" | Stale lockfile | `rm -f backend/.retrain.lock` |
-| Crops look wrong (wrong region cropped) | Bbox in wrong format | Bbox must be `[x, y, width, height]` in image pixels |
-| New weights not used after retraining | Flask server not restarted | Restart with `bash scripts/run-dev.sh` |
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `POST /save-annotation` returns 400 | Missing field, invalid JSON, empty annotations, invalid class name, invalid bbox, or bad image data URL | Check browser console/network response; validate at least one named element. |
+| `POST /save-annotation` returns 413 | Payload exceeds 50 MB | Reduce image size before upload. |
+| `POST /save-annotation` returns 409 | Backend cannot write to `backend/annotations/` | Fix directory permissions. |
+| `POST /save-annotation` returns 507 | Disk full | Free disk space and retry. |
+| Crops look wrong | Bbox format or image geometry mismatch | Bbox must be `[x, y, width, height]` in image pixels. Re-run geometry tests if code changed. |
+| New weights not used after retraining | Backend still has old model in memory | Restart with `bash scripts/run-dev.sh` or `python backend/examples/flask_api.py`. |
