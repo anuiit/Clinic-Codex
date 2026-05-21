@@ -106,7 +106,7 @@ html, body, #root { height: 100%; overflow: hidden; }
     min-width: 360px;
   }
 
-  .annotation-selected-inspector .grid {
+  .annotation-selected-overview {
     grid-template-columns: 1fr;
   }
 }

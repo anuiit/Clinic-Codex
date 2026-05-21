@@ -160,7 +160,7 @@ export default function AnnotationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const cardRefs = useRef<Array<HTMLElement | null>>([]);
 
   const elementParam = searchParams.get('element');
   const initialFocusedIdx = elementParam !== null && !Number.isNaN(Number(elementParam))
@@ -989,7 +989,7 @@ export default function AnnotationPage() {
 
             {focusedElement && focusedIdx !== null ? (
               <>
-                <div className="grid grid-cols-[190px_minmax(0,1fr)] gap-4">
+                <div className="annotation-selected-overview grid grid-cols-[190px_minmax(0,1fr)] gap-4">
                   <div className="annotation-crop flex h-[190px] items-center justify-center overflow-hidden rounded-2xl border border-stone-700/50">
                     <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[180px] w-[180px] rounded-xl object-contain" />
                   </div>
@@ -1112,6 +1112,7 @@ export default function AnnotationPage() {
             </div>
           </section>
         </aside>
+      </div>
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition-all ${toast.ok ? 'bg-emerald-700 text-white' : 'bg-red-700 text-white'}`}>
           {toast.msg}
