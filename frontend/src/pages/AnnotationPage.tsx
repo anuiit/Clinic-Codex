@@ -241,6 +241,7 @@ export default function AnnotationPage() {
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState>(null);
+  const bboxHistoryRef = useRef<BboxHistoryEntry[]>([]);
   const pendingMoveRef = useRef<PendingMoveState>(null);
   const pendingTempBboxRef = useRef<[number, number, number, number] | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; offset: { x: number; y: number } } | null>(null);
