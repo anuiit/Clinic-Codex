@@ -143,7 +143,7 @@ describe('WorkspacePage image pan behavior', () => {
       dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
     });
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-    expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Région 0')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Retour aux régions' }));
     expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();

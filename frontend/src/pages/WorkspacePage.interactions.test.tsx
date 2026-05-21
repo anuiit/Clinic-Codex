@@ -234,7 +234,7 @@ describe('WorkspacePage interaction coverage', () => {
     await user.click(screen.getByText('annotated aleph'));
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-    expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Région 0')).not.toBeInTheDocument();
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10));
   });
 
@@ -267,7 +267,9 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
-    expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#1 · lamed');
+    const namedOverlay = container.querySelector('[data-testid="workspace-overlay"]');
+    expect(namedOverlay).toHaveTextContent('lamed');
+    expect(namedOverlay).not.toHaveTextContent('#1 · lamed');
   });
 
   it('keeps workspace zoom/pan contained and read-only while focusing rows', async () => {
@@ -340,7 +342,7 @@ describe('WorkspacePage interaction coverage', () => {
     });
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-    expect(screen.getAllByText('Région 1').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Région 1')).not.toBeInTheDocument();
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'inner', 10));
     expect(saveAnalysis).not.toHaveBeenCalled();
     expect(historyRecords).toEqual(initialSnapshot);

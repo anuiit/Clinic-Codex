@@ -505,7 +505,8 @@ describe('AnnotationPage element naming UX', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
-    expect(overlay).toHaveTextContent('#1 · beta');
+    expect(overlay).toHaveTextContent('beta');
+    expect(overlay).not.toHaveTextContent('#1 · beta');
   });
 
 });

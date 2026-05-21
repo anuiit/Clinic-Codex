@@ -31,7 +31,7 @@ type HoverSource = 'image' | 'list' | null;
 function formatWorkspaceBboxLabel(idx: number, className: string, showName: boolean) {
   if (!showName) return `#${idx}`;
   const clippedName = className.length > 18 ? `${className.slice(0, 17)}…` : className;
-  return `#${idx} · ${clippedName}`;
+  return clippedName;
 }
 
 function getCropPreviewSize(bbox: [number, number, number, number], maxSize: number) {
@@ -725,14 +725,14 @@ export default function WorkspacePage() {
                         aria-label={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
                         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? 'border-stone-100 bg-stone-100 text-stone-950' : 'border-stone-700 bg-stone-950 text-stone-300 hover:text-stone-100'}`}
                       >
-                        <Tags size={15} />
+                        {showLabelNames ? <Tags size={15} /> : <span className="text-xs font-black tabular-nums">N°</span>}
                         {showLabelNames ? 'Noms' : 'N°'}
                       </button>
                     </div>
                   </div>
 
                   <div
-                    className={`workspace-stage relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-stone-800 bg-stone-950 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    className={`workspace-stage image-stage-grid relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-stone-800 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                     onPointerDown={startWorkspacePan}
                     onPointerMove={moveWorkspacePan}
                     onPointerUp={stopWorkspacePan}
@@ -818,7 +818,7 @@ export default function WorkspacePage() {
                       )}
                     </div>
                     
-                    <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-xl border border-stone-700 bg-stone-900/90 p-1 backdrop-blur-sm">
+                    <div className="absolute bottom-4 right-4 flex items-center gap-1">
                       <button type="button" onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.zoomIn}>
                         <ZoomIn size={16} />
                       </button>
@@ -845,10 +845,10 @@ export default function WorkspacePage() {
                   </div>
                 </section>
 
-                <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-stone-800 bg-stone-900/75 sidebar-shell">
+                <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-stone-900/35 sidebar-shell">
                   {focusedIdx !== null ? (
                     <div className="flex h-full flex-col">
-                      <div className="flex items-center justify-between sidebar-header px-5 py-4 border-b border-stone-800">
+                      <div className="flex items-center justify-between sidebar-header px-5 py-4 border-b border-stone-800/60">
                         <button 
                           onClick={() => setFocusedIdx(null)}
                           className="flex items-center gap-2 text-stone-400 hover:text-stone-100 transition-colors"
@@ -856,10 +856,9 @@ export default function WorkspacePage() {
                           <ChevronLeft size={16} />
                         <span className="text-sm font-medium">{t.backToRegions}</span>
                         </button>
-                        <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.region} {focusedIdx}</span>
                       </div>
                       
-                      <div className="flex-1 overflow-y-auto sidebar-body p-5 space-y-6">
+                      <div className="annotation-scrollbar flex-1 overflow-y-auto sidebar-body p-5 space-y-6">
                           {(() => {
                           const element = currentRecord.result.elements[focusedIdx];
                           const trust = trustData?.trust;
@@ -874,12 +873,11 @@ export default function WorkspacePage() {
                           
                           return (
                             <>
-                              <div className="flex flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/50 p-4">
+                              <div className="flex flex-col gap-3 p-1">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-medium text-stone-400">{t.segmentPreview}</h4>
-                                  <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.region} {focusedIdx}</span>
+                                  <h4 className="text-base font-semibold text-stone-300">{t.segmentPreview}</h4>
                                 </div>
-                                <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-stone-800 bg-stone-950/70 p-3">
+                                <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-stone-950/55 p-3">
                                   <canvas
                                     ref={detailCanvasRef}
                                     width={detailPreviewSize.width}
@@ -889,14 +887,14 @@ export default function WorkspacePage() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/50 p-4">
+                              <div className="flex flex-col gap-3 p-1">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-medium text-stone-400">{t.trustSummary}</h4>
+                                  <h4 className="text-base font-semibold text-stone-300">{t.trustSummary}</h4>
                                   {contextLoading && <Loader2 size={14} className="animate-spin text-stone-500" />}
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xl font-bold text-stone-100 truncate">{summaryClass}</span>
-                                  <span className={`shrink-0 px-2.5 py-1 rounded-md text-sm font-bold ${
+                                  <span className="text-2xl font-bold text-stone-100 truncate">{summaryClass}</span>
+                                  <span className={`shrink-0 px-3 py-1.5 rounded-md text-base font-bold ${
                                     isRejected
                                       ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
                                       : 'bg-green-500/10 text-green-400 border border-green-500/20'
@@ -932,14 +930,10 @@ export default function WorkspacePage() {
                                   </div>
                                 )}
                                 {trust && (
-                                  <div className="flex gap-2 text-xs">
+                                  <div className="flex gap-2 text-sm">
                                     <div className="flex-1 rounded-lg bg-stone-950/50 p-2">
                                       <span className="text-stone-500 block">{t.rank}</span>
                                       <span className="text-stone-200 font-semibold">#1</span>
-                                    </div>
-                                    <div className="flex-1 rounded-lg bg-stone-950/50 p-2">
-                                      <span className="text-stone-500 block">{t.entropy}</span>
-                                      <span className="text-stone-200 font-semibold">{trust.entropy.toFixed(2)}</span>
                                     </div>
                                     <div className="flex-1 rounded-lg bg-stone-950/50 p-2">
                                       <span className="text-stone-500 block">{t.margin}</span>
@@ -949,17 +943,16 @@ export default function WorkspacePage() {
                                 )}
                               </div>
 
-                              <div className="flex flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/50 p-4">
+                              <div className="flex flex-col gap-3 p-1">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-medium text-stone-400">{t.topPredictions}</h4>
-                                  <span className="text-[10px] text-stone-500">{t.entropy}: {trust ? trust.entropy.toFixed(2) : '—'}</span>
+                                  <h4 className="text-base font-semibold text-stone-300">{t.topPredictions}</h4>
                                 </div>
                                 <div className="space-y-2">
                                   {(trust?.top_k ?? element.top_k).map((item, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                       <span className="w-4 text-[10px] text-stone-500 text-right">{i + 1}</span>
                                       <div className="flex-1">
-                                        <div className="flex justify-between text-xs mb-0.5">
+                                        <div className="flex justify-between text-sm mb-0.5">
                                           <span className={i === 0 ? "text-stone-200 font-medium" : "text-stone-400"}>{item.class_name}</span>
                                           <span className={i === 0 ? "text-stone-300 font-medium" : "text-stone-500"}>{(item.confidence * 100).toFixed(1)}%</span>
                                         </div>
@@ -1042,7 +1035,8 @@ export default function WorkspacePage() {
                   )}
 
                   <div
-                    className="flex-1 space-y-1 overflow-y-auto pr-2"
+                    className="annotation-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto pr-2 2xl:gap-x-4"
+                    data-testid="workspace-detected-list"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (!currentRecord) return;
@@ -1127,11 +1121,6 @@ export default function WorkspacePage() {
                                 <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none ${badgeClasses}`}>
                                   {(element.confidence * 100).toFixed(1)}%
                                 </span>
-                                {focusedIdx === idx && trustData && (
-                                  <span className="text-[9px] text-stone-500 leading-none">
-                                    H={trustData.trust.entropy.toFixed(2)}
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>

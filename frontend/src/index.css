@@ -70,6 +70,15 @@ html, body, #root { height: 100%; overflow: hidden; }
   background: #0a0a0a;
 }
 
+.image-stage-grid {
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(245, 158, 11, 0.06), transparent 34rem);
+  background-size: 44px 44px, 44px 44px, auto;
+}
+
 .annotation-stage {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
@@ -91,7 +100,12 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .annotation-selected-inspector {
-  background: rgba(12, 10, 9, 0.62);
+  height: 360px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: hidden;
 }
 
 @media (max-width: 1100px) {
@@ -143,4 +157,22 @@ html, body, #root { height: 100%; overflow: hidden; }
 .annotation-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(245, 158, 11, 0.45);
   border-radius: 999px;
+}
+
+@media (min-width: 1536px) {
+  .workspace-detected-grid {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .workspace-detected-grid::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(120, 113, 108, 0.26);
+    pointer-events: none;
+  }
 }

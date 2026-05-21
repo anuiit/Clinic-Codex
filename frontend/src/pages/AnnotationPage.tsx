@@ -103,7 +103,7 @@ function formatBboxLabel(
   const displayName = isUnnamedClass(className) ? unnamedLabel : className;
   const clippedName =
     displayName.length > 18 ? `${displayName.slice(0, 17)}…` : displayName;
-  return `#${idx} · ${clippedName}`;
+  return clippedName;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -1271,7 +1271,7 @@ export default function AnnotationPage() {
       <div className="flex min-h-0 flex-1 gap-2">
         <div
           ref={containerRef}
-          className="annotation-stage-frame annotation-scrollbar relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
+          className="annotation-stage-frame annotation-scrollbar image-stage-grid relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
           onWheel={(e) => {
             if (e.ctrlKey) {
               e.preventDefault();
@@ -1329,11 +1329,15 @@ export default function AnnotationPage() {
                   : "Afficher les noms des libellés"
               }
             >
-              <Tags size={16} />
+              {showLabelNames ? (
+                <Tags size={16} />
+              ) : (
+                <span className="text-xs font-black tabular-nums">N°</span>
+              )}
               {showLabelNames ? "Noms" : "N°"}
             </button>
             <div className="mx-1 h-6 w-px bg-stone-700/70" />
-            <div className="flex items-center gap-1 rounded-lg border border-stone-700/70 bg-stone-950/50 p-0.5">
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => applyZoom(zoom + 0.25)}
@@ -1572,8 +1576,9 @@ export default function AnnotationPage() {
               )}
             </div>
 
-            {focusedElement && focusedIdx !== null ? (
-              <>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {focusedElement && focusedIdx !== null ? (
+              <div className="flex h-full min-h-0 flex-col gap-3">
                 <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
                   <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
                     <canvas
@@ -1620,18 +1625,22 @@ export default function AnnotationPage() {
                   </div>
                 </div>
 
-                <ElementNameCombobox
-                  value={focusedElement.class_name}
-                  classNames={[focusedElement.class_name, ...classes]}
-                  customClassNames={customClasses}
-                  topK={focusedElement.top_k}
-                  autoFocusToken={namingFocusToken}
-                  labels={t}
-                  index={focusedIdx}
-                  onCommit={(name) => commitElementName(focusedIdx, name)}
-                />
-
-                <div className="grid grid-cols-[1fr_auto] gap-2">
+                <div
+                  className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2"
+                  data-testid="annotation-inspector-action-row"
+                >
+                  <div className="min-w-0">
+                    <ElementNameCombobox
+                      value={focusedElement.class_name}
+                      classNames={[focusedElement.class_name, ...classes]}
+                      customClassNames={customClasses}
+                      topK={focusedElement.top_k}
+                      autoFocusToken={namingFocusToken}
+                      labels={t}
+                      index={focusedIdx}
+                      onCommit={(name) => commitElementName(focusedIdx, name)}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() =>
@@ -1656,39 +1665,30 @@ export default function AnnotationPage() {
                     <Trash2 size={18} />
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="flex min-h-[245px] items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/25 px-6 text-center text-sm text-stone-500">
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/20 px-6 text-center text-sm text-stone-500">
                 {t.selectElementCrop}
               </div>
             )}
+            </div>
           </section>
 
           <section
             className="flex min-h-0 flex-1 flex-col"
             aria-label="Liste compacte des éléments"
           >
-            <div className="mb-3 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">
-                    {t.elements}
-                  </div>
-                  <div className="text-2xl font-black leading-none text-stone-100">
-                    {displayedElements.length}
-                    <span className="text-sm font-semibold text-stone-500">
-                      /{elements.length}
-                    </span>
-                  </div>
-                </div>
+            <div
+              className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2"
+              data-testid="annotation-list-controls"
+            >
                 <div
-                  className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"
+                  className="mb-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
                   aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}
                 >
                   {t.submitted} {submittedCount}/{elements.length}
                 </div>
-              </div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+              <label className="min-w-[128px] flex-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
                 Filtrer
                 <input
                   type="search"
@@ -1699,8 +1699,7 @@ export default function AnnotationPage() {
                   className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                <label className="min-w-[112px] text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
                   Statut
                   <select
                     value={statusFilter}
@@ -1717,7 +1716,7 @@ export default function AnnotationPage() {
                     <option value="rejected">Rejetés</option>
                   </select>
                 </label>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                <label className="min-w-[122px] text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
                   Tri
                   <select
                     value={sortMode}
@@ -1732,7 +1731,6 @@ export default function AnnotationPage() {
                     <option value="name">Nom A→Z</option>
                   </select>
                 </label>
-              </div>
             </div>
 
             <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
