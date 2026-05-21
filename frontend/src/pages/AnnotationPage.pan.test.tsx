@@ -261,34 +261,6 @@ describe("AnnotationPage pan behavior", () => {
     expect(wrapper.style.transform).not.toMatch(/translate\(0px,\s*0px\)/);
   });
 
-  it("consumes direct wheel input over the stage and zooms without modifier keys", async () => {
-    const { container } = renderPage();
-    await act(async () => {});
-
-    const stage = screen.getByTestId("annotation-stage-frame");
-    const { wrapper } = getSvgAndWrapper(container);
-    const transformBefore = wrapper.style.transform;
-    const preventDefaultSpy = vi
-      .spyOn(Event.prototype, "preventDefault")
-      .mockImplementation(() => {});
-
-    const wheelEvent = new WheelEvent("wheel", {
-      bubbles: true,
-      cancelable: true,
-      deltaY: -100,
-      clientX: 160,
-      clientY: 140,
-    });
-
-    await act(async () => {
-      stage.dispatchEvent(wheelEvent);
-    });
-
-    expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(wrapper.style.transform).not.toBe(transformBefore);
-    expect(wrapper.style.transform).toContain("scale(2)");
-  });
-
   it("draw mode creates a draft bbox without changing the stage layout", async () => {
     const { container } = renderPage();
     await act(async () => {});
@@ -356,9 +328,6 @@ describe("AnnotationPage pan behavior", () => {
 
     const stageFrame = screen.getByTestId("annotation-stage-frame");
     const { wrapper } = getSvgAndWrapper(container);
-    const preventDefaultSpy = vi
-      .spyOn(Event.prototype, "preventDefault")
-      .mockImplementation(() => {});
     const event = new WheelEvent("wheel", {
       bubbles: true,
       cancelable: true,
@@ -371,7 +340,7 @@ describe("AnnotationPage pan behavior", () => {
       stageFrame.dispatchEvent(event);
     });
 
-    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
     expect(wrapper.style.transform).toContain("scale(1.25)");
 
     const zoomOutEvent = new WheelEvent("wheel", {
@@ -386,7 +355,7 @@ describe("AnnotationPage pan behavior", () => {
       stageFrame.dispatchEvent(zoomOutEvent);
     });
 
-    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(zoomOutEvent.defaultPrevented).toBe(true);
     expect(wrapper.style.transform).toContain("scale(0.25)");
   });
 
@@ -422,30 +391,7 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
-  it('zooms directly on no-modifier wheel over the stage and prevents page scroll', async () => {
-    const { container } = renderPage();
-    await act(async () => {});
-
-    const { wrapper } = getSvgAndWrapper(container);
-    const stageFrame = screen.getByTestId('annotation-stage').parentElement as HTMLElement;
-    const wheelEvent = new WheelEvent('wheel', {
-      bubbles: true,
-      cancelable: true,
-      clientX: 400,
-      clientY: 300,
-      deltaY: -120,
-    });
-    const preventDefault = vi.spyOn(wheelEvent, 'preventDefault');
-
-    await act(async () => {
-      fireEvent(stageFrame, wheelEvent);
-    });
-
-    expect(preventDefault).toHaveBeenCalled();
-    expect(wrapper.style.transform).not.toBe('translate(0px, 0px) scale(1)');
-  });
-
-  it('keeps queue selection and bbox overlay selection synchronized', async () => {
+  it("keeps queue selection and bbox overlay selection synchronized", async () => {
     const recordWithElements: AnalysisRecord = {
       ...STUB_RECORD,
       result: {

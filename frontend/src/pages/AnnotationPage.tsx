@@ -723,7 +723,7 @@ export default function AnnotationPage() {
     });
   };
 
-  const handleStageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+  const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!shouldConsumeStageWheel(event.deltaY)) return;
 
     event.preventDefault();

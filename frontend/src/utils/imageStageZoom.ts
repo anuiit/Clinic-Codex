@@ -30,9 +30,8 @@ export function nextZoomFromWheel(
   currentZoom: number,
   deltaY: number,
   bounds?: ImageStageZoomBounds,
-  sensitivity = IMAGE_STAGE_WHEEL_SENSITIVITY,
 ): number {
-  return clampZoom(currentZoom + zoomDeltaFromWheel(deltaY, sensitivity), bounds);
+  return clampZoom(currentZoom + zoomDeltaFromWheel(deltaY), bounds);
 }
 
 export function shouldConsumeStageWheel(deltaY: number): boolean {
