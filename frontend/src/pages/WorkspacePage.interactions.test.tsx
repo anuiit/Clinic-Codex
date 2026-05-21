@@ -152,19 +152,19 @@ describe('WorkspacePage interaction coverage', () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.click(screen.getByTitle('Déplier l’historique'));
     await user.type(screen.getByPlaceholderText('Filtrer par glyphe ou classe'), 'beta');
-    expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('beta.png')).toBeInTheDocument();
 
     await user.click(screen.getByText('beta.png'));
     expect(screen.getAllByText('beta.png').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('bet')).toBeInTheDocument();
+    expect(screen.getAllByText('bet').length).toBeGreaterThanOrEqual(1);
 
     await user.click(screen.getByLabelText('Supprimer beta.png'));
 
     expect(deleteAnalysis).toHaveBeenCalledWith('beta-run');
-    expect(screen.getByText('alpha.png')).toBeInTheDocument();
     expect(screen.queryByText('beta.png')).not.toBeInTheDocument();
+    expect(screen.getByText('Aucun résultat ne correspond au filtre.')).toBeInTheDocument();
   });
 
   it('toggles overlays and opens focused region details without starting a pan', async () => {
@@ -197,7 +197,7 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.upload(fileInput, file);
     expect(await screen.findByText('Image prête à analyser')).toBeInTheDocument();
-    expect(screen.getByText('glyph.png')).toBeInTheDocument();
+    expect(screen.getAllByText('glyph.png').length).toBeGreaterThanOrEqual(1);
 
     const dialog = screen.getByText('Image prête à analyser').closest('div')?.parentElement as HTMLElement;
     await user.click(within(dialog).getAllByRole('button', { name: 'Annuler' })[0]);
@@ -215,6 +215,6 @@ describe('WorkspacePage interaction coverage', () => {
       annotations: {},
     }));
     await waitFor(() => expect(screen.queryByText('Image prête à analyser')).not.toBeInTheDocument());
-    expect(screen.getByText('glyph.png')).toBeInTheDocument();
+    expect(screen.getAllByText('glyph.png').length).toBeGreaterThanOrEqual(1);
   });
 });

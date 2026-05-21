@@ -115,7 +115,7 @@ describe('WorkspacePage image pan behavior', () => {
 
     await user.click(expandButton);
     expect(await screen.findByPlaceholderText('Filtrer par glyphe ou classe')).toBeInTheDocument();
-    expect(screen.getByText('workspace-test.png')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'workspace-test.png' })).toBeInTheDocument();
 
     await user.click(screen.getByTitle('Replier l’historique'));
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('WorkspacePage image pan behavior', () => {
 
     await user.click(overlayRegion);
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-    expect(screen.getByText('Region 0')).toBeInTheDocument();
+    expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Retour aux régions' }));
     expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();
