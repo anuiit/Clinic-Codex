@@ -960,53 +960,74 @@ export default function AnnotationPage() {
           </div>
         </div>
 
-        <div className="w-[30%] shrink-0 flex flex-col rounded-xl border border-stone-800 bg-stone-900/80 p-4 shadow-sm sidebar-shell">
-          <div className="mb-4 border border-stone-800 rounded bg-stone-950 flex justify-center items-center h-[200px] shrink-0">
+        <div className="annotation-rail flex w-[360px] shrink-0 flex-col rounded-2xl p-4">
+          <div className="annotation-crop mb-4 flex h-[190px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-stone-700/50">
             {focusedIdx !== null ? (
-              <canvas ref={previewCanvasRef} width={200} height={200} className="block w-[200px] h-[200px] object-contain" />
+              <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[180px] w-[180px] rounded-xl object-contain" />
             ) : (
-              <div className="text-sm text-stone-500 text-center px-4">{t.selectElementCrop}</div>
+              <div className="px-4 text-center text-sm text-stone-500">{t.selectElementCrop}</div>
             )}
           </div>
           
-          <div className="mb-2 text-xs uppercase tracking-[0.24em] text-stone-500 sidebar-header">
-            {t.elements} ({elements.length})
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">{t.elements}</div>
+              <div className="text-2xl font-black leading-none text-stone-100">{elements.length}</div>
+            </div>
+            <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+              {submittedCount} {t.submitted}
+            </div>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto pr-2 sidebar-body">
+          <div className="annotation-scrollbar flex-1 space-y-2 overflow-y-auto pr-2">
             {elements.map((el, idx) => {
               const isFocused = idx === focusedIdx;
               const displayName = isUnnamedClass(el.class_name) ? t.unnamedElement : el.class_name;
               const isSubmitted = annotationStatus[idx] === 'validated';
+              const confidencePercent = Math.round(el.confidence * 100);
 
               return (
                 <div
                   key={idx}
                   ref={(node) => { cardRefs.current[idx] = node; }}
                   onClick={() => setFocusedIdx(idx)}
-                  className={`flex flex-col gap-3 rounded-xl border bg-stone-950 p-3 transition-all cursor-pointer ${isFocused ? 'border-amber-500/60 bg-amber-500/5 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]' : 'border-stone-800 hover:border-stone-700'}`}
+                  className={`annotation-card flex cursor-pointer flex-col gap-3 rounded-2xl p-3 transition-all ${isFocused ? 'annotation-card-selected' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-500 text-stone-950 font-bold text-sm shrink-0">
-                        {idx}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isSubmitted ? 'bg-emerald-400 text-stone-950' : isFocused ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-stone-300'}`}>
+                        #{idx}
                       </span>
-                      <div className={`font-semibold text-sm truncate ${isUnnamedClass(el.class_name) ? 'text-amber-300' : 'text-stone-100'}`}>
-                        {displayName}
+                      <div className="min-w-0">
+                        <div className={`truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? 'text-amber-300' : 'text-stone-100'}`}>
+                          {displayName}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
+                            <div
+                              className={`h-full rounded-full ${el.rejected ? 'bg-red-400' : isSubmitted ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                              style={{ width: `${Math.max(0, Math.min(100, confidencePercent))}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-semibold tabular-nums text-stone-500">{confidencePercent}%</span>
+                        </div>
                       </div>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${isSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? 'bg-red-500/15 text-red-300' : isSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
                         {isSubmitted ? t.submitted : t.draft}
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeElement(idx);
+                        }}
+                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeElement(idx);
-                      }}
-                      className="p-1.5 text-stone-500 hover:text-red-400 hover:bg-stone-800 rounded transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                   
                   {isFocused && (
