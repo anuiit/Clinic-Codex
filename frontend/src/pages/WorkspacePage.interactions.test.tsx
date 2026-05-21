@@ -257,7 +257,7 @@ describe('WorkspacePage interaction coverage', () => {
     expect(await screen.findByText('annotation handoff /annotate/alpha-run')).toBeInTheDocument();
   });
 
-  it('toggles workspace canvas bbox labels from numbers to class names', async () => {
+  it('toggles workspace canvas bbox labels with an icon-only accessible control', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
@@ -269,7 +269,14 @@ describe('WorkspacePage interaction coverage', () => {
     expect(overlay).toHaveTextContent('#1');
     expect(overlay).not.toHaveTextContent('#1 · lamed');
 
-    await user.click(toggle);
+    const labelToggle = screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i });
+    expect(labelToggle).toHaveAttribute('title', 'Afficher les noms des libellés');
+    expect(labelToggle).not.toHaveTextContent(/Noms|N°/i);
+
+    await user.click(labelToggle);
+
+    expect(screen.getByRole('button', { name: /masquer.*noms.*libellés/i })).toHaveAttribute('title', 'Masquer les noms des libellés');
+    expect(screen.getByRole('button', { name: /masquer.*noms.*libellés/i })).not.toHaveTextContent(/Noms|N°/i);
 
     const namedOverlay = container.querySelector('[data-testid="workspace-overlay"]');
     expect(namedOverlay).toHaveTextContent('aleph');
@@ -278,29 +285,31 @@ describe('WorkspacePage interaction coverage', () => {
     expect(namedOverlay).not.toHaveTextContent('#1 · lamed');
   });
 
-  it('keeps workspace list and detail panels in the two-column scroll layout without duplicate focus lists', async () => {
+  it('keeps workspace list and detail panels in the narrowed image-dominant scroll layout without duplicate focus lists', async () => {
     const user = userEvent.setup();
-    const { container } = renderPage();
+    renderPage();
 
     await screen.findByText('annotated aleph');
-    const contentGrid = container.querySelector('section.min-h-0.overflow-hidden > div.grid') as HTMLElement;
-    expect(contentGrid).toHaveClass('workspace-image-first-grid');
+    const contentGrid = screen.getByTestId('workspace-content-grid');
+    expect(contentGrid).toHaveClass('xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]');
+    expect(contentGrid).toHaveClass('2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]');
     expect(contentGrid).not.toHaveClass('2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]');
 
-    const stage = container.querySelector('.workspace-stage') as HTMLElement;
+    const stage = screen.getByTestId('workspace-stage');
     expect(stage).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');
 
-    const sidebar = container.querySelector('.sidebar-shell') as HTMLElement;
+    const sidebar = screen.getByTestId('workspace-detected-panel');
     expect(sidebar).toBeInTheDocument();
-    const proposalList = within(sidebar).getByRole('button', { name: /annotated aleph région 0/i }).parentElement?.parentElement as HTMLElement;
-    expect(proposalList).toHaveClass('overflow-y-auto', 'pr-2');
+    const proposalList = within(sidebar).getByTestId('workspace-detected-list');
+    expect(proposalList).toHaveClass('grid-cols-1', 'overflow-y-auto', 'pr-2');
+    expect(proposalList).not.toHaveClass('2xl:gap-x-4');
 
     await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.queryByText('Éléments détectés')).not.toBeInTheDocument();
     expect(screen.getAllByText('Aperçu du segment')).toHaveLength(1);
-    expect(container.querySelector('.sidebar-body')).toHaveClass('overflow-y-auto');
+    expect(document.querySelector('.sidebar-body')).toHaveClass('overflow-y-auto');
     expect(screen.queryByRole('button', { name: /annotated aleph région 0/i })).not.toBeInTheDocument();
   });
 

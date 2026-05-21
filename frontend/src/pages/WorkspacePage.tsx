@@ -539,8 +539,11 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      <div className={`grid min-h-0 flex-1 gap-3 transition-all duration-300 ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
-        <aside className={`flex flex-col transition-all duration-300 ${historyOpen ? 'min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3' : 'min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3'}`}>
+      <div className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
+        <aside
+          data-testid="workspace-history-sidebar"
+          className={`flex flex-col overflow-hidden transition-[padding,border-color,background-color] duration-200 ease-out ${historyOpen ? 'min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3' : 'min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3'}`}
+        >
               {!historyOpen ? (
                 <div className="flex flex-col items-center w-full h-full overflow-hidden">
                   <button
@@ -578,16 +581,14 @@ export default function WorkspacePage() {
                 </div>
               ) : (
             <>
-              <div className="mb-4 flex items-start justify-between gap-3 border-b border-stone-800 pb-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{t.analysisHistory}</p>
-                  <h2 className="mt-1 text-lg font-semibold text-stone-100">{t.savedRuns}</h2>
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-stone-800 pb-3" data-testid="workspace-history-header">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="text-sm font-semibold text-stone-100">History</h2>
+                  <span className="rounded-full border border-stone-800 bg-stone-950/70 px-2 py-0.5 text-xs font-medium tabular-nums text-stone-400">
+                    {filteredRecords.length} total
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="rounded-xl border border-stone-800 bg-stone-950/70 px-3 py-1.5 text-right">
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-stone-500">{t.items}</div>
-                    <div className="text-base font-semibold leading-tight text-stone-100">{filteredRecords.length}</div>
-                  </div>
                   <button
                     type="button"
                     onClick={() => setHistoryOpen(false)}
@@ -599,7 +600,7 @@ export default function WorkspacePage() {
                 </div>
               </div>
 
-              <div className="relative mb-4">
+              <div className="relative mb-3">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
                 <input
                   value={filter}
@@ -609,7 +610,7 @@ export default function WorkspacePage() {
                 />
               </div>
 
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" data-testid="workspace-history-list">
                 {records.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-stone-700 bg-stone-950/70 px-4 py-8 text-center text-sm text-stone-500">
                     {t.noAnalyses}
@@ -689,7 +690,7 @@ export default function WorkspacePage() {
         <section className="min-h-0 overflow-hidden">
           {currentRecord ? (
             <>
-              <div className="grid h-full min-h-0 gap-3 2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
+              <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]" data-testid="workspace-content-grid">
                 <section className="flex min-h-0 flex-col rounded-2xl border border-stone-800 bg-stone-900/75 p-4">
                   <div className="flex flex-col gap-4 border-b border-stone-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
@@ -723,16 +724,17 @@ export default function WorkspacePage() {
                         onClick={() => setShowLabelNames((current) => !current)}
                         aria-pressed={showLabelNames}
                         aria-label={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
-                        className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? 'border-stone-100 bg-stone-100 text-stone-950' : 'border-stone-700 bg-stone-950 text-stone-300 hover:text-stone-100'}`}
+                        title={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-colors ${showLabelNames ? 'border-stone-100 bg-stone-100 text-stone-950' : 'border-stone-700 bg-stone-950 text-stone-300 hover:text-stone-100'}`}
                       >
-                        {showLabelNames ? <Tags size={15} /> : <span className="text-xs font-black tabular-nums">N°</span>}
-                        {showLabelNames ? 'Noms' : 'N°'}
+                        {showLabelNames ? <Tags size={16} aria-hidden="true" /> : <span aria-hidden="true" className="text-base font-black leading-none">#</span>}
                       </button>
                     </div>
                   </div>
 
                   <div
-                    className={`workspace-stage image-stage-grid relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-stone-800 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    className={`workspace-stage image-stage-frame image-stage-scrollbar image-stage-grid relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    data-testid="workspace-stage"
                     onPointerDown={startWorkspacePan}
                     onPointerMove={moveWorkspacePan}
                     onPointerUp={stopWorkspacePan}
@@ -845,7 +847,7 @@ export default function WorkspacePage() {
                   </div>
                 </section>
 
-                <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-stone-900/35 sidebar-shell">
+                <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-stone-900/35 sidebar-shell" data-testid="workspace-detected-panel">
                   {focusedIdx !== null ? (
                     <div className="flex h-full flex-col">
                       <div className="flex items-center justify-between sidebar-header px-5 py-4 border-b border-stone-800/60">
@@ -984,17 +986,17 @@ export default function WorkspacePage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col h-full p-5 lg:p-6">
-                  <div className="mb-4 flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
+                    <div className="flex h-full flex-col p-4 lg:p-5">
+                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-stone-800 pb-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{t.proposalPanel}</p>
-                      <h2 className="mt-1 text-lg font-semibold text-stone-100">{t.detectedElements}</h2>
+                      <h2 className="mt-1 text-base font-semibold text-stone-100">{t.detectedElements}</h2>
                     </div>
                     <div className="text-right">
                       <button
                         type="button"
                         onClick={handleEditorHandoff}
-                        className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400"
+                        className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400"
                       >
                         <Edit3 size={16} /> {t.annotateRecord}
                       </button>
@@ -1014,7 +1016,7 @@ export default function WorkspacePage() {
                   )}
 
                   {stats && (
-                    <div className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
                         <span className="block text-stone-500">Image</span>
                         <span className="mt-1 block truncate font-semibold text-stone-200" title={currentRecord.imageName}>{currentRecord.imageName}</span>
@@ -1035,7 +1037,7 @@ export default function WorkspacePage() {
                   )}
 
                   <div
-                    className="annotation-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto pr-2 2xl:gap-x-4"
+                    className="annotation-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto pr-2"
                     data-testid="workspace-detected-list"
                     tabIndex={0}
                     onKeyDown={(e) => {

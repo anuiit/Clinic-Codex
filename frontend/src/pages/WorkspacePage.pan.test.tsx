@@ -78,6 +78,7 @@ describe('WorkspacePage image pan behavior', () => {
     const image = images.find((candidate) => candidate.className.includes('object-contain')) as HTMLImageElement;
     const wrapper = image.parentElement as HTMLElement;
     const viewport = wrapper.parentElement as HTMLElement;
+    expect(viewport).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');
 
     viewport.setPointerCapture = vi.fn();
     viewport.releasePointerCapture = vi.fn();
@@ -85,16 +86,11 @@ describe('WorkspacePage image pan behavior', () => {
 
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
 
-    const wheelEvent = new WheelEvent('wheel', {
-      bubbles: true,
-      cancelable: true,
-      deltaY: -100,
-    });
-    const preventDefault = vi.spyOn(wheelEvent, 'preventDefault');
+    const wheelEvent = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100 });
     await act(async () => {
-      fireEvent(viewport, wheelEvent);
+      viewport.dispatchEvent(wheelEvent);
     });
-    expect(preventDefault).toHaveBeenCalled();
+    expect(wheelEvent.defaultPrevented).toBe(true);
     expect(wrapper.style.transform).toContain('scale(1.15)');
 
     await act(async () => {

@@ -197,39 +197,30 @@ body,
     0 18px 48px rgba(245, 158, 11, 0.08);
 }
 
-.annotation-scrollbar {
+.annotation-scrollbar,
+.image-stage-scrollbar {
   scrollbar-color: rgba(245, 158, 11, 0.45) rgba(28, 25, 23, 0.45);
   scrollbar-width: thin;
 }
 
-.annotation-scrollbar::-webkit-scrollbar {
+.annotation-scrollbar::-webkit-scrollbar,
+.image-stage-scrollbar::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
-.annotation-scrollbar::-webkit-scrollbar-track {
+.annotation-scrollbar::-webkit-scrollbar-track,
+.image-stage-scrollbar::-webkit-scrollbar-track {
   background: rgba(28, 25, 23, 0.45);
   border-radius: 999px;
 }
 
-.annotation-scrollbar::-webkit-scrollbar-thumb {
+.annotation-scrollbar::-webkit-scrollbar-thumb,
+.image-stage-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(245, 158, 11, 0.45);
   border-radius: 999px;
 }
 
-@media (min-width: 1536px) {
-  .workspace-detected-grid {
-    position: relative;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .workspace-detected-grid::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: rgba(120, 113, 108, 0.26);
-    pointer-events: none;
-  }
+.workspace-detected-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
