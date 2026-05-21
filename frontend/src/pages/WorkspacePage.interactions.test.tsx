@@ -243,7 +243,30 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
+    expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#0 · aleph');
     expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#1 · lamed');
+  });
+
+  it('keeps workspace list and detail panels in the two-column scroll layout without duplicate focus lists', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+
+    await screen.findByText('annotated aleph');
+    const contentGrid = container.querySelector('section.min-h-0.overflow-hidden > div.grid') as HTMLElement;
+    expect(contentGrid).toHaveClass('2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]');
+
+    const sidebar = container.querySelector('.sidebar-shell') as HTMLElement;
+    expect(sidebar).toBeInTheDocument();
+    const proposalList = within(sidebar).getByRole('button', { name: /annotated aleph région 0/i }).parentElement?.parentElement as HTMLElement;
+    expect(proposalList).toHaveClass('overflow-y-auto', 'pr-2');
+
+    await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));
+
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.queryByText('Éléments détectés')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Aperçu du segment')).toHaveLength(1);
+    expect(container.querySelector('.sidebar-body')).toHaveClass('overflow-y-auto');
+    expect(screen.queryByRole('button', { name: /annotated aleph région 0/i })).not.toBeInTheDocument();
   });
 
   it('keeps workspace zoom/pan contained and read-only while focusing rows', async () => {
