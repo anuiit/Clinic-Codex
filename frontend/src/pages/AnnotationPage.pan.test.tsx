@@ -1,25 +1,31 @@
-import { render, fireEvent, act, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  render,
+  fireEvent,
+  act,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock('../services/storage', () => ({
+vi.mock("../services/storage", () => ({
   getAnalysisById: vi.fn(),
   updateElements: vi.fn(() => true),
 }));
 
-vi.mock('../services/api', () => ({
+vi.mock("../services/api", () => ({
   getClasses: vi.fn(() => Promise.resolve({ class_names: [] })),
   saveAnnotation: vi.fn(),
 }));
 
-import { getAnalysisById, updateElements } from '../services/storage';
-import AnnotationPage from './AnnotationPage';
-import type { AnalysisRecord } from '../types';
+import { getAnalysisById, updateElements } from "../services/storage";
+import AnnotationPage from "./AnnotationPage";
+import type { AnalysisRecord } from "../types";
 
 const STUB_RECORD: AnalysisRecord = {
-  id: 'test-id',
-  imageDataUrl: 'data:image/png;base64,abc',
-  imageName: 'test.png',
+  id: "test-id",
+  imageDataUrl: "data:image/png;base64,abc",
+  imageName: "test.png",
   timestamp: 1704067200000,
   result: {
     num_elements: 0,
@@ -29,7 +35,10 @@ const STUB_RECORD: AnalysisRecord = {
   annotations: {},
 };
 
-function renderPage(record: AnalysisRecord = STUB_RECORD, initialEntry = '/annotation/test-id') {
+function renderPage(
+  record: AnalysisRecord = STUB_RECORD,
+  initialEntry = "/annotation/test-id",
+) {
   vi.mocked(getAnalysisById).mockReturnValue(record);
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -43,8 +52,15 @@ function renderPage(record: AnalysisRecord = STUB_RECORD, initialEntry = '/annot
 }
 
 const CONTAINER_RECT = {
-  left: 0, top: 0, width: 800, height: 600,
-  right: 800, bottom: 600, x: 0, y: 0, toJSON: () => {},
+  left: 0,
+  top: 0,
+  width: 800,
+  height: 600,
+  right: 800,
+  bottom: 600,
+  x: 0,
+  y: 0,
+  toJSON: () => {},
 } as DOMRect;
 
 let measuredRect: DOMRect = CONTAINER_RECT;
@@ -60,7 +76,7 @@ beforeEach(() => {
   Element.prototype.getBoundingClientRect = vi.fn(() => measuredRect);
   HTMLElement.prototype.getBoundingClientRect = vi.fn(() => measuredRect);
   SVGElement.prototype.getBoundingClientRect = vi.fn(() => measuredRect);
-  Object.defineProperty(HTMLImageElement.prototype, 'complete', {
+  Object.defineProperty(HTMLImageElement.prototype, "complete", {
     configurable: true,
     get: () => true,
   });
@@ -71,8 +87,11 @@ beforeEach(() => {
   })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 });
 
-function getSvgAndWrapper(container: HTMLElement): { svg: SVGSVGElement; wrapper: HTMLElement } {
-  const svg = container.querySelector('svg.absolute') as SVGSVGElement;
+function getSvgAndWrapper(container: HTMLElement): {
+  svg: SVGSVGElement;
+  wrapper: HTMLElement;
+} {
+  const svg = container.querySelector("svg.absolute") as SVGSVGElement;
   svg.getBoundingClientRect = vi.fn(() => CONTAINER_RECT);
   svg.setPointerCapture = vi.fn();
   svg.releasePointerCapture = vi.fn();
@@ -82,8 +101,13 @@ function getSvgAndWrapper(container: HTMLElement): { svg: SVGSVGElement; wrapper
 
 function dispatchPointer(
   target: Element,
-  type: 'pointerdown' | 'pointermove' | 'pointerup',
-  init: { clientX: number; clientY: number; pointerId?: number; buttons?: number },
+  type: "pointerdown" | "pointermove" | "pointerup",
+  init: {
+    clientX: number;
+    clientY: number;
+    pointerId?: number;
+    buttons?: number;
+  },
 ) {
   const event = new MouseEvent(type, {
     bubbles: true,
@@ -91,61 +115,76 @@ function dispatchPointer(
     clientX: init.clientX,
     clientY: init.clientY,
   });
-  Object.defineProperty(event, 'pointerId', { value: init.pointerId ?? 1 });
-  Object.defineProperty(event, 'buttons', { value: init.buttons ?? 0 });
+  Object.defineProperty(event, "pointerId", { value: init.pointerId ?? 1 });
+  Object.defineProperty(event, "buttons", { value: init.buttons ?? 0 });
   fireEvent(target, event);
 }
 
-
 async function clickZoomIn(times: number) {
-  const zoomInButton = await screen.findByLabelText('Zoom avant');
+  const zoomInButton = await screen.findByLabelText("Zoom avant");
   for (let i = 0; i < times; i++) {
-    await act(async () => { fireEvent.click(zoomInButton); });
+    await act(async () => {
+      fireEvent.click(zoomInButton);
+    });
   }
 }
 
-describe('AnnotationPage pan behavior', () => {
-  it('renders SVG overlays without preserveAspectRatio letterboxing', async () => {
+describe("AnnotationPage pan behavior", () => {
+  it("renders SVG overlays without preserveAspectRatio letterboxing", async () => {
     const { container } = renderPage();
     await act(async () => {});
 
     const { svg } = getSvgAndWrapper(container);
-    expect(svg.getAttribute('preserveAspectRatio')).toBe('none');
+    expect(svg.getAttribute("preserveAspectRatio")).toBe("none");
   });
 
-  it('keeps image and SVG overlay locked to the same measured stage after resize', async () => {
+  it("keeps image and SVG overlay locked to the same measured stage after resize", async () => {
     measuredRect = {
-      left: 0, top: 0, width: 400, height: 300,
-      right: 400, bottom: 300, x: 0, y: 0, toJSON: () => {},
+      left: 0,
+      top: 0,
+      width: 400,
+      height: 300,
+      right: 400,
+      bottom: 300,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
     } as DOMRect;
 
     renderPage();
     await act(async () => {});
 
-    const stage = screen.getByTestId('annotation-stage');
-    const overlay = screen.getByTestId('annotation-overlay');
+    const stage = screen.getByTestId("annotation-stage");
+    const overlay = screen.getByTestId("annotation-overlay");
 
     await waitFor(() => {
-      expect(stage).toHaveStyle({ width: '400px', height: '300px' });
-      expect(overlay).toHaveStyle({ width: '100%', height: '100%' });
+      expect(stage).toHaveStyle({ width: "400px", height: "300px" });
+      expect(overlay).toHaveStyle({ width: "100%", height: "100%" });
     });
 
     measuredRect = {
-      left: 0, top: 0, width: 300, height: 300,
-      right: 300, bottom: 300, x: 0, y: 0, toJSON: () => {},
+      left: 0,
+      top: 0,
+      width: 300,
+      height: 300,
+      right: 300,
+      bottom: 300,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
     } as DOMRect;
 
     await act(async () => {
-      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event("resize"));
     });
 
     await waitFor(() => {
-      expect(stage).toHaveStyle({ width: '300px', height: '225px' });
-      expect(overlay).toHaveStyle({ width: '100%', height: '100%' });
+      expect(stage).toHaveStyle({ width: "300px", height: "225px" });
+      expect(overlay).toHaveStyle({ width: "100%", height: "100%" });
     });
   });
 
-  it('fits the selected segment preview crop into the canvas without clipping', async () => {
+  it("fits the selected segment preview crop into the canvas without clipping", async () => {
     renderPage({
       ...STUB_RECORD,
       result: {
@@ -154,7 +193,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 120, 500, 100],
-            class_name: 'wide',
+            class_name: "wide",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -164,13 +203,14 @@ describe('AnnotationPage pan behavior', () => {
       },
     });
 
-    const card = await screen.findByText('wide');
+    const card = await screen.findByText("wide");
     await act(async () => {
       fireEvent.click(card);
     });
 
     await waitFor(() => expect(drawImageMock).toHaveBeenCalled());
-    const [, sourceX, sourceY, sourceW, sourceH, drawX, drawY, drawW, drawH] = drawImageMock.mock.calls.at(-1)!;
+    const [, sourceX, sourceY, sourceW, sourceH, drawX, drawY, drawW, drawH] =
+      drawImageMock.mock.calls.at(-1)!;
 
     expect([sourceX, sourceY, sourceW, sourceH]).toEqual([100, 120, 500, 100]);
     expect(drawX).toBe(0);
@@ -179,7 +219,7 @@ describe('AnnotationPage pan behavior', () => {
     expect(drawH).toBe(40);
   });
 
-  it('at zoom=1, pointerdown+move on background does NOT change wrapper transform', async () => {
+  it("at zoom=1, pointerdown+move on background does NOT change wrapper transform", async () => {
     const { container } = renderPage();
     await act(async () => {});
 
@@ -199,7 +239,7 @@ describe('AnnotationPage pan behavior', () => {
     expect(wrapper.style.transform).toBe(transformBefore);
   });
 
-  it('at zoom=2, pointerdown+move on background updates wrapper transform with translate', async () => {
+  it("at zoom=2, pointerdown+move on background updates wrapper transform with translate", async () => {
     const { container } = renderPage();
     await act(async () => {});
 
@@ -221,50 +261,105 @@ describe('AnnotationPage pan behavior', () => {
     expect(wrapper.style.transform).not.toMatch(/translate\(0px,\s*0px\)/);
   });
 
-  it('draw mode creates a draft bbox without changing the stage layout', async () => {
+  it("draw mode creates a draft bbox without changing the stage layout", async () => {
     const { container } = renderPage();
     await act(async () => {});
 
-    const stage = screen.getByTestId('annotation-stage');
+    const stage = screen.getByTestId("annotation-stage");
     const stageSizeBefore = {
       width: stage.style.width,
       height: stage.style.height,
     };
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Mode sélection' }));
+      fireEvent.click(screen.getByRole("button", { name: "Mode sélection" }));
     });
 
     const { svg, wrapper } = getSvgAndWrapper(container);
     const transformBefore = wrapper.style.transform;
 
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 40, clientY: 50, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 40,
+        clientY: 50,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 90, clientY: 95, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 90,
+        clientY: 95,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 90, clientY: 95, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 90,
+        clientY: 95,
+        pointerId: 1,
+      });
     });
 
-    expect(await screen.findByLabelText('Nommer l’élément 0')).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Nommer l’élément 0"),
+    ).toBeInTheDocument();
     expect(stage).toHaveStyle(stageSizeBefore);
     expect(wrapper.style.transform).toBe(transformBefore);
 
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [40, 50, 50, 45] }),
-    ], { 0: 'draft' });
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [40, 50, 50, 45] })],
+      { 0: "draft" },
+    );
   });
 
-  it('reset-view button resets pan and zoom', async () => {
+  it("direct wheel over the annotation stage zooms without modifier keys and prevents page scroll", async () => {
+    const { container } = renderPage();
+    await act(async () => {});
+
+    const stageFrame = screen.getByTestId("annotation-stage-frame");
+    const { wrapper } = getSvgAndWrapper(container);
+    const event = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 400,
+      clientY: 300,
+      deltaY: -25,
+    });
+
+    await act(async () => {
+      stageFrame.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(wrapper.style.transform).toContain("scale(1.25)");
+
+    const zoomOutEvent = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 400,
+      clientY: 300,
+      deltaY: 1000,
+    });
+
+    await act(async () => {
+      stageFrame.dispatchEvent(zoomOutEvent);
+    });
+
+    expect(zoomOutEvent.defaultPrevented).toBe(true);
+    expect(wrapper.style.transform).toContain("scale(0.25)");
+  });
+
+  it("reset-view button resets pan and zoom", async () => {
     const { container } = renderPage();
     await act(async () => {});
 
@@ -282,17 +377,21 @@ describe('AnnotationPage pan behavior', () => {
       fireEvent.pointerUp(svg, { clientX: 250, clientY: 250, pointerId: 1 });
     });
 
-    const buttons = container.querySelectorAll('button');
-    const resetBtn = Array.from(buttons).find(b => b.title === 'Réinitialiser la vue') as HTMLElement;
+    const buttons = container.querySelectorAll("button");
+    const resetBtn = Array.from(buttons).find(
+      (b) => b.title === "Réinitialiser la vue",
+    ) as HTMLElement;
 
     await act(async () => {
       fireEvent.click(resetBtn);
     });
 
-    expect(wrapper.style.transform).toMatch(/translate\(0px,\s*0px\)\s*scale\(1\)/);
+    expect(wrapper.style.transform).toMatch(
+      /translate\(0px,\s*0px\)\s*scale\(1\)/,
+    );
   });
 
-  it('keeps queue selection and bbox overlay selection synchronized', async () => {
+  it("keeps queue selection and bbox overlay selection synchronized", async () => {
     const recordWithElements: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
@@ -301,7 +400,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -309,7 +408,7 @@ describe('AnnotationPage pan behavior', () => {
           },
           {
             bbox: [220, 180, 60, 50],
-            class_name: 'bet',
+            class_name: "bet",
             class_label: 2,
             confidence: 0.75,
             rejected: false,
@@ -320,29 +419,48 @@ describe('AnnotationPage pan behavior', () => {
     };
 
     const { container } = renderPage(recordWithElements);
-    await screen.findByText('atl');
+    await screen.findByText("atl");
 
     await act(async () => {
-      fireEvent.click(screen.getByText('bet'));
+      fireEvent.click(screen.getByText("bet"));
     });
 
-    expect(await screen.findByLabelText('Nommer l’élément 1')).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Nommer l’élément 1"),
+    ).toBeInTheDocument();
     await waitFor(() => expect(drawImageMock).toHaveBeenCalled());
-    expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([220, 180, 60, 50]);
+    expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([
+      220, 180, 60, 50,
+    ]);
 
     const { svg } = getSvgAndWrapper(container);
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 120,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 125, clientY: 120, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 125,
+        clientY: 120,
+        pointerId: 1,
+      });
     });
 
-    expect(await screen.findByLabelText('Nommer l’élément 0')).toBeInTheDocument();
-    await waitFor(() => expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([100, 100, 50, 40]));
+    expect(
+      await screen.findByLabelText("Nommer l’élément 0"),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([
+        100, 100, 50, 40,
+      ]),
+    );
   });
 
-  it('opens directly on the workspace-selected element from the handoff query param', async () => {
+  it("opens directly on the workspace-selected element from the handoff query param", async () => {
     const recordWithElements: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
@@ -351,7 +469,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -359,7 +477,7 @@ describe('AnnotationPage pan behavior', () => {
           },
           {
             bbox: [220, 180, 60, 50],
-            class_name: 'bet',
+            class_name: "bet",
             class_label: 2,
             confidence: 0.75,
             rejected: false,
@@ -369,13 +487,17 @@ describe('AnnotationPage pan behavior', () => {
       },
     };
 
-    renderPage(recordWithElements, '/annotate/test-id?element=1');
+    renderPage(recordWithElements, "/annotate/test-id?element=1");
 
-    expect(await screen.findByLabelText('Nommer l’élément 1')).toBeInTheDocument();
-    expect(screen.getByTestId('selected-element-inspector')).toHaveTextContent('#1 · bet');
+    expect(
+      await screen.findByLabelText("Nommer l’élément 1"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("selected-element-inspector")).toHaveTextContent(
+      "#1 · bet",
+    );
   });
 
-  it('keeps a click with tiny movement from mutating the bbox', async () => {
+  it("keeps a click with tiny movement from mutating the bbox", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
@@ -384,7 +506,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -395,34 +517,50 @@ describe('AnnotationPage pan behavior', () => {
     };
 
     const { container } = renderPage(recordWithElement);
-    await screen.findByText('atl');
+    await screen.findByText("atl");
 
     const { svg } = getSvgAndWrapper(container);
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 128, clientY: 127, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 128,
+        clientY: 127,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 128, clientY: 127, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 128,
+        clientY: 127,
+        pointerId: 1,
+      });
     });
 
     expect(updateElements).not.toHaveBeenCalled();
 
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
-    ], {});
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [100, 100, 50, 40] })],
+      {},
+    );
   });
 
-  it('dragging an existing bbox changes the bbox without panning the image wrapper', async () => {
+  it("dragging an existing bbox changes the bbox without panning the image wrapper", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
@@ -431,7 +569,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -442,48 +580,64 @@ describe('AnnotationPage pan behavior', () => {
     };
 
     const { container } = renderPage(recordWithElement);
-    await screen.findByText('atl');
+    await screen.findByText("atl");
 
     const { svg, wrapper } = getSvgAndWrapper(container);
     const transformBefore = wrapper.style.transform;
 
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {});
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 155, clientY: 165, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 155,
+        clientY: 165,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 155, clientY: 165, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 155,
+        clientY: 165,
+        pointerId: 1,
+      });
     });
     await act(async () => {});
 
     expect(wrapper.style.transform).toBe(transformBefore);
 
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [130, 140, 50, 40] }),
-    ], { 0: 'draft' });
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [130, 140, 50, 40] })],
+      { 0: "draft" },
+    );
   });
 
-  it('click-selecting a bbox does not mutate it or mark it dirty', async () => {
+  it("click-selecting a bbox does not mutate it or mark it dirty", async () => {
     const recordWithValidatedBox: AnalysisRecord = {
       ...STUB_RECORD,
-      annotationStatus: { 0: 'validated' },
+      annotationStatus: { 0: "validated" },
       result: {
         ...STUB_RECORD.result,
         num_elements: 1,
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -494,32 +648,48 @@ describe('AnnotationPage pan behavior', () => {
     };
 
     const { container } = renderPage(recordWithValidatedBox);
-    await screen.findByText('atl');
+    await screen.findByText("atl");
 
     const { svg } = getSvgAndWrapper(container);
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 127, clientY: 127, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 127,
+        clientY: 127,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 127, clientY: 127, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 127,
+        clientY: 127,
+        pointerId: 1,
+      });
     });
 
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
-    ], { 0: 'validated' });
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [100, 100, 50, 40] })],
+      { 0: "validated" },
+    );
   });
 
-  it('resizes via the corner handle immediately and saves the resized box', async () => {
+  it("resizes via the corner handle immediately and saves the resized box", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
@@ -528,7 +698,7 @@ describe('AnnotationPage pan behavior', () => {
         elements: [
           {
             bbox: [100, 100, 50, 40],
-            class_name: 'atl',
+            class_name: "atl",
             class_label: 1,
             confidence: 0.9,
             rejected: false,
@@ -539,28 +709,44 @@ describe('AnnotationPage pan behavior', () => {
     };
 
     const { container } = renderPage(recordWithElement);
-    await screen.findByText('atl');
+    await screen.findByText("atl");
 
     const { svg } = getSvgAndWrapper(container);
     await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 100, clientY: 100, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 80, clientY: 90, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 80,
+        clientY: 90,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 80, clientY: 90, pointerId: 1 });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 80,
+        clientY: 90,
+        pointerId: 1,
+      });
     });
 
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [80, 90, 70, 50] }),
-    ], { 0: 'draft' });
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [80, 90, 70, 50] })],
+      { 0: "draft" },
+    );
   });
 });
