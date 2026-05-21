@@ -1039,7 +1039,7 @@ export default function AnnotationPage() {
                           setElementValidation(idx, isSubmitted ? 'draft' : 'validated');
                         }}
                         disabled={isUnnamedClass(el.class_name)}
-                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSubmitted ? 'bg-stone-800 text-stone-200 hover:bg-stone-700' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                        className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSubmitted ? 'border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800' : 'bg-emerald-500 text-stone-950 hover:bg-emerald-400'}`}
                       >
                         {isSubmitted ? t.markDraft : t.markSubmitted}
                       </button>
