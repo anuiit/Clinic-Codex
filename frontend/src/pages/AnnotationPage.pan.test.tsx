@@ -96,34 +96,6 @@ function dispatchPointer(
 }
 
 
-function clickSave(container: HTMLElement) {
-  const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-    button.textContent?.includes('Enregistrer les modifications'),
-  ) as HTMLElement;
-  fireEvent.click(saveButton);
-}
-
-function recordWithElements(elements: AnalysisRecord['result']['elements'], annotationStatus: AnalysisRecord['annotationStatus'] = {}) {
-  return {
-    ...STUB_RECORD,
-    annotationStatus,
-    result: {
-      ...STUB_RECORD.result,
-      num_elements: elements.length,
-      elements,
-    },
-  } satisfies AnalysisRecord;
-}
-
-const ATL_ELEMENT: AnalysisRecord['result']['elements'][number] = {
-  bbox: [100, 100, 50, 40],
-  class_name: 'atl',
-  class_label: 1,
-  confidence: 0.9,
-  rejected: false,
-  top_k: [],
-};
-
 async function clickZoomIn(times: number) {
   const zoomInButton = await screen.findByLabelText('Zoom avant');
   for (let i = 0; i < times; i++) {

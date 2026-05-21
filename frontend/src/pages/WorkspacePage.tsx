@@ -49,36 +49,6 @@ function resolveCurrentRecord(records: AnalysisRecord[], preferredId?: string | 
   return records[0] ?? null;
 }
 
-function clientToWorkspacePoint(
-  svg: SVGSVGElement,
-  clientX: number,
-  clientY: number,
-  imageSize: [number, number],
-) {
-  const rect = svg.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
-
-  return {
-    x: ((clientX - rect.left) / rect.width) * imageSize[0],
-    y: ((clientY - rect.top) / rect.height) * imageSize[1],
-  };
-}
-
-function visibleOverlayEntries(
-  elements: AnalysisRecord['result']['elements'],
-  overlayMode: OverlayMode,
-  focusedIdx: number | null,
-): Array<{ idx: number; bbox: BBox }> {
-  return elements.flatMap((element, idx) => {
-    if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) {
-      return [];
-    }
-    return [{ idx, bbox: element.bbox }];
-  });
-}
-
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -415,11 +385,13 @@ export default function WorkspacePage() {
     event.stopPropagation();
     setFocusedIdx(hitIdx);
     setHoveredIdx(hitIdx);
+    setHoverSource(hitIdx === null ? null : 'image');
   };
 
   const handleWorkspaceOverlayPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const hitIdx = getWorkspaceOverlayHit(event.currentTarget, event.clientX, event.clientY);
     setHoveredIdx(hitIdx);
+    setHoverSource(hitIdx === null ? null : 'image');
     event.currentTarget.style.cursor = hitIdx === null ? (zoom > 1 ? 'grab' : 'default') : 'pointer';
   };
 
@@ -772,14 +744,15 @@ export default function WorkspacePage() {
                           style={{ width: '100%', height: '100%' }}
                           onPointerDown={handleWorkspaceOverlayPointerDown}
                           onPointerMove={handleWorkspaceOverlayPointerMove}
-                          onPointerLeave={() => setHoveredIdx(null)}
+                          onPointerLeave={() => { setHoveredIdx(null); setHoverSource(null); }}
                         >
                           {currentRecord.result.elements.map((el, idx) => {
                             if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) return null;
                             const [x, y, w, h] = el.bbox;
                             const visualState = getBoxVisualState({
                               focused: idx === focusedIdx,
-                              hovered: idx === hoveredIdx,
+                              hovered: idx === hoveredIdx && hoverSource === 'image',
+                              listHovered: idx === hoveredIdx && hoverSource === 'list',
                               submitted: (currentRecord.annotations ?? {})[idx] !== undefined,
                               rejected: el.rejected,
                             });

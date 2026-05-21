@@ -7,17 +7,8 @@ import { t as translate } from '../i18n/annotation.fr';
 import { appText } from '../i18n/text';
 import type { AnalysisRecord, AnnotationStatus, DetectedElement, SaveAnnotationResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
-import { getBoxVisualState, hitTestBBoxes, hitTestHandle, hitTestHandles, isDragIntent, moveBBox, resizeBBox, type BBox, type BBoxHandle } from '../utils/segmentationBoxes';
+import { getBoxVisualState, hitTestBBoxes, hitTestHandles, isDragIntent, moveBBox, resizeBBox, type BBox, type BBoxHandle } from '../utils/segmentationBoxes';
 import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeClassName } from '../utils/fuzzyClasses';
-import {
-  type BBox,
-  hitTestBBoxes,
-  hitTestHandles,
-  isDragIntent,
-  moveBBox,
-  resizeBBox,
-  type BBoxHandle,
-} from '../utils/segmentationBoxes';
 
 type StageSize = { width: number; height: number };
 
