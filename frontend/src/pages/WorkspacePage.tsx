@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -23,10 +23,16 @@ import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
+import {
+  nextZoomFromWheel,
+  shouldConsumeStageWheel,
+} from '../utils/imageStageZoom';
 import { getBoxVisualState, hitTestBBoxes } from '../utils/segmentationBoxes';
 
 type OverlayMode = 'all' | 'focused' | 'hidden';
 type HoverSource = 'image' | 'list' | null;
+
+const WORKSPACE_WHEEL_ZOOM_SENSITIVITY = 0.0015;
 
 function formatWorkspaceBboxLabel(idx: number, className: string, showName: boolean) {
   if (!showName) return `#${idx}`;
@@ -373,6 +379,25 @@ export default function WorkspacePage() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+  };
+
+  const handleWorkspaceStageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    const { deltaY } = event;
+    if (!shouldConsumeStageWheel(deltaY)) return;
+
+    event.preventDefault();
+    setZoom((currentZoom) => {
+      const nextZoom = nextZoomFromWheel(
+        currentZoom,
+        deltaY,
+        undefined,
+        WORKSPACE_WHEEL_ZOOM_SENSITIVITY,
+      );
+      if (nextZoom <= 1) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return nextZoom;
+    });
   };
 
   const getWorkspaceOverlayHit = (svg: SVGSVGElement, clientX: number, clientY: number): number | null => {
@@ -739,17 +764,7 @@ export default function WorkspacePage() {
                     onPointerMove={moveWorkspacePan}
                     onPointerUp={stopWorkspacePan}
                     onPointerCancel={stopWorkspacePan}
-                    onWheel={(e) => {
-                      e.preventDefault();
-                      const zoomChange = e.deltaY < 0 ? 0.15 : -0.15;
-                      setZoom((currentZoom) => {
-                        const nextZoom = Math.max(0.25, Math.min(4, currentZoom + zoomChange));
-                        if (nextZoom <= 1) {
-                          setPanOffset({ x: 0, y: 0 });
-                        }
-                        return nextZoom;
-                      });
-                    }}
+                    onWheel={handleWorkspaceStageWheel}
                   >
                     <div
                       style={{
