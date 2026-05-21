@@ -118,8 +118,7 @@ test('Cas 4 — zoom does not misalign boxes', async ({ page }) => {
   const normalizedXBefore = relXBefore / imgBefore!.width;
   const normalizedYBefore = relYBefore / imgBefore!.height;
 
-  const zoomGroup = page.locator('.flex.items-center.gap-1.rounded-lg.border');
-  const zoomInButton = zoomGroup.locator('button').first();
+  const zoomInButton = page.getByRole('button', { name: 'Zoom avant' });
   await expect(zoomInButton).toBeVisible();
 
   await zoomInButton.click();
@@ -150,8 +149,7 @@ test('Cas 5 — pan while zoomed moves image+boxes as one unit', async ({ page }
   await expect(bboxRect).toBeVisible({ timeout: 5000 });
   await expect(imageEl).toBeVisible();
 
-  const zoomGroup = page.locator('.flex.items-center.gap-1.rounded-lg.border');
-  const zoomInButton = zoomGroup.locator('button').first();
+  const zoomInButton = page.getByRole('button', { name: 'Zoom avant' });
   await zoomInButton.click();
   await zoomInButton.click();
   await page.waitForTimeout(200);
