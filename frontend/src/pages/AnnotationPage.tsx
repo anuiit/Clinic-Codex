@@ -808,41 +808,22 @@ export default function AnnotationPage() {
   }
 
   return (
-    <div className="h-full w-full overflow-hidden flex flex-col gap-2 p-2">
-      <div className="flex shrink-0 items-center justify-between rounded-xl border border-stone-800 bg-stone-900/80 px-4 py-2 sidebar-header">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-stone-400 hover:text-stone-100 flex items-center gap-2 transition-colors">
+    <div className="annotation-app flex h-full w-full flex-col gap-2 overflow-hidden p-2">
+      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-4 py-3">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link to="/" className="flex items-center gap-2 rounded-full border border-stone-700/70 bg-stone-950/70 px-3 py-1.5 text-sm font-medium text-stone-300 transition-colors hover:border-amber-500/50 hover:text-stone-50">
             <ArrowLeft size={18} /> {t.back}
           </Link>
-          <h1 className="text-lg font-bold text-stone-100">{t.title}</h1>
-          
-          <div className="h-6 w-px bg-stone-700 mx-2" />
-          
-          <button
-            onClick={() => setDrawMode(!drawMode)}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${drawMode ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-300 hover:bg-stone-700'}`}
-          >
-            {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
-            {drawMode ? t.drawMode : t.selectMode}
-          </button>
-          
-          <div className="flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-900 p-1">
-            <button onClick={() => applyZoom(zoom + 0.25)} className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded">
-              <ZoomIn size={16} />
-            </button>
-            <button onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded" title="Réinitialiser la vue">
-              <Maximize2 size={16} />
-            </button>
-            <button onClick={() => applyZoom(zoom - 0.25)} className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded">
-              <ZoomOut size={16} />
-            </button>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Clinic Codex</div>
+            <h1 className="truncate text-lg font-black tracking-tight text-stone-50">{t.title}</h1>
+          </div>
+          <div className="hidden rounded-full border border-stone-700/70 bg-stone-950/60 px-3 py-1.5 text-xs text-stone-300 md:block">
+            {t.submittedSummary}: <span className="font-semibold text-emerald-300">{submittedCount}</span> / {elements.length}
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="rounded-lg border border-stone-700 bg-stone-950 px-3 py-1.5 text-xs text-stone-300">
-            {t.submittedSummary}: <span className="font-semibold text-emerald-300">{submittedCount}</span> / {elements.length}
-          </div>
           <button
             type="button"
             onClick={submitNamedElements}
@@ -869,12 +850,12 @@ export default function AnnotationPage() {
         </div>
       </div>
 
-      <div className="shrink-0 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+      <div className="shrink-0 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
         {t.adminApprovalNotice}
       </div>
 
       <div className="flex min-h-0 flex-1 gap-2">
-        <div ref={containerRef} className="flex-1 overflow-auto rounded-xl border border-stone-800 bg-stone-900/80 relative flex items-center justify-center" onWheel={(e) => {
+        <div ref={containerRef} className="annotation-stage-frame annotation-scrollbar relative flex flex-1 items-center justify-center overflow-auto rounded-2xl" onWheel={(e) => {
           if (e.ctrlKey) {
             e.preventDefault();
             const svgEl = e.currentTarget.querySelector('svg');
@@ -885,6 +866,27 @@ export default function AnnotationPage() {
             applyZoom(zoom - e.deltaY * 0.01, { clientX: e.clientX, clientY: e.clientY });
           }
         }}>
+          <div className="annotation-floating-toolbar absolute left-4 top-4 z-10 flex items-center gap-1 rounded-2xl p-1">
+            <button
+              type="button"
+              onClick={() => setDrawMode(!drawMode)}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${drawMode ? 'bg-amber-400 text-stone-950 shadow-lg shadow-amber-950/30' : 'text-stone-300 hover:bg-stone-800 hover:text-stone-50'}`}
+            >
+              {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
+              {drawMode ? t.drawMode : t.selectMode}
+            </button>
+            <div className="mx-1 h-6 w-px bg-stone-700/70" />
+            <button type="button" onClick={() => applyZoom(zoom + 0.25)} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom avant">
+              <ZoomIn size={16} />
+            </button>
+            <button type="button" onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" title="Réinitialiser la vue">
+              <Maximize2 size={16} />
+            </button>
+            <button type="button" onClick={() => applyZoom(zoom - 0.25)} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom arrière">
+              <ZoomOut size={16} />
+            </button>
+            <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">{Math.round(zoom * 100)}%</span>
+          </div>
           <div
             data-testid="annotation-stage"
             style={{
@@ -895,7 +897,7 @@ export default function AnnotationPage() {
               transition: isPanning ? 'none' : 'transform 0.1s ease',
               willChange: 'transform',
             }}
-            className="relative shrink-0"
+            className="annotation-stage relative shrink-0 overflow-hidden rounded-lg"
           >
             <img
               ref={imageRef}
@@ -920,25 +922,38 @@ export default function AnnotationPage() {
                   const [x, y, w, h] = idx === dragState?.idx && dragState.type !== 'draw' && tempBbox ? tempBbox : el.bbox;
                   const isFocused = idx === focusedIdx;
                   const isHovered = idx === hoveredIdx;
-                  const strokeColor = el.rejected ? '#ef4444' : isFocused ? '#ffffff' : isHovered ? '#fbbf24' : '#f59e0b';
+                  const isSubmitted = annotationStatus[idx] === 'validated';
+                  const strokeColor = el.rejected ? '#fb7185' : isSubmitted ? '#34d399' : isFocused ? '#fbbf24' : isHovered ? '#f59e0b' : '#a8a29e';
+                  const fillColor = el.rejected ? 'rgba(239, 68, 68, 0.16)' : isSubmitted ? 'rgba(16, 185, 129, 0.15)' : isFocused ? 'rgba(245, 158, 11, 0.18)' : isHovered ? 'rgba(245, 158, 11, 0.11)' : 'rgba(168, 162, 158, 0.08)';
+                  const labelY = Math.max(0, y - 28);
                   return (
                     <g key={idx}>
-                      <rect x={x} y={y} width={w} height={h} fill="none" stroke={strokeColor} strokeWidth={isFocused ? 3 : 2} />
+                      <rect
+                        x={x}
+                        y={y}
+                        width={w}
+                        height={h}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth={isFocused ? 3 : 2}
+                        strokeDasharray={isSubmitted ? undefined : '8 5'}
+                        vectorEffect="non-scaling-stroke"
+                      />
                       {isFocused && !drawMode && (
                         <>
-                          <rect x={x-5} y={y-5} width={10} height={10} fill="#ffffff" className="cursor-nwse-resize" />
-                          <rect x={x+w-5} y={y-5} width={10} height={10} fill="#ffffff" className="cursor-nesw-resize" />
-                          <rect x={x-5} y={y+h-5} width={10} height={10} fill="#ffffff" className="cursor-nesw-resize" />
-                          <rect x={x+w-5} y={y+h-5} width={10} height={10} fill="#ffffff" className="cursor-nwse-resize" />
+                          <rect x={x-6} y={y-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nwse-resize" />
+                          <rect x={x+w-6} y={y-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nesw-resize" />
+                          <rect x={x-6} y={y+h-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nesw-resize" />
+                          <rect x={x+w-6} y={y+h-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nwse-resize" />
                         </>
                       )}
-                      <rect x={x} y={Math.max(0, y - 24)} width={28} height={24} fill={strokeColor} />
-                      <text x={x + 14} y={Math.max(0, y - 24) + 12} fill="#0c0a09" fontSize="14" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central">{idx}</text>
+                      <rect x={x} y={labelY} width={44} height={24} rx={6} fill={strokeColor} opacity={0.95} />
+                      <text x={x + 22} y={labelY + 12} fill="#0c0a09" fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central">#{idx}</text>
                     </g>
                   );
                 })}
                 {drawMode && dragState?.type === 'draw' && tempBbox && (
-                  <rect x={tempBbox[0]} y={tempBbox[1]} width={tempBbox[2]} height={tempBbox[3]} fill="none" stroke="#3b82f6" strokeWidth={2} strokeDasharray="4 4" />
+                  <rect x={tempBbox[0]} y={tempBbox[1]} width={tempBbox[2]} height={tempBbox[3]} fill="rgba(59, 130, 246, 0.14)" stroke="#60a5fa" strokeWidth={2} strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
                 )}
               </svg>
             )}
