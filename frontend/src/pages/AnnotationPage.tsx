@@ -38,6 +38,11 @@ import type {
 } from "../types";
 import { clientToImage } from "../utils/imageCoords";
 import {
+  clampZoom,
+  nextZoomFromWheel,
+  shouldConsumeStageWheel,
+} from "../utils/imageStageZoom";
+import {
   getBoxVisualState,
   hitTestBBoxes,
   hitTestHandles,
@@ -692,7 +697,7 @@ export default function AnnotationPage() {
     nextZoom: number,
     anchor?: { clientX: number; clientY: number },
   ) => {
-    const clampedZoom = Math.max(0.25, Math.min(4, nextZoom));
+    const clampedZoom = clampZoom(nextZoom);
 
     if (!anchor || !containerRef.current || zoom === 0) {
       setZoom(clampedZoom);
@@ -714,6 +719,16 @@ export default function AnnotationPage() {
         y: cursorRelY - (cursorRelY - prev.y) * zoomRatio,
       };
       return clampPan(nextOffset, clampedZoom);
+    });
+  };
+
+  const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!shouldConsumeStageWheel(event.deltaY)) return;
+
+    event.preventDefault();
+    applyZoom(nextZoomFromWheel(zoom, event.deltaY), {
+      clientX: event.clientX,
+      clientY: event.clientY,
     });
   };
 
@@ -1271,32 +1286,9 @@ export default function AnnotationPage() {
       <div className="flex min-h-0 flex-1 gap-2">
         <div
           ref={containerRef}
-          className="annotation-stage-frame annotation-scrollbar image-stage-grid relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
-          onWheel={(e) => {
-            if (e.ctrlKey) {
-              e.preventDefault();
-              const svgEl = e.currentTarget.querySelector("svg");
-              if (!svgEl || !record) return;
-              const [imgW, imgH] = record.result.image_size;
-              const pointer = clientToImage(
-                svgEl as SVGSVGElement,
-                e.clientX,
-                e.clientY,
-                { width: imgW, height: imgH },
-              );
-              if (
-                pointer.x < 0 ||
-                pointer.x > imgW ||
-                pointer.y < 0 ||
-                pointer.y > imgH
-              )
-                return;
-              applyZoom(zoom - e.deltaY * 0.01, {
-                clientX: e.clientX,
-                clientY: e.clientY,
-              });
-            }
-          }}
+          data-testid="annotation-stage-frame"
+          className="image-stage-frame image-stage-scrollbar annotation-scrollbar image-stage-grid relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
+          onWheel={handleStageWheel}
         >
           <div className="annotation-floating-toolbar absolute left-4 top-4 z-10 flex items-center gap-1 rounded-2xl p-1">
             <button
@@ -1553,12 +1545,12 @@ export default function AnnotationPage() {
           aria-label="Inspecteur d’annotation"
         >
           <section
-            className="annotation-selected-inspector mb-3 flex h-[360px] shrink-0 flex-col gap-3 overflow-hidden rounded-2xl p-3"
+            className="annotation-selected-inspector mb-3 flex shrink-0 flex-col gap-3 overflow-hidden rounded-2xl p-3"
             data-testid="selected-element-inspector"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">
+                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
                   Inspecteur
                 </div>
                 <h2 className="mt-1 truncate text-xl font-black text-stone-50">
@@ -1578,99 +1570,99 @@ export default function AnnotationPage() {
 
             <div className="min-h-0 flex-1 overflow-hidden">
               {focusedElement && focusedIdx !== null ? (
-              <div className="flex h-full min-h-0 flex-col gap-3">
-                <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
-                  <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
-                    <canvas
-                      ref={previewCanvasRef}
-                      width={200}
-                      height={200}
-                      className="block h-[140px] w-[140px] rounded-lg object-contain"
-                    />
-                  </div>
-                  <div className="min-w-0 space-y-3">
-                    <div>
-                      <div className="mb-1 flex items-center justify-between text-xs font-semibold text-stone-400">
-                        <span>Confiance</span>
-                        <span className="tabular-nums text-stone-200">
-                          {focusedConfidencePercent}%
-                        </span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-stone-800">
-                        <div
-                          className={`h-full rounded-full ${focusedElement.rejected ? "bg-red-400" : focusedIsSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
-                          style={{
-                            width: `${Math.max(0, Math.min(100, focusedConfidencePercent))}%`,
-                          }}
-                        />
-                      </div>
+                <div className="flex h-full min-h-0 flex-col gap-3">
+                  <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
+                    <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
+                      <canvas
+                        ref={previewCanvasRef}
+                        width={200}
+                        height={200}
+                        className="block h-[140px] w-[140px] rounded-lg object-contain"
+                      />
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {(["x", "y", "w", "h"] as const).map(
-                        (label, coordIdx) => (
+                    <div className="min-w-0 space-y-3">
+                      <div>
+                        <div className="mb-1 flex items-center justify-between text-xs font-semibold text-stone-400">
+                          <span>Confiance</span>
+                          <span className="tabular-nums text-stone-200">
+                            {focusedConfidencePercent}%
+                          </span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-stone-800">
                           <div
-                            key={label}
-                            className="rounded-xl border border-stone-700/60 bg-stone-950/50 px-3 py-2"
-                          >
-                            <div className="uppercase tracking-[0.18em] text-stone-500">
-                              {label}
+                            className={`h-full rounded-full ${focusedElement.rejected ? "bg-red-400" : focusedIsSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
+                            style={{
+                              width: `${Math.max(0, Math.min(100, focusedConfidencePercent))}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {(["x", "y", "w", "h"] as const).map(
+                          (label, coordIdx) => (
+                            <div
+                              key={label}
+                              className="rounded-xl border border-stone-700/60 bg-stone-950/50 px-3 py-2"
+                            >
+                              <div className="uppercase tracking-[0.18em] text-stone-500">
+                                {label}
+                              </div>
+                              <div className="mt-1 font-semibold tabular-nums text-stone-100">
+                                {Math.round(focusedElement.bbox[coordIdx])}
+                              </div>
                             </div>
-                            <div className="mt-1 font-semibold tabular-nums text-stone-100">
-                              {Math.round(focusedElement.bbox[coordIdx])}
-                            </div>
-                          </div>
-                        ),
-                      )}
+                          ),
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div
-                  className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2"
-                  data-testid="annotation-inspector-action-row"
-                >
-                  <div className="min-w-0">
-                    <ElementNameCombobox
-                      value={focusedElement.class_name}
-                      classNames={[focusedElement.class_name, ...classes]}
-                      customClassNames={customClasses}
-                      topK={focusedElement.top_k}
-                      autoFocusToken={namingFocusToken}
-                      labels={t}
-                      index={focusedIdx}
-                      onCommit={(name) => commitElementName(focusedIdx, name)}
-                    />
+                  <div
+                    className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2"
+                    data-testid="annotation-inspector-action-row"
+                  >
+                    <div className="min-w-0">
+                      <ElementNameCombobox
+                        value={focusedElement.class_name}
+                        classNames={[focusedElement.class_name, ...classes]}
+                        customClassNames={customClasses}
+                        topK={focusedElement.top_k}
+                        autoFocusToken={namingFocusToken}
+                        labels={t}
+                        index={focusedIdx}
+                        onCommit={(name) => commitElementName(focusedIdx, name)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setElementValidation(
+                          focusedIdx,
+                          focusedIsSubmitted ? "draft" : "validated",
+                        )
+                      }
+                      disabled={isUnnamedClass(focusedElement.class_name)}
+                      className={`shrink-0 rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
+                    >
+                      {focusedIsSubmitted ? t.markDraft : t.markSubmitted}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeElement(focusedIdx)}
+                      className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                    >
+                      <span className="sr-only">
+                        Supprimer l’élément #{focusedIdx}
+                      </span>
+                      <Trash2 size={18} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setElementValidation(
-                        focusedIdx,
-                        focusedIsSubmitted ? "draft" : "validated",
-                      )
-                    }
-                    disabled={isUnnamedClass(focusedElement.class_name)}
-                    className={`shrink-0 rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
-                  >
-                    {focusedIsSubmitted ? t.markDraft : t.markSubmitted}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeElement(focusedIdx)}
-                    className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
-                  >
-                    <span className="sr-only">
-                      Supprimer l’élément #{focusedIdx}
-                    </span>
-                    <Trash2 size={18} />
-                  </button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/20 px-6 text-center text-sm text-stone-500">
-                {t.selectElementCrop}
-              </div>
-            )}
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/20 px-6 text-center text-sm text-stone-500">
+                  {t.selectElementCrop}
+                </div>
+              )}
             </div>
           </section>
 
@@ -1679,16 +1671,16 @@ export default function AnnotationPage() {
             aria-label="Liste compacte des éléments"
           >
             <div
-              className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2"
+              className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2 xl:flex-nowrap"
               data-testid="annotation-list-controls"
             >
-                <div
-                  className="mb-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
-                  aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}
-                >
-                  {t.submitted} {submittedCount}/{elements.length}
-                </div>
-              <label className="min-w-[128px] flex-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+              <div
+                className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+                aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}
+              >
+                {t.submitted} {submittedCount}/{elements.length}
+              </div>
+              <label className="min-w-[128px] flex-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
                 Filtrer
                 <input
                   type="search"
@@ -1699,38 +1691,38 @@ export default function AnnotationPage() {
                   className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
                 />
               </label>
-                <label className="min-w-[112px] text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  Statut
-                  <select
-                    value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(
-                        event.target.value as AnnotationStatusFilter,
-                      )
-                    }
-                    className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                  >
-                    <option value="all">Tous</option>
-                    <option value="draft">Brouillons</option>
-                    <option value="submitted">Soumis</option>
-                    <option value="rejected">Rejetés</option>
-                  </select>
-                </label>
-                <label className="min-w-[122px] text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  Tri
-                  <select
-                    value={sortMode}
-                    onChange={(event) =>
-                      setSortMode(event.target.value as AnnotationSortMode)
-                    }
-                    className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                  >
-                    <option value="original">Original</option>
-                    <option value="confidence-asc">Confiance ↑</option>
-                    <option value="confidence-desc">Confiance ↓</option>
-                    <option value="name">Nom A→Z</option>
-                  </select>
-                </label>
+              <label className="min-w-[112px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Statut
+                <select
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(
+                      event.target.value as AnnotationStatusFilter,
+                    )
+                  }
+                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+                >
+                  <option value="all">Tous</option>
+                  <option value="draft">Brouillons</option>
+                  <option value="submitted">Soumis</option>
+                  <option value="rejected">Rejetés</option>
+                </select>
+              </label>
+              <label className="min-w-[122px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Tri
+                <select
+                  value={sortMode}
+                  onChange={(event) =>
+                    setSortMode(event.target.value as AnnotationSortMode)
+                  }
+                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+                >
+                  <option value="original">Original</option>
+                  <option value="confidence-asc">Confiance ↑</option>
+                  <option value="confidence-desc">Confiance ↓</option>
+                  <option value="name">Nom A→Z</option>
+                </select>
+              </label>
             </div>
 
             <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">

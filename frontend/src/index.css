@@ -1,11 +1,20 @@
 @import "tailwindcss";
 
 /* Ensure the top-level page never scrolls; panels handle internal scrolling */
-html, body, #root { height: 100%; overflow: hidden; }
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 .animate-slide-in-right {
   animation: slideInRight 0.3s ease-out forwards;
@@ -45,7 +54,11 @@ html, body, #root { height: 100%; overflow: hidden; }
 
 .annotation-app {
   background:
-    radial-gradient(circle at 18% 0%, rgba(245, 158, 11, 0.08), transparent 32rem),
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(245, 158, 11, 0.08),
+      transparent 32rem
+    ),
     #050505;
   color: #f5f5f4;
 }
@@ -53,10 +66,17 @@ html, body, #root { height: 100%; overflow: hidden; }
 .annotation-topbar,
 .annotation-panel,
 .annotation-rail,
-.annotation-stage-frame {
+.annotation-stage-frame,
+.image-stage-frame {
   border: 1px solid var(--annotation-border);
-  background: linear-gradient(180deg, rgba(28, 25, 23, 0.88), var(--annotation-panel));
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(
+    180deg,
+    rgba(28, 25, 23, 0.88),
+    var(--annotation-panel)
+  );
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(18px);
 }
 
@@ -66,8 +86,30 @@ html, body, #root { height: 100%; overflow: hidden; }
   z-index: 30;
 }
 
-.annotation-stage-frame {
+.annotation-stage-frame,
+.image-stage-frame {
   background: #0a0a0a;
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.45);
+}
+
+.image-stage-scrollbar {
+  scrollbar-color: rgba(245, 158, 11, 0.36) rgba(12, 10, 9, 0.55);
+  scrollbar-width: thin;
+}
+
+.image-stage-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.image-stage-scrollbar::-webkit-scrollbar-track {
+  background: rgba(12, 10, 9, 0.55);
+}
+
+.image-stage-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(12, 10, 9, 0.8);
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.34);
 }
 
 .image-stage-grid {
@@ -75,12 +117,21 @@ html, body, #root { height: 100%; overflow: hidden; }
   background-image:
     linear-gradient(rgba(245, 158, 11, 0.055) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245, 158, 11, 0.055) 1px, transparent 1px),
-    radial-gradient(circle at 50% 42%, rgba(245, 158, 11, 0.06), transparent 34rem);
-  background-size: 44px 44px, 44px 44px, auto;
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(245, 158, 11, 0.06),
+      transparent 34rem
+    );
+  background-size:
+    44px 44px,
+    44px 44px,
+    auto;
 }
 
 .annotation-stage {
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .annotation-floating-toolbar {
@@ -100,7 +151,7 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .annotation-selected-inspector {
-  height: 360px;
+  height: 320px;
   border-color: transparent;
   background: transparent;
   box-shadow: none;
@@ -136,8 +187,14 @@ html, body, #root { height: 100%; overflow: hidden; }
 
 .annotation-card-selected {
   border-color: var(--annotation-border-strong);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(12, 10, 9, 0.92));
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18), 0 18px 48px rgba(245, 158, 11, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(245, 158, 11, 0.16),
+    rgba(12, 10, 9, 0.92)
+  );
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.18),
+    0 18px 48px rgba(245, 158, 11, 0.08);
 }
 
 .annotation-scrollbar {
