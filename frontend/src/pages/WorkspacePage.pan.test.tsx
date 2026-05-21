@@ -112,15 +112,7 @@ describe('WorkspacePage image pan behavior', () => {
 
   it('collapses and expands the history sidebar via stable container animation and compact header', async () => {
     const user = userEvent.setup();
-    const { container } = renderPage();
-
-    const sidebar = screen.getByTestId('workspace-history-sidebar');
-    expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
-    expect(sidebar).not.toHaveClass('transition-all');
-
-    const sidebar = screen.getByTestId('workspace-history-sidebar');
-    expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
-    expect(sidebar).not.toHaveClass('transition-all');
+    renderPage();
 
     const sidebar = screen.getByTestId('workspace-history-sidebar');
     expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
