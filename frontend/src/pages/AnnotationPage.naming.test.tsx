@@ -596,23 +596,39 @@ describe("AnnotationPage element naming UX", () => {
     expect(compactList).not.toHaveTextContent(/Éléments\s*38\s*\/\s*38/i);
   });
 
-  it("keeps selected and empty inspector shells the same size class without a nested card", async () => {
+  it('keeps selected and empty inspector shells on the reduced shared size contract', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const inspector = await screen.findByTestId("selected-element-inspector");
-    expect(inspector).toHaveClass("annotation-selected-inspector");
-    expect(inspector).not.toHaveClass("h-[360px]");
-    expect(inspector).not.toHaveClass("annotation-panel");
+    const inspector = await screen.findByTestId('selected-element-inspector');
+    expect(inspector).toHaveClass('annotation-selected-inspector');
+    expect(inspector).not.toHaveClass('h-[360px]');
+    expect(inspector).not.toHaveClass('annotation-panel');
 
     await user.click(await screen.findByText("atl"));
 
-    expect(inspector).toHaveClass("annotation-selected-inspector");
-    expect(inspector).not.toHaveClass("h-[360px]");
-    expect(inspector).not.toHaveClass("annotation-panel");
+    expect(inspector).toHaveClass('annotation-selected-inspector');
+    expect(inspector).not.toHaveClass('h-[360px]');
+    expect(inspector).not.toHaveClass('annotation-panel');
   });
 
-  it("groups rename, submit, and delete controls in one inspector action row", async () => {
+  it('keeps filter, status, and Tri controls in one readable compact row contract', async () => {
+    renderPage();
+
+    const controls = await screen.findByTestId('annotation-list-controls');
+    expect(controls).toHaveClass('annotation-list-controls');
+    expect(controls).toContainElement(screen.getByRole('searchbox', { name: /filtrer/i }));
+    expect(controls).toContainElement(screen.getByLabelText(/statut/i));
+    expect(controls).toContainElement(screen.getByLabelText(/tri/i));
+
+    for (const labelText of ['Filtrer', 'Statut', 'Tri']) {
+      const label = within(controls).getByText(labelText).closest('label');
+      expect(label).toHaveClass('text-xs');
+      expect(label).not.toHaveClass('text-[10px]');
+    }
+  });
+
+  it('groups rename, submit, and delete controls in one inspector action row', async () => {
     const user = userEvent.setup();
     renderPage();
 

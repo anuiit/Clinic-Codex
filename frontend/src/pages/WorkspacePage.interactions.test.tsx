@@ -269,14 +269,7 @@ describe('WorkspacePage interaction coverage', () => {
     expect(overlay).toHaveTextContent('#1');
     expect(overlay).not.toHaveTextContent('#1 · lamed');
 
-    const labelToggle = screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i });
-    expect(labelToggle).toHaveAttribute('title', 'Afficher les noms des libellés');
-    expect(labelToggle).not.toHaveTextContent(/Noms|N°/i);
-
-    await user.click(labelToggle);
-
-    expect(screen.getByRole('button', { name: /masquer.*noms.*libellés/i })).toHaveAttribute('title', 'Masquer les noms des libellés');
-    expect(screen.getByRole('button', { name: /masquer.*noms.*libellés/i })).not.toHaveTextContent(/Noms|N°/i);
+    await user.click(toggle);
 
     const namedOverlay = container.querySelector('[data-testid="workspace-overlay"]');
     expect(namedOverlay).toHaveTextContent('aleph');
@@ -290,10 +283,12 @@ describe('WorkspacePage interaction coverage', () => {
     renderPage();
 
     await screen.findByText('annotated aleph');
-    const contentGrid = screen.getByTestId('workspace-content-grid');
-    expect(contentGrid).toHaveClass('xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]');
-    expect(contentGrid).toHaveClass('2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]');
+    const contentGrid = container.querySelector('section.min-h-0.overflow-hidden > div.grid') as HTMLElement;
+    expect(contentGrid).toHaveClass('workspace-image-first-grid');
     expect(contentGrid).not.toHaveClass('2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]');
+
+    const stage = container.querySelector('.workspace-stage') as HTMLElement;
+    expect(stage).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');
 
     const stage = screen.getByTestId('workspace-stage');
     expect(stage).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');

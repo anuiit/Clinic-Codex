@@ -391,7 +391,30 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
-  it("keeps queue selection and bbox overlay selection synchronized", async () => {
+  it('zooms directly on no-modifier wheel over the stage and prevents page scroll', async () => {
+    const { container } = renderPage();
+    await act(async () => {});
+
+    const { wrapper } = getSvgAndWrapper(container);
+    const stageFrame = screen.getByTestId('annotation-stage').parentElement as HTMLElement;
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      clientX: 400,
+      clientY: 300,
+      deltaY: -120,
+    });
+    const preventDefault = vi.spyOn(wheelEvent, 'preventDefault');
+
+    await act(async () => {
+      fireEvent(stageFrame, wheelEvent);
+    });
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(wrapper.style.transform).not.toBe('translate(0px, 0px) scale(1)');
+  });
+
+  it('keeps queue selection and bbox overlay selection synchronized', async () => {
     const recordWithElements: AnalysisRecord = {
       ...STUB_RECORD,
       result: {
