@@ -209,7 +209,7 @@ describe('WorkspacePage interaction coverage', () => {
     await user.click(screen.getByRole('button', { name: 'tout' }));
     expect(container.querySelector('svg.absolute')).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole('button', { name: 'Voir plus de détails' })[0]);
+    await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.getByText('Aperçu du segment')).toBeInTheDocument();

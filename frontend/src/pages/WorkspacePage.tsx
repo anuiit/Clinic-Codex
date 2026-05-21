@@ -16,6 +16,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Tags,
 } from 'lucide-react';
 import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
@@ -26,6 +27,12 @@ import { getBoxVisualState, hitTestBBoxes } from '../utils/segmentationBoxes';
 
 type OverlayMode = 'all' | 'focused' | 'hidden';
 type HoverSource = 'image' | 'list' | null;
+
+function formatWorkspaceBboxLabel(idx: number, className: string, showName: boolean) {
+  if (!showName) return `#${idx}`;
+  const clippedName = className.length > 18 ? `${className.slice(0, 17)}…` : className;
+  return `#${idx} · ${clippedName}`;
+}
 
 function getCropPreviewSize(bbox: [number, number, number, number], maxSize: number) {
   const [, , boxWidth, boxHeight] = bbox;
@@ -73,6 +80,7 @@ export default function WorkspacePage() {
   const [isPanning, setIsPanning] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(() => !resolveCurrentRecord(getHistory(), initialPreferredId));
   const [overlayMode, setOverlayMode] = useState<OverlayMode>('all');
+  const [showLabelNames, setShowLabelNames] = useState(false);
   const [trustData, setTrustData] = useState<TrustResult | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
 
@@ -228,10 +236,20 @@ export default function WorkspacePage() {
       }
     });
 
+    const annotatedCount = Object.keys(currentRecord.annotations ?? {}).length;
+    const topClasses = Object.entries(classCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([className, count]) => `${className} ${count}`);
+
     return {
       total: elements.length,
       rejectedCount,
+      annotatedCount,
+      submittedCount: annotatedCount,
       topClass,
+      topClasses,
+      imageSizeLabel: `${currentRecord.result.image_size[0]}×${currentRecord.result.image_size[1]}`,
     };
   }, [currentRecord]);
 
@@ -397,7 +415,7 @@ export default function WorkspacePage() {
 
   return (
     <div
-      className={`space-y-6 rounded-2xl transition-colors ${dragging ? 'ring-2 ring-amber-400/60 ring-offset-2 ring-offset-stone-950' : ''}`}
+      className={`workspace-page flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl transition-colors ${dragging ? 'ring-2 ring-amber-400/60 ring-offset-2 ring-offset-stone-950' : ''}`}
       onDragEnter={(event) => {
         event.preventDefault();
         setDragging(true);
@@ -414,7 +432,7 @@ export default function WorkspacePage() {
       }}
       onDrop={onDrop}
     >
-      <section className="flex flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 px-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500 text-stone-950">
             <ImagePlus size={18} />
@@ -521,8 +539,8 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      <div className={`grid gap-6 transition-all duration-300 ${historyOpen ? 'xl:grid-cols-[340px_minmax(0,1fr)]' : 'xl:grid-cols-[64px_minmax(0,1fr)]'}`}>
-        <aside className={`flex flex-col transition-all duration-300 ${historyOpen ? 'rounded-[28px] border border-stone-800 bg-stone-900/80 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.18)] sm:p-5' : 'items-center rounded-[24px] border border-stone-800 bg-stone-900/80 py-4 shadow-sm'}`}>
+      <div className={`grid min-h-0 flex-1 gap-3 transition-all duration-300 ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
+        <aside className={`flex flex-col transition-all duration-300 ${historyOpen ? 'min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3' : 'min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3'}`}>
               {!historyOpen ? (
                 <div className="flex flex-col items-center w-full h-full overflow-hidden">
                   <button
@@ -542,7 +560,7 @@ export default function WorkspacePage() {
                         key={record.id}
                         type="button"
                         onClick={() => selectRecord(record)}
-                        className={`relative rounded-lg overflow-hidden border transition-all hover:scale-105 ${
+                        className={`relative rounded-lg overflow-hidden border transition-colors ${
                           currentRecord?.id === record.id
                             ? 'border-amber-500/60 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
                             : 'border-stone-800 hover:border-stone-600'
@@ -591,7 +609,7 @@ export default function WorkspacePage() {
                 />
               </div>
 
-              <div className="space-y-3 overflow-y-auto pr-1 xl:max-h-[calc(100vh-14rem)]">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {records.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-stone-700 bg-stone-950/70 px-4 py-8 text-center text-sm text-stone-500">
                     {t.noAnalyses}
@@ -623,10 +641,10 @@ export default function WorkspacePage() {
                         selectRecord(record);
                       }
                     }}
-                    className={`group rounded-2xl border p-3 transition-all ${isActive ? 'border-amber-500/60 bg-amber-500/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]' : 'border-stone-800 bg-stone-950/70 hover:border-stone-700'}`}
+                    className={`group rounded-xl border p-2.5 transition-colors ${isActive ? 'border-amber-500/60 bg-amber-500/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]' : 'border-stone-800 bg-stone-950/70 hover:border-stone-700'}`}
                   >
                     <div className="flex items-start gap-3">
-                      <img src={record.imageDataUrl} alt={record.imageName} className="h-20 w-20 rounded-xl border border-stone-800 object-cover" />
+                      <img src={record.imageDataUrl} alt={record.imageName} className="h-16 w-16 rounded-lg border border-stone-800 object-cover" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -668,11 +686,11 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="space-y-6">
+        <section className="min-h-0 overflow-hidden">
           {currentRecord ? (
             <>
-              <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.04fr)_minmax(380px,0.96fr)]">
-                <section className="flex flex-col min-h-[420px] rounded-[28px] border border-stone-800 bg-stone-900/80 p-5 lg:p-6">
+              <div className="grid h-full min-h-0 gap-3 2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
+                <section className="flex min-h-0 flex-col rounded-2xl border border-stone-800 bg-stone-900/75 p-4">
                   <div className="flex flex-col gap-4 border-b border-stone-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <h2 className="text-lg font-semibold text-stone-100 truncate max-w-[200px] sm:max-w-[300px]" title={currentRecord.imageName}>
@@ -684,25 +702,37 @@ export default function WorkspacePage() {
                         </span>
                       )}
                     </div>
-                    <div className="inline-flex rounded-lg border border-stone-700 bg-stone-950 p-1 shrink-0">
-                      {(['all', 'focused', 'hidden'] as OverlayMode[]).map((mode) => {
-                        const isActive = overlayMode === mode;
-                        return (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => setOverlayMode(mode)}
-                            className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${isActive ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-stone-100'}`}
-                          >
-                            {mode === 'all' ? t.overlayAll : mode === 'focused' ? t.overlayFocused : t.overlayHidden}
-                          </button>
-                        );
-                      })}
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      <div className="inline-flex rounded-lg border border-stone-700 bg-stone-950 p-1">
+                        {(['all', 'focused', 'hidden'] as OverlayMode[]).map((mode) => {
+                          const isActive = overlayMode === mode;
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setOverlayMode(mode)}
+                              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${isActive ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-stone-100'}`}
+                            >
+                              {mode === 'all' ? t.overlayAll : mode === 'focused' ? t.overlayFocused : t.overlayHidden}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLabelNames((current) => !current)}
+                        aria-pressed={showLabelNames}
+                        aria-label={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
+                        className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? 'border-stone-100 bg-stone-100 text-stone-950' : 'border-stone-700 bg-stone-950 text-stone-300 hover:text-stone-100'}`}
+                      >
+                        <Tags size={15} />
+                        {showLabelNames ? 'Noms' : 'N°'}
+                      </button>
                     </div>
                   </div>
 
                   <div
-                    className={`relative mt-5 flex flex-1 min-h-[360px] items-center justify-center overflow-hidden rounded-[24px] border border-stone-800 bg-stone-950 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    className={`workspace-stage relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-stone-800 bg-stone-950 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                     onPointerDown={startWorkspacePan}
                     onPointerMove={moveWorkspacePan}
                     onPointerUp={stopWorkspacePan}
@@ -733,7 +763,7 @@ export default function WorkspacePage() {
                         src={currentRecord.imageDataUrl}
                         alt={currentRecord.imageName}
                         draggable={false}
-                        className="block max-h-[72vh] max-w-full rounded-lg object-contain"
+                        className="block max-h-full max-w-full rounded-lg object-contain"
                       />
                       {currentRecord && overlayMode !== 'hidden' && (
                         <svg
@@ -770,8 +800,17 @@ export default function WorkspacePage() {
                                   strokeDasharray={visualState.strokeDasharray}
                                   vectorEffect="non-scaling-stroke"
                                 />
-                                <rect x={x} y={labelY} width={44} height={24} rx={6} fill={visualState.strokeColor} opacity={0.95} />
-                                <text x={x + 22} y={labelY + 12} fill={visualState.labelColor} fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central">#{idx}</text>
+                                {(() => {
+                                  const label = formatWorkspaceBboxLabel(idx, el.class_name, showLabelNames);
+                                  const labelWidth = showLabelNames ? Math.min(168, Math.max(64, label.length * 8 + 18)) : 44;
+                                  return (
+                                    <>
+                                      <title>{label}</title>
+                                      <rect x={x} y={labelY} width={labelWidth} height={24} rx={6} fill={visualState.strokeColor} opacity={0.95} />
+                                      <text x={x + 10} y={labelY + 12} fill={visualState.labelColor} fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="start" dominantBaseline="central">{label}</text>
+                                    </>
+                                  );
+                                })()}
                               </g>
                             );
                           })}
@@ -806,7 +845,7 @@ export default function WorkspacePage() {
                   </div>
                 </section>
 
-                <section className="flex h-[72vh] min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-stone-800 bg-stone-900/80 sidebar-shell">
+                <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-stone-800 bg-stone-900/75 sidebar-shell">
                   {focusedIdx !== null ? (
                     <div className="flex h-full flex-col">
                       <div className="flex items-center justify-between sidebar-header px-5 py-4 border-b border-stone-800">
@@ -981,6 +1020,27 @@ export default function WorkspacePage() {
                     </div>
                   )}
 
+                  {stats && (
+                    <div className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                      <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
+                        <span className="block text-stone-500">Image</span>
+                        <span className="mt-1 block truncate font-semibold text-stone-200" title={currentRecord.imageName}>{currentRecord.imageName}</span>
+                      </div>
+                      <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
+                        <span className="block text-stone-500">Dimensions</span>
+                        <span className="mt-1 block font-semibold tabular-nums text-stone-200">{stats.imageSizeLabel}</span>
+                      </div>
+                      <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
+                        <span className="block text-stone-500">Annotés / rejetés</span>
+                        <span className="mt-1 block font-semibold tabular-nums text-stone-200">{stats.annotatedCount}/{stats.total} · {stats.rejectedCount}</span>
+                      </div>
+                      <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
+                        <span className="block text-stone-500">Classes</span>
+                        <span className="mt-1 block truncate font-semibold text-stone-200" title={stats.topClasses.join(', ')}>{stats.topClasses.join(', ') || stats.topClass}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     className="flex-1 space-y-1 overflow-y-auto pr-2"
                     tabIndex={0}
@@ -1029,13 +1089,22 @@ export default function WorkspacePage() {
                         return (
                           <div key={idx} className="flex flex-col">
                              <div
-                              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-colors ${
+                              role="button"
+                              aria-label={`${displayClass} région ${idx}`}
+                              className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${
                                 focusedIdx === idx ? 'border-amber-500/60 bg-amber-500/5' : isHovered ? 'border-stone-700 bg-stone-900' : 'border-stone-800 bg-stone-950'
                               }`}
+                              onClick={() => setFocusedIdx(idx)}
                               onMouseEnter={() => { setHoveredIdx(idx); setHoverSource('list'); }}
                               onMouseLeave={() => {
                                 setHoveredIdx((current) => (current === idx ? null : current));
                                 setHoverSource((current) => (current === 'list' ? null : current));
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  setFocusedIdx(idx);
+                                }
                               }}
                               tabIndex={0}
                             >
@@ -1064,13 +1133,6 @@ export default function WorkspacePage() {
                                   </span>
                                 )}
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setFocusedIdx(idx)}
-                                className="shrink-0 rounded-lg border border-stone-700 px-2.5 py-1 text-[11px] font-semibold text-stone-300 transition-colors hover:border-amber-500/60 hover:text-amber-300"
-                              >
-                                {t.detailsButton}
-                              </button>
                             </div>
                           </div>
                         );

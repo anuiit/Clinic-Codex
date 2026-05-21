@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, ZoomIn, ZoomOut, Maximize2, PenTool, MousePointer2, Trash2, Upload, Undo2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, ZoomIn, ZoomOut, Maximize2, PenTool, MousePointer2, Trash2, Upload, Undo2, Tags } from 'lucide-react';
 import { getAnalysisById, updateElements } from '../services/storage';
 import { getClasses, saveAnnotation } from '../services/api';
 import { t as translate } from '../i18n/annotation.fr';
@@ -11,6 +11,8 @@ import { getBoxVisualState, hitTestBBoxes, hitTestHandles, isDragIntent, moveBBo
 import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeClassName } from '../utils/fuzzyClasses';
 
 type StageSize = { width: number; height: number };
+type AnnotationStatusFilter = 'all' | 'draft' | 'submitted' | 'rejected';
+type AnnotationSortMode = 'original' | 'name' | 'confidence-asc' | 'confidence-desc';
 
 type BboxHistoryEntry =
   | { type: 'create'; idx: number; focusedIdx: number | null }
@@ -27,6 +29,13 @@ function cloneElements(elements: DetectedElement[]): DetectedElement[] {
 
 function areBboxesEqual(a: [number, number, number, number], b: [number, number, number, number]): boolean {
   return a.every((value, idx) => value === b[idx]);
+}
+
+function formatBboxLabel(idx: number, className: string, showName: boolean, unnamedLabel: string): string {
+  if (!showName) return `#${idx}`;
+  const displayName = isUnnamedClass(className) ? unnamedLabel : className;
+  const clippedName = displayName.length > 18 ? `${displayName.slice(0, 17)}…` : displayName;
+  return `#${idx} · ${clippedName}`;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -227,6 +236,10 @@ export default function AnnotationPage() {
   const [tempBbox, setTempBbox] = useState<[number, number, number, number] | null>(null);
   const [namingFocusToken, setNamingFocusToken] = useState(0);
   const [stageSize, setStageSize] = useState<StageSize | null>(null);
+  const [showLabelNames, setShowLabelNames] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<AnnotationStatusFilter>('all');
+  const [sortMode, setSortMode] = useState<AnnotationSortMode>('original');
+  const [listQuery, setListQuery] = useState('');
   
   const imageRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -789,6 +802,25 @@ export default function AnnotationPage() {
     : null;
   const focusedConfidencePercent = focusedElement ? Math.round(focusedElement.confidence * 100) : 0;
 
+  const displayedElements = elements
+    .map((el, idx) => ({ el, idx }))
+    .filter(({ el, idx }) => {
+      const normalizedQuery = listQuery.trim().toLocaleLowerCase('fr');
+      if (normalizedQuery && !`${idx} ${el.class_name}`.toLocaleLowerCase('fr').includes(normalizedQuery)) return false;
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'submitted') return annotationStatus[idx] === 'validated';
+      if (statusFilter === 'rejected') return Boolean(el.rejected);
+      return annotationStatus[idx] !== 'validated' && !el.rejected;
+    })
+    .sort((a, b) => {
+      if (sortMode === 'name') {
+        return a.el.class_name.localeCompare(b.el.class_name, 'fr', { sensitivity: 'base' }) || a.idx - b.idx;
+      }
+      if (sortMode === 'confidence-asc') return a.el.confidence - b.el.confidence || a.idx - b.idx;
+      if (sortMode === 'confidence-desc') return b.el.confidence - a.el.confidence || a.idx - b.idx;
+      return a.idx - b.idx;
+    });
+
   useEffect(() => {
     if (focusedIdx === null) return;
     cardRefs.current[focusedIdx]?.scrollIntoView?.({ block: 'nearest' });
@@ -916,9 +948,6 @@ export default function AnnotationPage() {
             <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Clinic Codex</div>
             <h1 className="truncate text-lg font-black tracking-tight text-stone-50">{t.title}</h1>
           </div>
-          <div className="hidden rounded-full border border-stone-700/70 bg-stone-950/60 px-3 py-1.5 text-xs text-stone-300 md:block">
-            {t.submittedSummary}: <span className="font-semibold text-emerald-300">{submittedCount}</span> / {elements.length}
-          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -983,6 +1012,16 @@ export default function AnnotationPage() {
             >
               <Undo2 size={16} />
               {t.undoBbox}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowLabelNames((current) => !current)}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? 'bg-stone-100 text-stone-950' : 'text-stone-300 hover:bg-stone-800 hover:text-stone-50'}`}
+              aria-pressed={showLabelNames}
+              aria-label={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
+            >
+              <Tags size={16} />
+              {showLabelNames ? 'Noms' : 'N°'}
             </button>
             <div className="mx-1 h-6 w-px bg-stone-700/70" />
             <div className="flex items-center gap-1 rounded-lg border border-stone-700/70 bg-stone-950/50 p-0.5">
@@ -1065,8 +1104,17 @@ export default function AnnotationPage() {
                           <rect x={x+w-6} y={y+h-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nwse-resize" />
                         </>
                       )}
-                      <rect x={x} y={labelY} width={44} height={24} rx={6} fill={boxVisual.strokeColor} opacity={0.95} pointerEvents="none" style={{ userSelect: 'none' }} />
-                      <text x={x + 22} y={labelY + 12} fill="#0c0a09" fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central" pointerEvents="none" style={{ userSelect: 'none' }}>#{idx}</text>
+                      {(() => {
+                        const label = formatBboxLabel(idx, el.class_name, showLabelNames, t.unnamedElement);
+                        const labelWidth = showLabelNames ? Math.min(168, Math.max(64, label.length * 8 + 18)) : 44;
+                        return (
+                          <>
+                            <title>{label}</title>
+                            <rect x={x} y={labelY} width={labelWidth} height={24} rx={6} fill={boxVisual.strokeColor} opacity={0.95} pointerEvents="none" style={{ userSelect: 'none' }} />
+                            <text x={x + 10} y={labelY + 12} fill="#0c0a09" fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="start" dominantBaseline="central" pointerEvents="none" style={{ userSelect: 'none' }}>{label}</text>
+                          </>
+                        );
+                      })()}
                     </g>
                   );
                 })}
@@ -1079,7 +1127,7 @@ export default function AnnotationPage() {
         </div>
 
         <aside className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4" aria-label="Inspecteur d’annotation">
-          <section className="annotation-panel annotation-selected-inspector mb-4 flex shrink-0 flex-col gap-4 rounded-2xl p-4" data-testid="selected-element-inspector">
+          <section className="annotation-panel annotation-selected-inspector mb-3 flex shrink-0 flex-col gap-3 rounded-2xl p-3" data-testid="selected-element-inspector">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Inspecteur</div>
@@ -1096,9 +1144,9 @@ export default function AnnotationPage() {
 
             {focusedElement && focusedIdx !== null ? (
               <>
-                <div className="annotation-selected-overview grid grid-cols-[190px_minmax(0,1fr)] gap-4">
-                  <div className="annotation-crop flex h-[190px] items-center justify-center overflow-hidden rounded-2xl border border-stone-700/50">
-                    <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[180px] w-[180px] rounded-xl object-contain" />
+                <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
+                  <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
+                    <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[140px] w-[140px] rounded-lg object-contain" />
                   </div>
                   <div className="min-w-0 space-y-3">
                     <div>
@@ -1155,25 +1203,66 @@ export default function AnnotationPage() {
                 </div>
               </>
             ) : (
-              <div className="flex min-h-[250px] items-center justify-center rounded-2xl border border-dashed border-stone-700/70 bg-stone-950/35 px-6 text-center text-sm text-stone-500">
+              <div className="flex min-h-[245px] items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/25 px-6 text-center text-sm text-stone-500">
                 {t.selectElementCrop}
               </div>
             )}
           </section>
 
           <section className="flex min-h-0 flex-1 flex-col" aria-label="Liste compacte des éléments">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">{t.elements}</div>
-                <div className="text-2xl font-black leading-none text-stone-100">{elements.length}</div>
+            <div className="mb-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">{t.elements}</div>
+                  <div className="text-2xl font-black leading-none text-stone-100">{displayedElements.length}<span className="text-sm font-semibold text-stone-500">/{elements.length}</span></div>
+                </div>
+                <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300" aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}>
+                  {t.submitted} {submittedCount}/{elements.length}
+                </div>
               </div>
-              <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                {submittedCount} {t.submitted}
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Filtrer
+                <input
+                  type="search"
+                  aria-label="Filtrer les éléments"
+                  value={listQuery}
+                  onChange={(event) => setListQuery(event.target.value)}
+                  placeholder="Nom ou numéro"
+                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                  Statut
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as AnnotationStatusFilter)}
+                    className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+                  >
+                    <option value="all">Tous</option>
+                    <option value="draft">Brouillons</option>
+                    <option value="submitted">Soumis</option>
+                    <option value="rejected">Rejetés</option>
+                  </select>
+                </label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+                  Tri
+                  <select
+                    value={sortMode}
+                    onChange={(event) => setSortMode(event.target.value as AnnotationSortMode)}
+                    className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+                  >
+                    <option value="original">Original</option>
+                    <option value="confidence-asc">Confiance ↑</option>
+                    <option value="confidence-desc">Confiance ↓</option>
+                    <option value="name">Nom A→Z</option>
+                  </select>
+                </label>
               </div>
             </div>
 
             <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
-              {elements.map((el, idx) => {
+              {displayedElements.map(({ el, idx }) => {
                 const isFocused = idx === focusedIdx;
                 const displayName = isUnnamedClass(el.class_name) ? t.unnamedElement : el.class_name;
                 const isSubmitted = annotationStatus[idx] === 'validated';
