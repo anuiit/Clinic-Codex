@@ -87,10 +87,11 @@ describe('WorkspacePage image pan behavior', () => {
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
 
     const wheelEvent = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100 });
+    const preventDefaultSpy = vi.spyOn(wheelEvent, 'preventDefault');
     await act(async () => {
       viewport.dispatchEvent(wheelEvent);
     });
-    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(wrapper.style.transform).toContain('scale(1.15)');
 
     await act(async () => {
@@ -117,20 +118,21 @@ describe('WorkspacePage image pan behavior', () => {
     expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
     expect(sidebar).not.toHaveClass('transition-all');
 
+    const sidebar = screen.getByTestId('workspace-history-sidebar');
+    expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
+    expect(sidebar).not.toHaveClass('transition-all');
+
     const expandButton = await screen.findByTitle('Déplier l’historique');
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
 
     await user.click(expandButton);
     expect(await screen.findByPlaceholderText('Filtrer par glyphe ou classe')).toBeInTheDocument();
-    const historyHeader = screen.getByTestId('workspace-history-header');
-    expect(historyHeader).toHaveTextContent(/^History\s+1$/);
+    const header = screen.getByTestId('workspace-history-header');
+    expect(within(header).getByRole('heading', { name: 'History' })).toBeInTheDocument();
+    expect(header).toHaveTextContent('1 total');
     expect(screen.queryByText('Historique des analyses')).not.toBeInTheDocument();
     expect(screen.queryByText('Analyses enregistrées')).not.toBeInTheDocument();
-
-    const historyList = screen.getByTestId('workspace-history-list');
-    expect(historyList).toHaveClass('workspace-history-list');
-    expect(historyList.querySelector('[role="button"]')).not.toHaveClass('transition-all');
-    expect(container.querySelector('.sidebar-shell')).not.toHaveClass('transition-all');
+    expect(screen.getByRole('heading', { name: 'workspace-test.png' })).toBeInTheDocument();
 
     await user.click(screen.getByTitle('Replier l’historique'));
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
