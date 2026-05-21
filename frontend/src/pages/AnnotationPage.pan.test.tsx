@@ -220,6 +220,49 @@ describe('AnnotationPage pan behavior', () => {
     expect(wrapper.style.transform).not.toMatch(/translate\(0px,\s*0px\)/);
   });
 
+  it('draw mode creates a draft bbox without changing the stage layout', async () => {
+    const { container } = renderPage();
+    await act(async () => {});
+
+    const stage = screen.getByTestId('annotation-stage');
+    const stageSizeBefore = {
+      width: stage.style.width,
+      height: stage.style.height,
+    };
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Mode sélection' }));
+    });
+
+    const { svg, wrapper } = getSvgAndWrapper(container);
+    const transformBefore = wrapper.style.transform;
+
+    await act(async () => {
+      dispatchPointer(svg, 'pointerdown', { clientX: 40, clientY: 50, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointermove', { clientX: 90, clientY: 95, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointerup', { clientX: 90, clientY: 95, pointerId: 1 });
+    });
+
+    expect(await screen.findByLabelText('Nommer l’élément 0')).toBeInTheDocument();
+    expect(stage).toHaveStyle(stageSizeBefore);
+    expect(wrapper.style.transform).toBe(transformBefore);
+
+    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enregistrer les modifications'),
+    ) as HTMLElement;
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    expect(updateElements).toHaveBeenCalledWith('test-id', [
+      expect.objectContaining({ bbox: [40, 50, 50, 45] }),
+    ], { 0: 'draft' });
+  });
+
   it('reset-view button resets pan and zoom', async () => {
     const { container } = renderPage();
     await act(async () => {});

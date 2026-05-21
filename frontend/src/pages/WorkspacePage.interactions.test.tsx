@@ -219,6 +219,29 @@ describe('WorkspacePage interaction coverage', () => {
     expect(screen.getByText('Éléments détectés')).toBeInTheDocument();
   });
 
+  it('limits the overlay DOM to the focused region and restores all/hidden layout modes', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+
+    await screen.findByTestId('workspace-overlay');
+    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(2);
+
+    await user.click(screen.getAllByRole('button', { name: 'Voir plus de détails' })[0]);
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'focus' }));
+    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(1);
+    expect(screen.getByTestId('workspace-overlay')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'masqué' }));
+    expect(container.querySelector('[data-testid="workspace-overlay"]')).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: 'tout' }));
+    expect(await screen.findByTestId('workspace-overlay')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(2);
+  });
+
 
   it('uses smallest-area overlay hit priority and keeps workspace overlays read-only', async () => {
     const overlappingRecord: AnalysisRecord = {
