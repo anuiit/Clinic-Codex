@@ -21,8 +21,10 @@ import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import type { AnalysisRecord, TrustResult } from '../types';
+import { getBoxVisualState, hitTestBBoxes, type BBox } from '../utils/segmentationBoxes';
 
 type OverlayMode = 'all' | 'focused' | 'hidden';
+type HoverSource = 'image' | 'list' | null;
 
 function getCropPreviewSize(bbox: [number, number, number, number], maxSize: number) {
   const [, , boxWidth, boxHeight] = bbox;
@@ -46,6 +48,36 @@ function resolveCurrentRecord(records: AnalysisRecord[], preferredId?: string | 
   return records[0] ?? null;
 }
 
+function clientToWorkspacePoint(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+  imageSize: [number, number],
+) {
+  const rect = svg.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+
+  return {
+    x: ((clientX - rect.left) / rect.width) * imageSize[0],
+    y: ((clientY - rect.top) / rect.height) * imageSize[1],
+  };
+}
+
+function visibleOverlayEntries(
+  elements: AnalysisRecord['result']['elements'],
+  overlayMode: OverlayMode,
+  focusedIdx: number | null,
+): Array<{ idx: number; bbox: BBox }> {
+  return elements.flatMap((element, idx) => {
+    if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) {
+      return [];
+    }
+    return [{ idx, bbox: element.bbox }];
+  });
+}
+
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,6 +95,7 @@ export default function WorkspacePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [hoverSource, setHoverSource] = useState<HoverSource>(null);
   const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -90,6 +123,7 @@ export default function WorkspacePage() {
   const resetInspectionState = useCallback(() => {
     cropCanvasRefs.current = [];
     setHoveredIdx(null);
+    setHoverSource(null);
     setFocusedIdx(null);
     resetWorkspaceView();
     setOverlayMode('all');
@@ -350,6 +384,45 @@ export default function WorkspacePage() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+  };
+
+  const getOverlayHitIdx = useCallback((svg: SVGSVGElement, clientX: number, clientY: number) => {
+    if (!currentRecord) {
+      return null;
+    }
+
+    const point = clientToWorkspacePoint(svg, clientX, clientY, currentRecord.result.image_size);
+    if (!point) {
+      return null;
+    }
+
+    const entries = visibleOverlayEntries(currentRecord.result.elements, overlayMode, focusedIdx);
+    const hitIdx = hitTestBBoxes(point, entries.map((entry) => entry.bbox));
+    return hitIdx === null ? null : entries[hitIdx].idx;
+  }, [currentRecord, focusedIdx, overlayMode]);
+
+  const handleOverlayPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const hitIdx = getOverlayHitIdx(event.currentTarget, event.clientX, event.clientY);
+    setHoveredIdx(hitIdx);
+    setHoverSource(hitIdx === null ? null : 'image');
+    event.currentTarget.style.cursor = hitIdx === null ? 'default' : 'pointer';
+  };
+
+  const handleOverlayPointerLeave = (event: ReactPointerEvent<SVGSVGElement>) => {
+    setHoveredIdx((current) => (hoverSource === 'image' ? null : current));
+    setHoverSource((current) => (current === 'image' ? null : current));
+    event.currentTarget.style.cursor = 'default';
+  };
+
+  const handleOverlayPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const hitIdx = getOverlayHitIdx(event.currentTarget, event.clientX, event.clientY);
+    setFocusedIdx(hitIdx);
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   return (
@@ -694,26 +767,43 @@ export default function WorkspacePage() {
                       />
                       {currentRecord && overlayMode !== 'hidden' && (
                         <svg
-                          className="absolute left-0 top-0 w-full h-full pointer-events-none"
+                          className="absolute left-0 top-0 h-full w-full"
+                          data-overlay-region="true"
                           viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
                           preserveAspectRatio="none"
                           style={{ width: '100%', height: '100%' }}
+                          onPointerDown={handleOverlayPointerDown}
+                          onPointerMove={handleOverlayPointerMove}
+                          onPointerLeave={handleOverlayPointerLeave}
                         >
                           {currentRecord.result.elements.map((el, idx) => {
                             if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) return null;
                             const [x, y, w, h] = el.bbox;
                             const isFocused = idx === focusedIdx;
-                            const isHovered = idx === hoveredIdx;
-                            const strokeColor = el.rejected ? '#ef4444' : isFocused ? '#ffffff' : isHovered ? '#fbbf24' : '#f59e0b';
-                            const badgeColor = strokeColor;
+                            const isImageHovered = idx === hoveredIdx && hoverSource === 'image';
+                            const isListHovered = idx === hoveredIdx && hoverSource === 'list';
+                            const boxVisual = getBoxVisualState({
+                              focused: isFocused,
+                              hovered: isImageHovered,
+                              listHovered: isListHovered,
+                              rejected: el.rejected,
+                            });
+                            const labelY = Math.max(0, y - 22);
                             return (
-                              <g key={idx} data-overlay-region="true" className="pointer-events-auto" style={{ cursor: 'pointer' }}
-                                 onClick={(e) => { e.stopPropagation(); setFocusedIdx(idx); }}
-                                 onMouseEnter={() => setHoveredIdx(idx)}
-                                 onMouseLeave={() => setHoveredIdx(null)}>
-                                <rect x={x} y={y} width={w} height={h} fill="none" stroke={strokeColor} strokeWidth={isFocused ? 3 : 2} />
-                                <rect x={x} y={Math.max(0, y - 12)} width={14} height={12} fill={badgeColor} />
-                                <text x={x + 7} y={Math.max(0, y - 12) + 6} fill="#0c0a09" fontSize={7} fontWeight="bold" textAnchor="middle" dominantBaseline="central">{idx}</text>
+                              <g key={idx} data-overlay-region="true" data-testid={`workspace-overlay-box-${idx}`} style={{ pointerEvents: 'none' }}>
+                                <rect
+                                  x={x}
+                                  y={y}
+                                  width={w}
+                                  height={h}
+                                  fill={boxVisual.fillColor}
+                                  stroke={boxVisual.strokeColor}
+                                  strokeWidth={boxVisual.strokeWidth}
+                                  strokeDasharray={boxVisual.strokeDasharray}
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                                <rect x={x} y={labelY} width={30} height={18} rx={5} fill={boxVisual.strokeColor} opacity={0.95} style={{ userSelect: 'none' }} />
+                                <text x={x + 15} y={labelY + 9} fill={boxVisual.labelColor} fontSize={9} fontWeight="800" textAnchor="middle" dominantBaseline="central" style={{ userSelect: 'none' }}>#{idx}</text>
                               </g>
                             );
                           })}
@@ -974,8 +1064,11 @@ export default function WorkspacePage() {
                               className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-colors ${
                                 focusedIdx === idx ? 'border-amber-500/60 bg-amber-500/5' : isHovered ? 'border-stone-700 bg-stone-900' : 'border-stone-800 bg-stone-950'
                               }`}
-                              onMouseEnter={() => setHoveredIdx(idx)}
-                              onMouseLeave={() => setHoveredIdx((current) => (current === idx ? null : current))}
+                              onMouseEnter={() => { setHoveredIdx(idx); setHoverSource('list'); }}
+                              onMouseLeave={() => {
+                                setHoveredIdx((current) => (current === idx ? null : current));
+                                setHoverSource((current) => (current === 'list' ? null : current));
+                              }}
                               tabIndex={0}
                             >
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-800/50 bg-stone-900">

@@ -125,10 +125,23 @@ describe('WorkspacePage image pan behavior', () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
-    const overlayRegion = container.querySelector('[data-overlay-region="true"]') as SVGGElement;
-    expect(overlayRegion).toBeTruthy();
+    const overlay = container.querySelector('svg[data-overlay-region="true"]') as SVGSVGElement;
+    expect(overlay).toBeTruthy();
+    overlay.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 800,
+      height: 600,
+      right: 800,
+      bottom: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }));
 
-    await user.click(overlayRegion);
+    await act(async () => {
+      dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
+    });
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
 
