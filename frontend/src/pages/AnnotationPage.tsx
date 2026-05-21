@@ -907,13 +907,13 @@ export default function AnnotationPage() {
               {drawMode ? t.drawMode : t.selectMode}
             </button>
             <div className="mx-1 h-6 w-px bg-stone-700/70" />
-            <button type="button" onClick={() => applyZoom(zoom + 0.25)} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom avant">
+            <button type="button" onClick={() => applyZoom(zoom + 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom avant">
               <ZoomIn size={16} />
             </button>
-            <button type="button" onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" title="Réinitialiser la vue">
+            <button type="button" onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" title="Réinitialiser la vue">
               <Maximize2 size={16} />
             </button>
-            <button type="button" onClick={() => applyZoom(zoom - 0.25)} className="rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom arrière">
+            <button type="button" onClick={() => applyZoom(zoom - 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom arrière">
               <ZoomOut size={16} />
             </button>
             <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">{Math.round(zoom * 100)}%</span>
