@@ -7,6 +7,7 @@ import { t as translate } from '../i18n/annotation.fr';
 import { appText } from '../i18n/text';
 import type { AnalysisRecord, AnnotationStatus, DetectedElement, SaveAnnotationResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
+import { getBoxVisualState, hitTestBBoxes, hitTestHandle, hitTestHandles, isDragIntent, moveBBox, resizeBBox, type BBox, type BBoxHandle } from '../utils/segmentationBoxes';
 import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeClassName } from '../utils/fuzzyClasses';
 
 type StageSize = { width: number; height: number };
@@ -14,7 +15,7 @@ type StageSize = { width: number; height: number };
 type BboxHistoryEntry =
   | { type: 'create'; idx: number; focusedIdx: number | null }
   | { type: 'delete'; idx: number; element: DetectedElement; status?: AnnotationStatus; focusedIdx: number | null }
-  | { type: 'update'; idx: number; previousBbox: [number, number, number, number]; focusedIdx: number | null };
+  | { type: 'update'; idx: number; previousBbox: BBox; focusedIdx: number | null };
 
 function cloneElements(elements: DetectedElement[]): DetectedElement[] {
   return elements.map((element) => ({
@@ -38,10 +39,13 @@ function isEditableTarget(target: EventTarget | null): boolean {
 type DragState = {
   type: 'draw' | 'move' | 'resize';
   idx: number;
-  corner?: 'tl' | 'tr' | 'bl' | 'br';
+  corner?: BBoxHandle;
   startX: number;
   startY: number;
-  origBbox?: [number, number, number, number];
+  startClientX?: number;
+  startClientY?: number;
+  isMoveReady?: boolean;
+  origBbox?: BBox;
 } | null;
 
 interface ElementNameComboboxProps {
@@ -525,31 +529,13 @@ export default function AnnotationPage() {
     setPanOffset((prev) => clampPan(prev, zoom));
   }, [clampPan, stageSize, zoom]);
 
-  const getHitHandle = (x: number, y: number, bbox: [number, number, number, number]) => {
-    const [bx, by, bw, bh] = bbox;
-    const hSize = 12; // slightly larger hit area
-    if (Math.abs(x - bx) <= hSize && Math.abs(y - by) <= hSize) return 'tl';
-    if (Math.abs(x - (bx + bw)) <= hSize && Math.abs(y - by) <= hSize) return 'tr';
-    if (Math.abs(x - bx) <= hSize && Math.abs(y - (by + bh)) <= hSize) return 'bl';
-    if (Math.abs(x - (bx + bw)) <= hSize && Math.abs(y - (by + bh)) <= hSize) return 'br';
-    return null;
-  };
+  const getHitHandle = (x: number, y: number, bbox: BBox) => hitTestHandle({ x, y }, bbox, 12);
 
-  const getHandleHit = (x: number, y: number) => {
-    let bestHit: { idx: number; corner: 'tl' | 'tr' | 'bl' | 'br'; area: number } | null = null;
-    for (const [idx, el] of elements.entries()) {
-      const handle = getHitHandle(x, y, el.bbox);
-      if (!handle) continue;
-
-      const [, , bw, bh] = el.bbox;
-      const area = bw * bh;
-      if (!bestHit || area < bestHit.area) {
-        bestHit = { idx, corner: handle, area };
-      }
-    }
-
-    return bestHit;
-  };
+  const getHandleHit = (x: number, y: number) => hitTestHandles(
+    { x, y },
+    elements.map((el) => el.bbox),
+    12,
+  );
 
   const handleSvgPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (!record) return;
@@ -559,7 +545,7 @@ export default function AnnotationPage() {
 
     if (drawMode) {
       const bbox: [number, number, number, number] = [x, y, 0, 0];
-      setActiveDragState({ type: 'draw', idx: elements.length, startX: x, startY: y });
+      setActiveDragState({ type: 'draw', idx: elements.length, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -572,31 +558,20 @@ export default function AnnotationPage() {
       const el = elements[handleHit.idx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(handleHit.idx);
-      setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.corner, startX: x, startY: y, origBbox: bbox });
+      setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.handle, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
 
-    let hitIdx: number | null = null;
-    let minArea = Infinity;
-    elements.forEach((el, idx) => {
-      const [bx, by, bw, bh] = el.bbox;
-      if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
-        const area = bw * bh;
-        if (area < minArea) {
-          minArea = area;
-          hitIdx = idx;
-        }
-      }
-    });
+    const hitIdx = hitTestBBoxes({ x, y }, elements.map((el) => el.bbox));
 
     if (hitIdx !== null) {
       const el = elements[hitIdx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(hitIdx);
-      setActiveDragState({ type: 'move', idx: hitIdx, startX: x, startY: y, origBbox: bbox });
+      setActiveDragState({ type: 'move', idx: hitIdx, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY, isMoveReady: false, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -630,7 +605,7 @@ export default function AnnotationPage() {
     const { x, y } = coords;
     const [origW, origH] = [imgW, imgH];
 
-    const activeDragState = dragStateRef.current ?? dragState;
+    let activeDragState = dragStateRef.current ?? dragState;
 
     if (activeDragState) {
       let nextBbox: [number, number, number, number] | null = null;
@@ -645,55 +620,42 @@ export default function AnnotationPage() {
           Math.min(origW - Math.max(0, minX), maxX - minX),
           Math.min(origH - Math.max(0, minY), maxY - minY)
         ];
-      } else if (activeDragState.type === 'move' && activeDragState.origBbox) {
-        const dx = x - activeDragState.startX;
-        const dy = y - activeDragState.startY;
-        const [origBx, origBy, bw, bh] = activeDragState.origBbox;
-        const bx = Math.max(0, Math.min(origW - bw, origBx + dx));
-        const by = Math.max(0, Math.min(origH - bh, origBy + dy));
-        nextBbox = [bx, by, bw, bh];
-      } else if (activeDragState.type === 'resize' && activeDragState.origBbox && activeDragState.corner) {
-        let [bx, by, bw, bh] = activeDragState.origBbox;
-        if (activeDragState.corner === 'tl') {
-          const nx = Math.min(bx + bw - 1, Math.max(0, x));
-          const ny = Math.min(by + bh - 1, Math.max(0, y));
-          bw = bx + bw - nx;
-          bh = by + bh - ny;
-          bx = nx;
-          by = ny;
-        } else if (activeDragState.corner === 'tr') {
-          const ny = Math.min(by + bh - 1, Math.max(0, y));
-          bw = Math.min(origW - bx, Math.max(1, x - bx));
-          bh = by + bh - ny;
-          by = ny;
-        } else if (activeDragState.corner === 'bl') {
-          const nx = Math.min(bx + bw - 1, Math.max(0, x));
-          bw = bx + bw - nx;
-          bx = nx;
-          bh = Math.min(origH - by, Math.max(1, y - by));
-        } else if (activeDragState.corner === 'br') {
-          bw = Math.min(origW - bx, Math.max(1, x - bx));
-          bh = Math.min(origH - by, Math.max(1, y - by));
+      } else if (activeDragState.type === 'move') {
+        const origBbox = activeDragState.origBbox;
+        if (!origBbox) return;
+        if (!activeDragState.isMoveReady) {
+          if (activeDragState.startClientX === undefined || activeDragState.startClientY === undefined) return;
+          if (!isDragIntent(
+            { x: activeDragState.startClientX, y: activeDragState.startClientY },
+            { x: e.clientX, y: e.clientY },
+            5,
+          )) {
+            return;
+          }
+          const readyDragState = { ...activeDragState, isMoveReady: true };
+          setActiveDragState(readyDragState);
+          dragStateRef.current = readyDragState;
+          activeDragState = readyDragState;
         }
-        nextBbox = [bx, by, bw, bh];
+        nextBbox = moveBBox(
+          origBbox,
+          { x: x - activeDragState.startX, y: y - activeDragState.startY },
+          { width: origW, height: origH },
+        );
+      } else if (activeDragState.type === 'resize' && activeDragState.origBbox && activeDragState.corner) {
+        nextBbox = resizeBBox(
+          activeDragState.origBbox,
+          activeDragState.corner,
+          { x, y },
+          { width: origW, height: origH },
+        );
       }
 
       if (nextBbox) {
         scheduleTempBbox(nextBbox);
       }
     } else if (!drawMode) {
-      let hitIdx: number | null = null;
-      let minArea = Infinity;
-      elements.forEach((el, idx) => {
-        const [bx, by, bw, bh] = el.bbox;
-        if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
-          const area = bw * bh;
-          if (area < minArea) {
-            minArea = area;
-            hitIdx = idx;
-          }
-        }
-      });
+      const hitIdx = hitTestBBoxes({ x, y }, elements.map((el) => el.bbox));
       setHoveredIdx(hitIdx);
       
       const svg = e.currentTarget;
@@ -1061,8 +1023,13 @@ export default function AnnotationPage() {
                   const isHovered = idx === hoveredIdx;
                   const isListHovered = idx === listHoveredIdx;
                   const isSubmitted = annotationStatus[idx] === 'validated';
-                  const strokeColor = isFocused ? '#fbbf24' : isListHovered ? '#38bdf8' : el.rejected ? '#fb7185' : isSubmitted ? '#34d399' : isHovered ? '#f59e0b' : '#a8a29e';
-                  const fillColor = isFocused ? 'rgba(245, 158, 11, 0.18)' : isListHovered ? 'rgba(56, 189, 248, 0.16)' : el.rejected ? 'rgba(239, 68, 68, 0.16)' : isSubmitted ? 'rgba(16, 185, 129, 0.15)' : isHovered ? 'rgba(245, 158, 11, 0.11)' : 'rgba(168, 162, 158, 0.08)';
+                  const boxVisual = getBoxVisualState({
+                    focused: isFocused,
+                    hovered: isHovered,
+                    listHovered: isListHovered,
+                    submitted: isSubmitted,
+                    rejected: el.rejected,
+                  });
                   const labelY = Math.max(0, y - 28);
                   return (
                     <g key={idx}>
@@ -1072,10 +1039,10 @@ export default function AnnotationPage() {
                         width={w}
                         height={h}
                         data-testid={`annotation-box-${idx}`}
-                        fill={fillColor}
-                        stroke={strokeColor}
-                        strokeWidth={isFocused ? 3 : 2}
-                        strokeDasharray={isSubmitted ? undefined : '8 5'}
+                        fill={boxVisual.fillColor}
+                        stroke={boxVisual.strokeColor}
+                        strokeWidth={boxVisual.strokeWidth}
+                        strokeDasharray={boxVisual.strokeDasharray}
                         vectorEffect="non-scaling-stroke"
                       />
                       {isFocused && !drawMode && (
@@ -1086,8 +1053,8 @@ export default function AnnotationPage() {
                           <rect x={x+w-6} y={y+h-6} width={12} height={12} rx={3} fill="#fef3c7" stroke="#0c0a09" strokeWidth={1.5} className="cursor-nwse-resize" />
                         </>
                       )}
-                      <rect x={x} y={labelY} width={44} height={24} rx={6} fill={strokeColor} opacity={0.95} />
-                      <text x={x + 22} y={labelY + 12} fill="#0c0a09" fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central">#{idx}</text>
+                      <rect x={x} y={labelY} width={44} height={24} rx={6} fill={boxVisual.strokeColor} opacity={0.95} pointerEvents="none" style={{ userSelect: 'none' }} />
+                      <text x={x + 22} y={labelY + 12} fill="#0c0a09" fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central" pointerEvents="none" style={{ userSelect: 'none' }}>#{idx}</text>
                     </g>
                   );
                 })}

@@ -85,7 +85,7 @@ describe('segmentationBoxes drag intent and visuals', () => {
   it('prioritizes visual states deterministically', () => {
     expect(getBoxVisualState({ rejected: true, focused: true }).tone).toBe('rejected');
     expect(getBoxVisualState({ focused: true, hovered: true }).tone).toBe('focused');
-    expect(getBoxVisualState({ hovered: true, listHovered: true }).tone).toBe('hovered');
+    expect(getBoxVisualState({ hovered: true, listHovered: true }).tone).toBe('listHovered');
     expect(getBoxVisualState({ listHovered: true, submitted: true }).tone).toBe('listHovered');
     expect(getBoxVisualState({ submitted: true }).tone).toBe('submitted');
     expect(getBoxVisualState({}).tone).toBe('default');

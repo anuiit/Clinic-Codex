@@ -173,22 +173,22 @@ export function getBoxVisualState({ focused, hovered, listHovered, submitted, re
     };
   }
 
-  if (hovered) {
-    return {
-      tone: 'hovered',
-      strokeColor: '#f59e0b',
-      fillColor: 'rgba(245, 158, 11, 0.11)',
-      labelColor: '#0c0a09',
-      strokeWidth: 2,
-    };
-  }
-
   if (listHovered) {
     return {
       tone: 'listHovered',
       strokeColor: '#38bdf8',
       fillColor: 'rgba(56, 189, 248, 0.12)',
       labelColor: '#082f49',
+      strokeWidth: 2,
+    };
+  }
+
+  if (hovered) {
+    return {
+      tone: 'hovered',
+      strokeColor: '#f59e0b',
+      fillColor: 'rgba(245, 158, 11, 0.11)',
+      labelColor: '#0c0a09',
       strokeWidth: 2,
     };
   }
