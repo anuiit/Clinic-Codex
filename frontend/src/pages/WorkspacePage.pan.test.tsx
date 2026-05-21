@@ -125,9 +125,8 @@ describe('WorkspacePage image pan behavior', () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
-    const overlay = container.querySelector('svg[data-overlay-region="true"]') as SVGSVGElement;
-    expect(overlay).toBeTruthy();
-    overlay.getBoundingClientRect = vi.fn(() => ({
+    const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
+    overlay.getBoundingClientRect = vi.fn().mockReturnValue({
       left: 0,
       top: 0,
       width: 800,
@@ -136,8 +135,9 @@ describe('WorkspacePage image pan behavior', () => {
       bottom: 600,
       x: 0,
       y: 0,
-      toJSON: () => ({}),
-    }));
+      toJSON: () => {},
+    });
+    expect(container.querySelector('[data-overlay-region="true"]')).toBeTruthy();
 
     await act(async () => {
       dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });

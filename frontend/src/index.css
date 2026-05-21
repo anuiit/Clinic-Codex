@@ -44,7 +44,9 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .annotation-app {
-  background: linear-gradient(135deg, #09090b 0%, #0c0a09 54%, #050505 100%);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(245, 158, 11, 0.08), transparent 32rem),
+    #050505;
   color: #f5f5f4;
 }
 
@@ -65,11 +67,7 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .annotation-stage-frame {
-  background:
-    linear-gradient(rgba(120, 113, 108, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 113, 108, 0.045) 1px, transparent 1px),
-    #0a0a0a;
-  background-size: 28px 28px, 28px 28px, auto;
+  background: #0a0a0a;
 }
 
 .annotation-stage {
@@ -108,7 +106,7 @@ html, body, #root { height: 100%; overflow: hidden; }
 }
 
 .annotation-crop {
-  background: rgba(12, 10, 9, 0.88);
+  background: rgba(12, 10, 9, 0.95);
 }
 
 .annotation-card {

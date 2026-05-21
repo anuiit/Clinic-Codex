@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -134,6 +134,36 @@ function renderPage(initialRecords = RECORDS, initialEntry = '/') {
   );
 }
 
+function dispatchPointer(
+  target: Element,
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  init: { clientX: number; clientY: number; pointerId?: number; buttons?: number },
+) {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: init.clientX,
+    clientY: init.clientY,
+  });
+  Object.defineProperty(event, 'pointerId', { value: init.pointerId ?? 1 });
+  Object.defineProperty(event, 'buttons', { value: init.buttons ?? 0 });
+  fireEvent(target, event);
+}
+
+function stubSvgRect(svg: SVGSVGElement, width: number, height: number) {
+  svg.getBoundingClientRect = vi.fn().mockReturnValue({
+    left: 0,
+    top: 0,
+    width,
+    height,
+    right: width,
+    bottom: height,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  });
+}
+
 function stubCanvas() {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     clearRect: vi.fn(),
@@ -187,6 +217,47 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.click(screen.getByRole('button', { name: /Retour aux régions/ }));
     expect(screen.getByText('Éléments détectés')).toBeInTheDocument();
+  });
+
+
+  it('uses smallest-area overlay hit priority and keeps workspace overlays read-only', async () => {
+    const overlappingRecord: AnalysisRecord = {
+      ...RECORDS[0],
+      result: {
+        ...RECORDS[0].result,
+        num_elements: 2,
+        elements: [
+          {
+            ...RECORDS[0].result.elements[0],
+            bbox: [80, 80, 240, 220],
+            class_name: 'outer',
+          },
+          {
+            ...RECORDS[0].result.elements[1],
+            bbox: [100, 120, 50, 40],
+            class_name: 'inner',
+            rejected: false,
+          },
+        ],
+      },
+      annotations: {},
+    };
+    const initialSnapshot = cloneRecords([overlappingRecord]);
+    renderPage(initialSnapshot);
+
+    const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
+    stubSvgRect(overlay, 800, 600);
+
+    await act(async () => {
+      dispatchPointer(overlay, 'pointermove', { clientX: 110, clientY: 130, pointerId: 1, buttons: 0 });
+      dispatchPointer(overlay, 'pointerdown', { clientX: 110, clientY: 130, pointerId: 1, buttons: 1 });
+    });
+
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.getAllByText('Région 1').length).toBeGreaterThan(0);
+    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'inner', 10));
+    expect(saveAnalysis).not.toHaveBeenCalled();
+    expect(historyRecords).toEqual(initialSnapshot);
   });
 
   it('opens the upload preview, cancels cleanly, and analyzes the selected image', async () => {

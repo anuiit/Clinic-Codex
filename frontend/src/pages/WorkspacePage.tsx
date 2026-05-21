@@ -21,7 +21,8 @@ import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import type { AnalysisRecord, TrustResult } from '../types';
-import { getBoxVisualState, hitTestBBoxes, type BBox } from '../utils/segmentationBoxes';
+import { clientToImage } from '../utils/imageCoords';
+import { getBoxVisualState, hitTestBBoxes } from '../utils/segmentationBoxes';
 
 type OverlayMode = 'all' | 'focused' | 'hidden';
 type HoverSource = 'image' | 'list' | null;
@@ -386,43 +387,40 @@ export default function WorkspacePage() {
     }
   };
 
-  const getOverlayHitIdx = useCallback((svg: SVGSVGElement, clientX: number, clientY: number) => {
+  const getWorkspaceOverlayHit = (svg: SVGSVGElement, clientX: number, clientY: number): number | null => {
     if (!currentRecord) {
       return null;
     }
 
-    const point = clientToWorkspacePoint(svg, clientX, clientY, currentRecord.result.image_size);
-    if (!point) {
-      return null;
-    }
+    const [imgW, imgH] = currentRecord.result.image_size;
+    const point = clientToImage(svg, clientX, clientY, { width: imgW, height: imgH });
+    const visibleElements = currentRecord.result.elements
+      .map((element, idx) => ({ idx, bbox: element.bbox }))
+      .filter(({ idx }) => overlayMode === 'all' || focusedIdx === null || focusedIdx === idx);
+    const hitIdx = hitTestBBoxes(point, visibleElements.map(({ bbox }) => bbox));
 
-    const entries = visibleOverlayEntries(currentRecord.result.elements, overlayMode, focusedIdx);
-    const hitIdx = hitTestBBoxes(point, entries.map((entry) => entry.bbox));
-    return hitIdx === null ? null : entries[hitIdx].idx;
-  }, [currentRecord, focusedIdx, overlayMode]);
-
-  const handleOverlayPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    const hitIdx = getOverlayHitIdx(event.currentTarget, event.clientX, event.clientY);
-    setHoveredIdx(hitIdx);
-    setHoverSource(hitIdx === null ? null : 'image');
-    event.currentTarget.style.cursor = hitIdx === null ? 'default' : 'pointer';
+    return hitIdx === null ? null : visibleElements[hitIdx].idx;
   };
 
-  const handleOverlayPointerLeave = (event: ReactPointerEvent<SVGSVGElement>) => {
-    setHoveredIdx((current) => (hoverSource === 'image' ? null : current));
-    setHoverSource((current) => (current === 'image' ? null : current));
-    event.currentTarget.style.cursor = 'default';
-  };
-
-  const handleOverlayPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
+  const handleWorkspaceOverlayPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) {
       return;
     }
 
-    const hitIdx = getOverlayHitIdx(event.currentTarget, event.clientX, event.clientY);
-    setFocusedIdx(hitIdx);
-    event.preventDefault();
+    const hitIdx = getWorkspaceOverlayHit(event.currentTarget, event.clientX, event.clientY);
+    if (hitIdx === null) {
+      return;
+    }
+
     event.stopPropagation();
+    setFocusedIdx(hitIdx);
+    setHoveredIdx(hitIdx);
+  };
+
+  const handleWorkspaceOverlayPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const hitIdx = getWorkspaceOverlayHit(event.currentTarget, event.clientX, event.clientY);
+    setHoveredIdx(hitIdx);
+    event.currentTarget.style.cursor = hitIdx === null ? (zoom > 1 ? 'grab' : 'default') : 'pointer';
   };
 
   return (
@@ -732,7 +730,7 @@ export default function WorkspacePage() {
                   </div>
 
                   <div
-                    className={`relative mt-5 flex flex-1 min-h-[360px] items-center justify-center overflow-hidden rounded-[24px] border border-stone-800 bg-stone-950 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    className={`relative mt-5 flex flex-1 min-h-[360px] items-center justify-center overflow-hidden rounded-[24px] border border-stone-800 bg-stone-950 shadow-inner shadow-black/30 ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                     onPointerDown={startWorkspacePan}
                     onPointerMove={moveWorkspacePan}
                     onPointerUp={stopWorkspacePan}
@@ -768,42 +766,39 @@ export default function WorkspacePage() {
                       {currentRecord && overlayMode !== 'hidden' && (
                         <svg
                           className="absolute left-0 top-0 h-full w-full"
-                          data-overlay-region="true"
+                          data-testid="workspace-overlay"
                           viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
                           preserveAspectRatio="none"
                           style={{ width: '100%', height: '100%' }}
-                          onPointerDown={handleOverlayPointerDown}
-                          onPointerMove={handleOverlayPointerMove}
-                          onPointerLeave={handleOverlayPointerLeave}
+                          onPointerDown={handleWorkspaceOverlayPointerDown}
+                          onPointerMove={handleWorkspaceOverlayPointerMove}
+                          onPointerLeave={() => setHoveredIdx(null)}
                         >
                           {currentRecord.result.elements.map((el, idx) => {
                             if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) return null;
                             const [x, y, w, h] = el.bbox;
-                            const isFocused = idx === focusedIdx;
-                            const isImageHovered = idx === hoveredIdx && hoverSource === 'image';
-                            const isListHovered = idx === hoveredIdx && hoverSource === 'list';
-                            const boxVisual = getBoxVisualState({
-                              focused: isFocused,
-                              hovered: isImageHovered,
-                              listHovered: isListHovered,
+                            const visualState = getBoxVisualState({
+                              focused: idx === focusedIdx,
+                              hovered: idx === hoveredIdx,
+                              submitted: (currentRecord.annotations ?? {})[idx] !== undefined,
                               rejected: el.rejected,
                             });
-                            const labelY = Math.max(0, y - 22);
+                            const labelY = Math.max(0, y - 28);
                             return (
-                              <g key={idx} data-overlay-region="true" data-testid={`workspace-overlay-box-${idx}`} style={{ pointerEvents: 'none' }}>
+                              <g key={idx} data-overlay-region="true" className="pointer-events-none select-none">
                                 <rect
                                   x={x}
                                   y={y}
                                   width={w}
                                   height={h}
-                                  fill={boxVisual.fillColor}
-                                  stroke={boxVisual.strokeColor}
-                                  strokeWidth={boxVisual.strokeWidth}
-                                  strokeDasharray={boxVisual.strokeDasharray}
+                                  fill={visualState.fillColor}
+                                  stroke={visualState.strokeColor}
+                                  strokeWidth={visualState.strokeWidth}
+                                  strokeDasharray={visualState.strokeDasharray}
                                   vectorEffect="non-scaling-stroke"
                                 />
-                                <rect x={x} y={labelY} width={30} height={18} rx={5} fill={boxVisual.strokeColor} opacity={0.95} style={{ userSelect: 'none' }} />
-                                <text x={x + 15} y={labelY + 9} fill={boxVisual.labelColor} fontSize={9} fontWeight="800" textAnchor="middle" dominantBaseline="central" style={{ userSelect: 'none' }}>#{idx}</text>
+                                <rect x={x} y={labelY} width={44} height={24} rx={6} fill={visualState.strokeColor} opacity={0.95} />
+                                <text x={x + 22} y={labelY + 12} fill={visualState.labelColor} fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="central">#{idx}</text>
                               </g>
                             );
                           })}
