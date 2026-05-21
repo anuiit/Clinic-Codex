@@ -104,4 +104,34 @@ describe('WorkspacePage image pan behavior', () => {
     const overlay = container.querySelector('svg.absolute') as SVGSVGElement;
     expect(overlay.getAttribute('preserveAspectRatio')).toBe('none');
   });
+
+  it('collapses and expands the history sidebar via its toggle buttons', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const expandButton = await screen.findByTitle('Déplier l’historique');
+    expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
+
+    await user.click(expandButton);
+    expect(await screen.findByPlaceholderText('Filtrer par glyphe ou classe')).toBeInTheDocument();
+    expect(screen.getByText('workspace-test.png')).toBeInTheDocument();
+
+    await user.click(screen.getByTitle('Replier l’historique'));
+    expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
+  });
+
+  it('focuses a single overlay region and returns to the full overlay view', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+
+    const overlayRegion = container.querySelector('[data-overlay-region="true"]') as SVGGElement;
+    expect(overlayRegion).toBeTruthy();
+
+    await user.click(overlayRegion);
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.getByText('Region 0')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retour aux régions' }));
+    expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();
+  });
 });
