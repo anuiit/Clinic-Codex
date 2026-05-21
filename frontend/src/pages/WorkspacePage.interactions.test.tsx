@@ -219,27 +219,66 @@ describe('WorkspacePage interaction coverage', () => {
     expect(screen.getByText('Éléments détectés')).toBeInTheDocument();
   });
 
-  it('limits the overlay DOM to the focused region and restores all/hidden layout modes', async () => {
+  it('focuses a region from the full row click without rendering a separate details button', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('annotated aleph');
+    expect(screen.queryByRole('button', { name: 'Voir plus de détails' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('annotated aleph'));
+
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
+    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10));
+  });
+
+  it('toggles workspace canvas bbox labels from numbers to class names', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
-    await screen.findByTestId('workspace-overlay');
-    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(2);
+    const overlay = await screen.findByTestId('workspace-overlay');
+    expect(overlay).toHaveTextContent('#1');
+    expect(overlay).not.toHaveTextContent('#1 · lamed');
 
-    await user.click(screen.getAllByRole('button', { name: 'Voir plus de détails' })[0]);
+    await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
+
+    expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#1 · lamed');
+  });
+
+  it('keeps workspace zoom/pan contained and read-only while focusing rows', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage();
+
+    const image = (await screen.findAllByAltText('alpha.png')).find((candidate) =>
+      candidate.className.includes('object-contain'),
+    ) as HTMLImageElement;
+    const wrapper = image.parentElement as HTMLElement;
+    const viewport = wrapper.parentElement as HTMLElement;
+    viewport.setPointerCapture = vi.fn();
+    viewport.releasePointerCapture = vi.fn();
+    viewport.hasPointerCapture = vi.fn(() => true);
+
+    await act(async () => {
+      fireEvent.wheel(viewport, { deltaY: -100 });
+    });
+    await act(async () => {
+      dispatchPointer(viewport, 'pointerdown', { clientX: 100, clientY: 100, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(viewport, 'pointermove', { clientX: 130, clientY: 145, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(viewport, 'pointerup', { clientX: 130, clientY: 145, pointerId: 1 });
+    });
+
+    expect(wrapper.style.transform).toBe('translate(30px, 45px) scale(1.15)');
+    expect(viewport).toHaveClass('overflow-hidden');
+
+    await user.click(screen.getByText('annotated aleph'));
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'focus' }));
-    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(1);
-    expect(screen.getByTestId('workspace-overlay')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'masqué' }));
-    expect(container.querySelector('[data-testid="workspace-overlay"]')).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(0);
-
-    await user.click(screen.getByRole('button', { name: 'tout' }));
-    expect(await screen.findByTestId('workspace-overlay')).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-overlay-region="true"]')).toHaveLength(2);
+    expect(saveAnalysis).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-testid="workspace-overlay"]')).toBeInTheDocument();
   });
 
 

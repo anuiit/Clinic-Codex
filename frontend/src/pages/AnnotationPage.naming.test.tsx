@@ -1,4 +1,4 @@
-import { render, fireEvent, act, screen } from '@testing-library/react';
+import { render, fireEvent, act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -394,6 +394,118 @@ describe('AnnotationPage element naming UX', () => {
     expect(betaBox).toHaveAttribute('stroke', '#38bdf8');
     fireEvent.mouseLeave(betaRow);
     expect(betaBox).toHaveAttribute('stroke', '#a8a29e');
+  });
+
+  it('moves the submitted summary out of the top bar and into the list badge', async () => {
+    const { container } = renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 2,
+        elements: [
+          BASE_RECORD.result.elements[0],
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.72,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+      annotationStatus: { 0: 'validated', 1: 'draft' },
+    });
+
+    await screen.findByText('atl');
+
+    expect(container.querySelector('.annotation-topbar')).not.toHaveTextContent(/Soumis\s*:/i);
+    const compactList = screen.getByLabelText('Liste compacte des éléments');
+    expect(compactList).toHaveTextContent(/(?:Soumis\s*)?1\s*\/\s*2(?:\s*Soumis)?/i);
+  });
+
+  it('filters and sorts the compact annotation list without changing bbox data', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 3,
+        elements: [
+          { ...BASE_RECORD.result.elements[0], class_name: 'zeta', confidence: 0.9 },
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.15,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [320, 260, 90, 80],
+            class_name: 'alpha',
+            class_label: 3,
+            confidence: 0.6,
+            rejected: true,
+            top_k: [],
+          },
+        ],
+      },
+      annotationStatus: { 0: 'validated', 1: 'draft', 2: 'draft' },
+    });
+
+    await user.type(await screen.findByRole('searchbox', { name: /filtrer/i }), 'beta');
+    const compactList = screen.getByLabelText('Liste compacte des éléments');
+    expect(within(compactList).getByRole('button', { name: /#1 beta/i })).toBeInTheDocument();
+    expect(within(compactList).queryByRole('button', { name: /#0 zeta/i })).not.toBeInTheDocument();
+
+    await user.clear(screen.getByRole('searchbox', { name: /filtrer/i }));
+    await user.selectOptions(screen.getByLabelText(/tri/i), 'confidence-asc');
+
+    const rows = within(compactList).getAllByRole('button', { name: /#\d/i });
+    expect(rows[0]).toHaveAccessibleName(/#1 beta/i);
+
+    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enregistrer les modifications'),
+    ) as HTMLElement;
+    await user.click(saveButton);
+
+    expect(updateElements).toHaveBeenCalledWith('test-id', [
+      expect.objectContaining({ class_name: 'zeta', bbox: [100, 100, 50, 40] }),
+      expect.objectContaining({ class_name: 'beta', bbox: [220, 160, 80, 70] }),
+      expect.objectContaining({ class_name: 'alpha', bbox: [320, 260, 90, 80] }),
+    ], { 0: 'validated', 1: 'draft', 2: 'draft' });
+  });
+
+  it('toggles annotation canvas bbox labels from numbers to names', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 2,
+        elements: [
+          BASE_RECORD.result.elements[0],
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.72,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    });
+
+    await screen.findByTestId('annotation-box-1');
+    const overlay = container.querySelector('svg.absolute') as SVGSVGElement;
+    expect(overlay).toHaveTextContent('#1');
+    expect(overlay).not.toHaveTextContent('#1 · beta');
+
+    await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
+
+    expect(overlay).toHaveTextContent('#1 · beta');
   });
 
 });
