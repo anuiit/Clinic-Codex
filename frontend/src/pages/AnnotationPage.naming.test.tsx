@@ -465,6 +465,59 @@ describe('AnnotationPage element naming UX', () => {
     expect(compactList).toHaveTextContent(/(?:Soumis\s*)?1\s*\/\s*2(?:\s*Soumis)?/i);
   });
 
+  it('keeps the compact list header badge visible without the old elements count block', async () => {
+    const elements = Array.from({ length: 38 }, (_, idx) => ({
+      bbox: [100 + idx, 100, 50, 40] as [number, number, number, number],
+      class_name: `glyphe-${idx}`,
+      class_label: idx,
+      confidence: 0.9,
+      rejected: false,
+      top_k: [],
+    }));
+
+    renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: elements.length,
+        elements,
+      },
+      annotationStatus: Object.fromEntries(elements.map((_, idx) => [idx, 'validated'])) as AnalysisRecord['annotationStatus'],
+    });
+
+    await screen.findByText('glyphe-0');
+
+    const compactList = screen.getByLabelText('Liste compacte des éléments');
+    expect(screen.getByLabelText('Soumis 38/38')).toBeInTheDocument();
+    expect(compactList).not.toHaveTextContent(/Éléments\s*38\s*\/\s*38/i);
+  });
+
+  it('keeps selected and empty inspector shells the same size class without a nested card', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const inspector = await screen.findByTestId('selected-element-inspector');
+    expect(inspector).toHaveClass('h-[360px]');
+    expect(inspector).not.toHaveClass('annotation-panel');
+
+    await user.click(await screen.findByText('atl'));
+
+    expect(inspector).toHaveClass('h-[360px]');
+    expect(inspector).not.toHaveClass('annotation-panel');
+  });
+
+  it('groups rename, submit, and delete controls in one inspector action row', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByText('atl'));
+
+    const actionRow = screen.getByTestId('annotation-action-row');
+    expect(actionRow).toContainElement(screen.getByLabelText('Nommer l’élément 0'));
+    expect(within(actionRow).getByRole('button', { name: 'Soumettre' })).toBeInTheDocument();
+    expect(within(actionRow).getByRole('button', { name: 'Supprimer l’élément #0' })).toBeInTheDocument();
+  });
+
   it('filters and sorts the compact annotation list without changing bbox data', async () => {
     const user = userEvent.setup();
     const { container } = renderPage({

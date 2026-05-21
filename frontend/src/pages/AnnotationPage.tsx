@@ -1553,7 +1553,7 @@ export default function AnnotationPage() {
           aria-label="Inspecteur d’annotation"
         >
           <section
-            className="annotation-panel annotation-selected-inspector mb-3 flex shrink-0 flex-col gap-3 rounded-2xl p-3"
+            className="annotation-selected-inspector mb-3 flex h-[360px] shrink-0 flex-col gap-3 overflow-hidden rounded-2xl p-3"
             data-testid="selected-element-inspector"
           >
             <div className="flex items-start justify-between gap-3">
@@ -1650,14 +1650,14 @@ export default function AnnotationPage() {
                       )
                     }
                     disabled={isUnnamedClass(focusedElement.class_name)}
-                    className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
+                    className={`shrink-0 rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
                   >
                     {focusedIsSubmitted ? t.markDraft : t.markSubmitted}
                   </button>
                   <button
                     type="button"
                     onClick={() => removeElement(focusedIdx)}
-                    className="rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                    className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
                   >
                     <span className="sr-only">
                       Supprimer l’élément #{focusedIdx}
