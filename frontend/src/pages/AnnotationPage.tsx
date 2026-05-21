@@ -814,43 +814,12 @@ export default function AnnotationPage() {
           <Link to="/" className="flex items-center gap-2 rounded-full border border-stone-700/70 bg-stone-950/70 px-3 py-1.5 text-sm font-medium text-stone-300 transition-colors hover:border-amber-500/50 hover:text-stone-50">
             <ArrowLeft size={18} /> {t.back}
           </Link>
-          <h1 className="text-lg font-bold text-stone-100">{t.title}</h1>
-          
-          <div className="h-6 w-px bg-stone-700 mx-2" />
-          
-          <button
-            onClick={() => setDrawMode(!drawMode)}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${drawMode ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-300 hover:bg-stone-700'}`}
-          >
-            {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
-            {drawMode ? t.drawMode : t.selectMode}
-          </button>
-          
-          <div className="flex items-center gap-1 rounded-lg border border-stone-700 bg-stone-900 p-1">
-            <button
-              onClick={() => applyZoom(zoom + 0.25)}
-              className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded"
-              aria-label={t.zoomIn}
-              title={t.zoomIn}
-            >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
-              className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded"
-              aria-label={t.resetView}
-              title={t.resetView}
-            >
-              <Maximize2 size={16} />
-            </button>
-            <button
-              onClick={() => applyZoom(zoom - 0.25)}
-              className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded"
-              aria-label={t.zoomOut}
-              title={t.zoomOut}
-            >
-              <ZoomOut size={16} />
-            </button>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Clinic Codex</div>
+            <h1 className="truncate text-lg font-black tracking-tight text-stone-50">{t.title}</h1>
+          </div>
+          <div className="hidden rounded-full border border-stone-700/70 bg-stone-950/60 px-3 py-1.5 text-xs text-stone-300 md:block">
+            {t.submittedSummary}: <span className="font-semibold text-emerald-300">{submittedCount}</span> / {elements.length}
           </div>
         </div>
         
@@ -907,16 +876,18 @@ export default function AnnotationPage() {
               {drawMode ? t.drawMode : t.selectMode}
             </button>
             <div className="mx-1 h-6 w-px bg-stone-700/70" />
-            <button type="button" onClick={() => applyZoom(zoom + 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom avant">
-              <ZoomIn size={16} />
-            </button>
-            <button type="button" onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" title="Réinitialiser la vue">
-              <Maximize2 size={16} />
-            </button>
-            <button type="button" onClick={() => applyZoom(zoom - 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label="Zoom arrière">
-              <ZoomOut size={16} />
-            </button>
-            <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">{Math.round(zoom * 100)}%</span>
+            <div className="flex items-center gap-1 rounded-lg border border-stone-700/70 bg-stone-950/50 p-0.5">
+              <button type="button" onClick={() => applyZoom(zoom + 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label={t.zoomIn}>
+                <ZoomIn size={16} />
+              </button>
+              <button type="button" onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" title={t.resetView}>
+                <Maximize2 size={16} />
+              </button>
+              <button type="button" onClick={() => applyZoom(zoom - 0.25)} className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50" aria-label={t.zoomOut}>
+                <ZoomOut size={16} />
+              </button>
+              <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">{Math.round(zoom * 100)}%</span>
+            </div>
           </div>
           <div
             data-testid="annotation-stage"

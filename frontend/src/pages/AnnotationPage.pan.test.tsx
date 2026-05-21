@@ -95,10 +95,8 @@ function dispatchPointer(
   fireEvent(target, event);
 }
 
-async function clickZoomIn(container: HTMLElement, times: number) {
-  const buttons = container.querySelectorAll('button');
-  const zoomButtons = Array.from(buttons).filter(b => b.className.includes('p-1.5') || b.className.includes('p-1'));
-  const zoomInButton = zoomButtons[0] as HTMLElement;
+async function clickZoomIn(times: number) {
+  const zoomInButton = await screen.findByLabelText('Zoom avant');
   for (let i = 0; i < times; i++) {
     await act(async () => { fireEvent.click(zoomInButton); });
   }
@@ -203,7 +201,7 @@ describe('AnnotationPage pan behavior', () => {
     const { container } = renderPage();
     await act(async () => {});
 
-    await clickZoomIn(container, 4);
+    await clickZoomIn(4);
 
     const { svg, wrapper } = getSvgAndWrapper(container);
 
@@ -225,7 +223,7 @@ describe('AnnotationPage pan behavior', () => {
     const { container } = renderPage();
     await act(async () => {});
 
-    await clickZoomIn(container, 4);
+    await clickZoomIn(4);
 
     const { svg, wrapper } = getSvgAndWrapper(container);
 
@@ -247,6 +245,56 @@ describe('AnnotationPage pan behavior', () => {
     });
 
     expect(wrapper.style.transform).toMatch(/translate\(0px,\s*0px\)\s*scale\(1\)/);
+  });
+
+  it('keeps queue selection and bbox overlay selection synchronized', async () => {
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: 'atl',
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: 'bet',
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithElements);
+    await screen.findByText('atl');
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('bet'));
+    });
+
+    expect(await screen.findByLabelText('Nommer l’élément 1')).toBeInTheDocument();
+    await waitFor(() => expect(drawImageMock).toHaveBeenCalled());
+    expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([220, 180, 60, 50]);
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointerup', { clientX: 125, clientY: 120, pointerId: 1 });
+    });
+
+    expect(await screen.findByLabelText('Nommer l’élément 0')).toBeInTheDocument();
+    await waitFor(() => expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([100, 100, 50, 40]));
   });
 
   it('dragging an existing bbox changes the bbox without panning the image wrapper', async () => {
