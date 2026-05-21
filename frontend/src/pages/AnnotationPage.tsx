@@ -179,6 +179,7 @@ export default function AnnotationPage() {
 
   const [focusedIdx, setFocusedIdx] = useState<number | null>(initialFocusedIdx);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [listHoveredIdx, setListHoveredIdx] = useState<number | null>(null);
   const [drawMode, setDrawMode] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -690,6 +691,12 @@ export default function AnnotationPage() {
   }, [focusedIdx, removeElement]);
 
   const submittedCount = elements.filter((el, idx) => annotationStatus[idx] === 'validated' && !isUnnamedClass(el.class_name)).length;
+  const focusedElement = focusedIdx !== null ? elements[focusedIdx] : null;
+  const focusedIsSubmitted = focusedIdx !== null && annotationStatus[focusedIdx] === 'validated';
+  const focusedDisplayName = focusedElement
+    ? (isUnnamedClass(focusedElement.class_name) ? t.unnamedElement : focusedElement.class_name)
+    : null;
+  const focusedConfidencePercent = focusedElement ? Math.round(focusedElement.confidence * 100) : 0;
 
   useEffect(() => {
     if (focusedIdx === null) return;
@@ -924,9 +931,10 @@ export default function AnnotationPage() {
                   const [x, y, w, h] = idx === dragState?.idx && dragState.type !== 'draw' && tempBbox ? tempBbox : el.bbox;
                   const isFocused = idx === focusedIdx;
                   const isHovered = idx === hoveredIdx;
+                  const isListHovered = idx === listHoveredIdx;
                   const isSubmitted = annotationStatus[idx] === 'validated';
-                  const strokeColor = el.rejected ? '#fb7185' : isSubmitted ? '#34d399' : isFocused ? '#fbbf24' : isHovered ? '#f59e0b' : '#a8a29e';
-                  const fillColor = el.rejected ? 'rgba(239, 68, 68, 0.16)' : isSubmitted ? 'rgba(16, 185, 129, 0.15)' : isFocused ? 'rgba(245, 158, 11, 0.18)' : isHovered ? 'rgba(245, 158, 11, 0.11)' : 'rgba(168, 162, 158, 0.08)';
+                  const strokeColor = isFocused ? '#fbbf24' : isListHovered ? '#38bdf8' : el.rejected ? '#fb7185' : isSubmitted ? '#34d399' : isHovered ? '#f59e0b' : '#a8a29e';
+                  const fillColor = isFocused ? 'rgba(245, 158, 11, 0.18)' : isListHovered ? 'rgba(56, 189, 248, 0.16)' : el.rejected ? 'rgba(239, 68, 68, 0.16)' : isSubmitted ? 'rgba(16, 185, 129, 0.15)' : isHovered ? 'rgba(245, 158, 11, 0.11)' : 'rgba(168, 162, 158, 0.08)';
                   const labelY = Math.max(0, y - 28);
                   return (
                     <g key={idx}>
@@ -935,6 +943,7 @@ export default function AnnotationPage() {
                         y={y}
                         width={w}
                         height={h}
+                        data-testid={`annotation-box-${idx}`}
                         fill={fillColor}
                         stroke={strokeColor}
                         strokeWidth={isFocused ? 3 : 2}
@@ -962,107 +971,147 @@ export default function AnnotationPage() {
           </div>
         </div>
 
-        <div className="annotation-rail flex w-[360px] shrink-0 flex-col rounded-2xl p-4">
-          <div className="annotation-crop mb-4 flex h-[190px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-stone-700/50">
-            {focusedIdx !== null ? (
-              <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[180px] w-[180px] rounded-xl object-contain" />
+        <aside className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4" aria-label="Inspecteur d’annotation">
+          <section className="annotation-panel annotation-selected-inspector mb-4 flex shrink-0 flex-col gap-4 rounded-2xl p-4" data-testid="selected-element-inspector">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">Inspecteur</div>
+                <h2 className="mt-1 truncate text-xl font-black text-stone-50">
+                  {focusedElement && focusedIdx !== null ? `#${focusedIdx} · ${focusedDisplayName}` : 'Sélectionnez un élément'}
+                </h2>
+              </div>
+              {focusedElement && focusedIdx !== null && (
+                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${focusedElement.rejected ? 'bg-red-500/15 text-red-300' : focusedIsSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
+                  {focusedIsSubmitted ? t.submitted : t.draft}
+                </span>
+              )}
+            </div>
+
+            {focusedElement && focusedIdx !== null ? (
+              <>
+                <div className="grid grid-cols-[190px_minmax(0,1fr)] gap-4">
+                  <div className="annotation-crop flex h-[190px] items-center justify-center overflow-hidden rounded-2xl border border-stone-700/50">
+                    <canvas ref={previewCanvasRef} width={200} height={200} className="block h-[180px] w-[180px] rounded-xl object-contain" />
+                  </div>
+                  <div className="min-w-0 space-y-3">
+                    <div>
+                      <div className="mb-1 flex items-center justify-between text-xs font-semibold text-stone-400">
+                        <span>Confiance</span>
+                        <span className="tabular-nums text-stone-200">{focusedConfidencePercent}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-stone-800">
+                        <div
+                          className={`h-full rounded-full ${focusedElement.rejected ? 'bg-red-400' : focusedIsSubmitted ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                          style={{ width: `${Math.max(0, Math.min(100, focusedConfidencePercent))}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {(['x', 'y', 'w', 'h'] as const).map((label, coordIdx) => (
+                        <div key={label} className="rounded-xl border border-stone-700/60 bg-stone-950/50 px-3 py-2">
+                          <div className="uppercase tracking-[0.18em] text-stone-500">{label}</div>
+                          <div className="mt-1 font-semibold tabular-nums text-stone-100">{Math.round(focusedElement.bbox[coordIdx])}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <ElementNameCombobox
+                  value={focusedElement.class_name}
+                  classNames={[focusedElement.class_name, ...classes]}
+                  customClassNames={customClasses}
+                  topK={focusedElement.top_k}
+                  autoFocusToken={namingFocusToken}
+                  labels={t}
+                  index={focusedIdx}
+                  onCommit={(name) => commitElementName(focusedIdx, name)}
+                />
+
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setElementValidation(focusedIdx, focusedIsSubmitted ? 'draft' : 'validated')}
+                    disabled={isUnnamedClass(focusedElement.class_name)}
+                    className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? 'border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800' : 'bg-emerald-500 text-stone-950 hover:bg-emerald-400'}`}
+                  >
+                    {focusedIsSubmitted ? t.markDraft : t.markSubmitted}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeElement(focusedIdx)}
+                    className="rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                  >
+                    <span className="sr-only">Supprimer l’élément #{focusedIdx}</span>
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="px-4 text-center text-sm text-stone-500">{t.selectElementCrop}</div>
+              <div className="flex min-h-[250px] items-center justify-center rounded-2xl border border-dashed border-stone-700/70 bg-stone-950/35 px-6 text-center text-sm text-stone-500">
+                {t.selectElementCrop}
+              </div>
             )}
-          </div>
-          
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">{t.elements}</div>
-              <div className="text-2xl font-black leading-none text-stone-100">{elements.length}</div>
-            </div>
-            <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-              {submittedCount} {t.submitted}
-            </div>
-          </div>
+          </section>
 
-          <div className="annotation-scrollbar flex-1 space-y-2 overflow-y-auto pr-2">
-            {elements.map((el, idx) => {
-              const isFocused = idx === focusedIdx;
-              const displayName = isUnnamedClass(el.class_name) ? t.unnamedElement : el.class_name;
-              const isSubmitted = annotationStatus[idx] === 'validated';
-              const confidencePercent = Math.round(el.confidence * 100);
+          <section className="flex min-h-0 flex-1 flex-col" aria-label="Liste compacte des éléments">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-stone-500">{t.elements}</div>
+                <div className="text-2xl font-black leading-none text-stone-100">{elements.length}</div>
+              </div>
+              <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                {submittedCount} {t.submitted}
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={idx}
-                  ref={(node) => { cardRefs.current[idx] = node; }}
-                  onClick={() => setFocusedIdx(idx)}
-                  className={`annotation-card flex cursor-pointer flex-col gap-3 rounded-2xl p-3 transition-all ${isFocused ? 'annotation-card-selected' : ''}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-3">
+            <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
+              {elements.map((el, idx) => {
+                const isFocused = idx === focusedIdx;
+                const displayName = isUnnamedClass(el.class_name) ? t.unnamedElement : el.class_name;
+                const isSubmitted = annotationStatus[idx] === 'validated';
+                const confidencePercent = Math.round(el.confidence * 100);
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    ref={(node) => { cardRefs.current[idx] = node; }}
+                    onClick={() => setFocusedIdx(idx)}
+                    onMouseEnter={() => setListHoveredIdx(idx)}
+                    onMouseLeave={() => setListHoveredIdx((current) => (current === idx ? null : current))}
+                    onFocus={() => setListHoveredIdx(idx)}
+                    onBlur={() => setListHoveredIdx((current) => (current === idx ? null : current))}
+                    className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all ${isFocused ? 'annotation-card-selected' : ''}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isSubmitted ? 'bg-emerald-400 text-stone-950' : isFocused ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-stone-300'}`}>
                         #{idx}
                       </span>
-                      <div className="min-w-0">
-                        <div className={`truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? 'text-amber-300' : 'text-stone-100'}`}>
+                      <span className="min-w-0">
+                        <span className={`block truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? 'text-amber-300' : 'text-stone-100'}`}>
                           {displayName}
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
-                            <div
-                              className={`h-full rounded-full ${el.rejected ? 'bg-red-400' : isSubmitted ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                        </span>
+                        <span className="mt-1 flex items-center gap-2">
+                          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
+                            <span
+                              className={`block h-full rounded-full ${el.rejected ? 'bg-red-400' : isSubmitted ? 'bg-emerald-400' : 'bg-amber-400'}`}
                               style={{ width: `${Math.max(0, Math.min(100, confidencePercent))}%` }}
                             />
-                          </div>
+                          </span>
                           <span className="text-[10px] font-semibold tabular-nums text-stone-500">{confidencePercent}%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? 'bg-red-500/15 text-red-300' : isSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
-                        {isSubmitted ? t.submitted : t.draft}
+                        </span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeElement(idx);
-                        }}
-                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-red-500/10 hover:text-red-300"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {isFocused && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setElementValidation(idx, isSubmitted ? 'draft' : 'validated');
-                        }}
-                        disabled={isUnnamedClass(el.class_name)}
-                        className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isSubmitted ? 'border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800' : 'bg-emerald-500 text-stone-950 hover:bg-emerald-400'}`}
-                      >
-                        {isSubmitted ? t.markDraft : t.markSubmitted}
-                      </button>
-                      <ElementNameCombobox
-                        value={el.class_name}
-                        classNames={[el.class_name, ...classes]}
-                        customClassNames={customClasses}
-                        topK={el.top_k}
-                        autoFocusToken={namingFocusToken}
-                        labels={t}
-                        index={idx}
-                        onCommit={(name) => commitElementName(idx, name)}
-                      />
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+                    </span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? 'bg-red-500/15 text-red-300' : isSubmitted ? 'bg-emerald-500/15 text-emerald-300' : 'bg-stone-800 text-stone-400'}`}>
+                      {isSubmitted ? t.submitted : t.draft}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition-all ${toast.ok ? 'bg-emerald-700 text-white' : 'bg-red-700 text-white'}`}>
           {toast.msg}
