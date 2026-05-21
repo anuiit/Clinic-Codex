@@ -122,6 +122,10 @@ describe('WorkspacePage image pan behavior', () => {
     expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
     expect(sidebar).not.toHaveClass('transition-all');
 
+    const sidebar = screen.getByTestId('workspace-history-sidebar');
+    expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
+    expect(sidebar).not.toHaveClass('transition-all');
+
     const expandButton = await screen.findByTitle('Déplier l’historique');
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
 
