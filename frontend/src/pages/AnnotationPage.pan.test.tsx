@@ -29,12 +29,13 @@ const STUB_RECORD: AnalysisRecord = {
   annotations: {},
 };
 
-function renderPage(record: AnalysisRecord = STUB_RECORD) {
+function renderPage(record: AnalysisRecord = STUB_RECORD, initialEntry = '/annotation/test-id') {
   vi.mocked(getAnalysisById).mockReturnValue(record);
   return render(
-    <MemoryRouter initialEntries={['/annotation/test-id']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/annotation/:id" element={<AnnotationPage />} />
+        <Route path="/annotate/:id" element={<AnnotationPage />} />
         <Route path="/" element={<div>home</div>} />
       </Routes>
     </MemoryRouter>,
@@ -339,6 +340,39 @@ describe('AnnotationPage pan behavior', () => {
 
     expect(await screen.findByLabelText('Nommer l’élément 0')).toBeInTheDocument();
     await waitFor(() => expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([100, 100, 50, 40]));
+  });
+
+  it('opens directly on the workspace-selected element from the handoff query param', async () => {
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: 'atl',
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: 'bet',
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    renderPage(recordWithElements, '/annotate/test-id?element=1');
+
+    expect(await screen.findByLabelText('Nommer l’élément 1')).toBeInTheDocument();
+    expect(screen.getByTestId('selected-element-inspector')).toHaveTextContent('#1 · bet');
   });
 
   it('keeps a click with tiny movement from mutating the bbox', async () => {

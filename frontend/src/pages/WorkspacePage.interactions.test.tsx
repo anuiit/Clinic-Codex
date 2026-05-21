@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AnalysisRecord, SegmentResult, TrustResult } from '../types';
 import WorkspacePage from './WorkspacePage';
@@ -122,13 +122,18 @@ function cloneRecords(records: AnalysisRecord[]) {
   return structuredClone(records) as AnalysisRecord[];
 }
 
+function AnnotationHandoffProbe() {
+  const location = useLocation();
+  return <div>annotation handoff {location.pathname}{location.search}</div>;
+}
+
 function renderPage(initialRecords = RECORDS, initialEntry = '/') {
   historyRecords = cloneRecords(initialRecords);
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/" element={<WorkspacePage />} />
-        <Route path="/annotate/:id" element={<div>annotation handoff</div>} />
+        <Route path="/annotate/:id" element={<AnnotationHandoffProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -231,6 +236,25 @@ describe('WorkspacePage interaction coverage', () => {
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.getAllByText('Région 0').length).toBeGreaterThan(0);
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10));
+  });
+
+  it('hands off the selected workspace region to the annotation editor query param', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /annotated aleph région 0/i }));
+    await user.click(await screen.findByRole('button', { name: 'Annoter la région' }));
+
+    expect(await screen.findByText('annotation handoff /annotate/alpha-run?element=0')).toBeInTheDocument();
+  });
+
+  it('hands off the whole active workspace record without a selected element query param', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Annoter l’analyse' }));
+
+    expect(await screen.findByText('annotation handoff /annotate/alpha-run')).toBeInTheDocument();
   });
 
   it('toggles workspace canvas bbox labels from numbers to class names', async () => {
