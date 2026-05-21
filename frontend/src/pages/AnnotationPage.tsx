@@ -5,6 +5,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
 import {
   useParams,
@@ -722,7 +723,7 @@ export default function AnnotationPage() {
     });
   };
 
-  const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleStageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (!shouldConsumeStageWheel(event.deltaY)) return;
 
     event.preventDefault();
