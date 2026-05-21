@@ -61,8 +61,7 @@ test('387_769v image and bbox stay aligned through zoom and pan', async ({ page 
   const relXBefore = rectBefore!.x - imageBefore!.x;
   const relYBefore = rectBefore!.y - imageBefore!.y;
 
-  const zoomGroup = page.locator('.flex.items-center.gap-1.rounded-lg.border');
-  const zoomInButton = zoomGroup.locator('button').first();
+  const zoomInButton = page.getByRole('button', { name: 'Zoom avant' });
   await zoomInButton.click();
   await zoomInButton.click();
 
