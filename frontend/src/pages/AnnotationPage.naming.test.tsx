@@ -366,6 +366,47 @@ describe('AnnotationPage element naming UX', () => {
     expect(inspector).toContainElement(input);
   });
 
+  it('keeps header actions, list filters, and selected inspector in stable regions', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 2,
+        elements: [
+          BASE_RECORD.result.elements[0],
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.72,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /#1 beta/i }));
+
+    const topbar = container.querySelector('.annotation-topbar') as HTMLElement;
+    expect(topbar).toBeInTheDocument();
+    expect(within(topbar).getByRole('button', { name: 'Soumettre les éléments nommés' })).toBeInTheDocument();
+    expect(within(topbar).getByRole('button', { name: 'Enregistrer les modifications' })).toBeInTheDocument();
+    expect(within(topbar).getByRole('button', { name: 'Envoyer les soumis' })).toBeInTheDocument();
+    expect(within(topbar).queryByRole('searchbox', { name: /filtrer/i })).not.toBeInTheDocument();
+
+    const compactList = screen.getByLabelText('Liste compacte des éléments');
+    expect(within(compactList).getByRole('searchbox', { name: /filtrer/i })).toBeInTheDocument();
+    expect(within(compactList).getByLabelText(/statut/i).closest('div')).toHaveClass('grid', 'grid-cols-2');
+    expect(within(compactList).getByLabelText(/tri/i)).toBeInTheDocument();
+
+    const inspector = screen.getByTestId('selected-element-inspector');
+    expect(inspector).toHaveClass('annotation-selected-inspector');
+    expect(inspector.querySelector('.annotation-selected-overview')).toHaveClass('grid-cols-[150px_minmax(0,1fr)]');
+    expect(inspector).toContainElement(screen.getByLabelText('Nommer l’élément 1'));
+  });
+
   it('highlights the linked bbox when hovering a compact list item', async () => {
     renderPage({
       ...BASE_RECORD,
@@ -505,8 +546,8 @@ describe('AnnotationPage element naming UX', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
-    expect(overlay).toHaveTextContent('beta');
-    expect(overlay).not.toHaveTextContent('#1 · beta');
+    expect(overlay).toHaveTextContent('#0 · atl');
+    expect(overlay).toHaveTextContent('#1 · beta');
   });
 
 });
