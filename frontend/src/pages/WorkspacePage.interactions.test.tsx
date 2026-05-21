@@ -267,8 +267,11 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
-    expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#0 · aleph');
-    expect(container.querySelector('[data-testid="workspace-overlay"]')).toHaveTextContent('#1 · lamed');
+    const namedOverlay = container.querySelector('[data-testid="workspace-overlay"]');
+    expect(namedOverlay).toHaveTextContent('aleph');
+    expect(namedOverlay).toHaveTextContent('lamed');
+    expect(namedOverlay).not.toHaveTextContent('#0 · aleph');
+    expect(namedOverlay).not.toHaveTextContent('#1 · lamed');
   });
 
   it('keeps workspace list and detail panels in the two-column scroll layout without duplicate focus lists', async () => {

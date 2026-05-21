@@ -398,7 +398,7 @@ describe('AnnotationPage element naming UX', () => {
 
     const compactList = screen.getByLabelText('Liste compacte des éléments');
     expect(within(compactList).getByRole('searchbox', { name: /filtrer/i })).toBeInTheDocument();
-    expect(within(compactList).getByLabelText(/statut/i).closest('div')).toHaveClass('grid', 'grid-cols-2');
+    expect(screen.getByTestId('annotation-list-controls')).toContainElement(within(compactList).getByLabelText(/statut/i));
     expect(within(compactList).getByLabelText(/tri/i)).toBeInTheDocument();
 
     const inspector = screen.getByTestId('selected-element-inspector');
@@ -512,7 +512,7 @@ describe('AnnotationPage element naming UX', () => {
 
     await user.click(await screen.findByText('atl'));
 
-    const actionRow = screen.getByTestId('annotation-action-row');
+    const actionRow = screen.getByTestId('annotation-inspector-action-row');
     expect(actionRow).toContainElement(screen.getByLabelText('Nommer l’élément 0'));
     expect(within(actionRow).getByRole('button', { name: 'Soumettre' })).toBeInTheDocument();
     expect(within(actionRow).getByRole('button', { name: 'Supprimer l’élément #0' })).toBeInTheDocument();
@@ -599,8 +599,10 @@ describe('AnnotationPage element naming UX', () => {
 
     await user.click(screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i }));
 
-    expect(overlay).toHaveTextContent('#0 · atl');
-    expect(overlay).toHaveTextContent('#1 · beta');
+    expect(overlay).toHaveTextContent('atl');
+    expect(overlay).toHaveTextContent('beta');
+    expect(overlay).not.toHaveTextContent('#0 · atl');
+    expect(overlay).not.toHaveTextContent('#1 · beta');
   });
 
 });
