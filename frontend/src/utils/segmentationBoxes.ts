@@ -85,7 +85,7 @@ export function hitTestHandle(point: Point, bbox: BBox, handleSize: number): BBo
 }
 
 export function hitTestHandles(point: Point, boxes: BBox[], handleSize: number): { idx: number; handle: BBoxHandle } | null {
-  let bestHit: { idx: number; handle: BBoxHandle; area: number } | null = null;
+  let best: { idx: number; handle: BBoxHandle; area: number } | null = null;
 
   for (let idx = 0; idx < boxes.length; idx += 1) {
     const bbox = boxes[idx];
@@ -93,13 +93,12 @@ export function hitTestHandles(point: Point, boxes: BBox[], handleSize: number):
     if (!handle) continue;
 
     const area = bboxArea(bbox);
-    if (bestHit === null || area < bestHit.area) {
-      bestHit = { idx, handle, area };
+    if (!best || area < best.area) {
+      best = { idx, handle, area };
     }
   }
 
-  if (bestHit === null) return null;
-  return { idx: bestHit.idx, handle: bestHit.handle };
+  return best ? { idx: best.idx, handle: best.handle } : null;
 }
 
 export function clampBBox(bbox: BBox, imageSize: ImageSize): BBox {
