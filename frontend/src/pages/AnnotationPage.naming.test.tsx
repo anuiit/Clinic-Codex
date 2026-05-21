@@ -333,4 +333,63 @@ describe('AnnotationPage element naming UX', () => {
     const input = await screen.findByLabelText('Nommer l’élément 0');
     expect(input).toHaveFocus();
   });
+  it('uses the compact list for selection while editing in the main inspector', async () => {
+    const user = userEvent.setup();
+    renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 2,
+        elements: [
+          BASE_RECORD.result.elements[0],
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.72,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    });
+
+    await user.click(await screen.findByRole('button', { name: /#1 beta/i }));
+
+    const inspector = screen.getByTestId('selected-element-inspector');
+    expect(inspector).toHaveTextContent('#1 · beta');
+    const input = await screen.findByLabelText('Nommer l’élément 1');
+    expect(inspector).toContainElement(input);
+  });
+
+  it('highlights the linked bbox when hovering a compact list item', async () => {
+    renderPage({
+      ...BASE_RECORD,
+      result: {
+        ...BASE_RECORD.result,
+        num_elements: 2,
+        elements: [
+          BASE_RECORD.result.elements[0],
+          {
+            bbox: [220, 160, 80, 70],
+            class_name: 'beta',
+            class_label: 2,
+            confidence: 0.72,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    });
+
+    const betaRow = await screen.findByRole('button', { name: /#1 beta/i });
+    const betaBox = await screen.findByTestId('annotation-box-1');
+
+    expect(betaBox).toHaveAttribute('stroke', '#a8a29e');
+    fireEvent.mouseEnter(betaRow);
+    expect(betaBox).toHaveAttribute('stroke', '#38bdf8');
+    fireEvent.mouseLeave(betaRow);
+    expect(betaBox).toHaveAttribute('stroke', '#a8a29e');
+  });
+
 });
