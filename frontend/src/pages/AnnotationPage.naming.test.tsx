@@ -263,6 +263,10 @@ describe('AnnotationPage element naming UX', () => {
     await user.click(await screen.findByText('Envoyer les soumis'));
 
     expect(saveAnnotation).toHaveBeenCalledWith(expect.objectContaining({
+      analysis_id: 'test-id',
+      image_name: 'test.png',
+      image_data_url: 'data:image/png;base64,abc',
+      timestamp: 1704067200000,
       annotations: [
         { index: 0, bbox: [100, 100, 50, 40], class_name: 'atl' },
       ],

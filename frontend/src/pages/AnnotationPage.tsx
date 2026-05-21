@@ -9,6 +9,15 @@ import type { AnalysisRecord, AnnotationStatus, DetectedElement, SaveAnnotationR
 import { clientToImage } from '../utils/imageCoords';
 import { getBoxVisualState, hitTestBBoxes, hitTestHandle, hitTestHandles, isDragIntent, moveBBox, resizeBBox, type BBox, type BBoxHandle } from '../utils/segmentationBoxes';
 import { getFuzzyClassSuggestions, hasExactClassName, isUnnamedClass, normalizeClassName } from '../utils/fuzzyClasses';
+import {
+  type BBox,
+  hitTestBBoxes,
+  hitTestHandles,
+  isDragIntent,
+  moveBBox,
+  resizeBBox,
+  type BBoxHandle,
+} from '../utils/segmentationBoxes';
 
 type StageSize = { width: number; height: number };
 
@@ -529,14 +538,6 @@ export default function AnnotationPage() {
     setPanOffset((prev) => clampPan(prev, zoom));
   }, [clampPan, stageSize, zoom]);
 
-  const getHitHandle = (x: number, y: number, bbox: BBox) => hitTestHandle({ x, y }, bbox, 12);
-
-  const getHandleHit = (x: number, y: number) => hitTestHandles(
-    { x, y },
-    elements.map((el) => el.bbox),
-    12,
-  );
-
   const handleSvgPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (!record) return;
     const [imgW, imgH] = record.result.image_size;
@@ -552,13 +553,13 @@ export default function AnnotationPage() {
       return;
     }
 
-    const handleHit = getHandleHit(x, y);
+    const handleHit = hitTestHandles({ x, y }, elements.map((el) => el.bbox), 12);
 
     if (handleHit) {
       const el = elements[handleHit.idx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(handleHit.idx);
-      setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.handle, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY, origBbox: bbox });
+      setActiveDragState({ type: 'resize', idx: handleHit.idx, corner: handleHit.handle, startX: x, startY: y, origBbox: bbox });
       setTempBbox(bbox);
       pendingTempBboxRef.current = bbox;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -571,9 +572,15 @@ export default function AnnotationPage() {
       const el = elements[hitIdx];
       const bbox: [number, number, number, number] = [...el.bbox];
       setFocusedIdx(hitIdx);
-      setActiveDragState({ type: 'move', idx: hitIdx, startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY, isMoveReady: false, origBbox: bbox });
-      setTempBbox(bbox);
-      pendingTempBboxRef.current = bbox;
+      pendingMoveRef.current = {
+        type: 'move',
+        idx: hitIdx,
+        startX: x,
+        startY: y,
+        origBbox: bbox,
+      };
+      setTempBbox(null);
+      pendingTempBboxRef.current = null;
       e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       setFocusedIdx(null);
@@ -620,35 +627,23 @@ export default function AnnotationPage() {
           Math.min(origW - Math.max(0, minX), maxX - minX),
           Math.min(origH - Math.max(0, minY), maxY - minY)
         ];
-      } else if (activeDragState.type === 'move') {
-        const origBbox = activeDragState.origBbox;
-        if (!origBbox) return;
-        if (!activeDragState.isMoveReady) {
-          if (activeDragState.startClientX === undefined || activeDragState.startClientY === undefined) return;
-          if (!isDragIntent(
-            { x: activeDragState.startClientX, y: activeDragState.startClientY },
-            { x: e.clientX, y: e.clientY },
-            5,
-          )) {
-            return;
-          }
-          const readyDragState = { ...activeDragState, isMoveReady: true };
-          setActiveDragState(readyDragState);
-          dragStateRef.current = readyDragState;
-          activeDragState = readyDragState;
+      } else if (activeDragState.type === 'move' && activeDragState.origBbox) {
+        if (activeDragState.startClientX === undefined || activeDragState.startClientY === undefined) {
+          return;
+        }
+        if (!isDragIntent(
+          { x: activeDragState.startClientX, y: activeDragState.startClientY },
+          { x: e.clientX, y: e.clientY },
+        )) {
+          return;
         }
         nextBbox = moveBBox(
-          origBbox,
+          activeDragState.origBbox,
           { x: x - activeDragState.startX, y: y - activeDragState.startY },
           { width: origW, height: origH },
         );
       } else if (activeDragState.type === 'resize' && activeDragState.origBbox && activeDragState.corner) {
-        nextBbox = resizeBBox(
-          activeDragState.origBbox,
-          activeDragState.corner,
-          { x, y },
-          { width: origW, height: origH },
-        );
+        nextBbox = resizeBBox(activeDragState.origBbox, activeDragState.corner, { x, y }, { width: origW, height: origH });
       }
 
       if (nextBbox) {
@@ -663,9 +658,9 @@ export default function AnnotationPage() {
       if (focusedIdx !== null) {
         const el = elements[focusedIdx];
         if (el) {
-          const handle = getHitHandle(x, y, el.bbox);
-          if (handle === 'tl' || handle === 'br') cursor = 'nwse-resize';
-          else if (handle === 'tr' || handle === 'bl') cursor = 'nesw-resize';
+          const handle = hitTestHandles({ x, y }, [el.bbox], 12);
+          if (handle?.handle === 'tl' || handle?.handle === 'br') cursor = 'nwse-resize';
+          else if (handle?.handle === 'tr' || handle?.handle === 'bl') cursor = 'nesw-resize';
         }
       }
       if (cursor === 'default' && hitIdx !== null) {

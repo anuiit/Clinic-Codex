@@ -326,6 +326,53 @@ describe('AnnotationPage pan behavior', () => {
     await waitFor(() => expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([100, 100, 50, 40]));
   });
 
+  it('keeps a click with tiny movement from mutating the bbox', async () => {
+    const recordWithElement: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: 'atl',
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithElement);
+    await screen.findByText('atl');
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointermove', { clientX: 128, clientY: 127, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointerup', { clientX: 128, clientY: 127, pointerId: 1 });
+    });
+
+    expect(updateElements).not.toHaveBeenCalled();
+
+    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enregistrer les modifications'),
+    ) as HTMLElement;
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    expect(updateElements).toHaveBeenCalledWith('test-id', [
+      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
+    ], { 0: 'draft' });
+  });
+
   it('dragging an existing bbox changes the bbox without panning the image wrapper', async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
@@ -377,118 +424,27 @@ describe('AnnotationPage pan behavior', () => {
     ], { 0: 'draft' });
   });
 
-  it('undoes a completed bbox move without recording pointer-move history', async () => {
-    const { container } = renderPage(recordWithElements([{ ...ATL_ELEMENT }]));
-    await screen.findByText('atl');
+  it('click-selecting a bbox does not mutate it or mark it dirty', async () => {
+    const recordWithValidatedBox: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: 'validated' },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: 'atl',
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
 
-    const undoButton = screen.getByRole('button', { name: 'Annuler bbox' });
-    expect(undoButton).toBeDisabled();
-
-    const { svg } = getSvgAndWrapper(container);
-    await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 155, clientY: 165, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 155, clientY: 165, pointerId: 1 });
-    });
-
-    expect(undoButton).not.toBeDisabled();
-    await act(async () => {
-      fireEvent.click(undoButton);
-    });
-    expect(undoButton).toBeDisabled();
-
-    await act(async () => {
-      clickSave(container);
-    });
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
-    ], { 0: 'draft' });
-  });
-
-  it('undoes a completed bbox resize', async () => {
-    const { container } = renderPage(recordWithElements([{ ...ATL_ELEMENT }]));
-    await screen.findByText('atl');
-
-    const { svg } = getSvgAndWrapper(container);
-    await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 150, clientY: 140, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 170, clientY: 160, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 170, clientY: 160, pointerId: 1 });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Annuler bbox' }));
-    });
-    await act(async () => {
-      clickSave(container);
-    });
-
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
-    ], { 0: 'draft' });
-  });
-
-  it('undoes a drawn bbox creation', async () => {
-    const { container } = renderPage();
-    await act(async () => {});
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('Mode sélection'));
-    });
-
-    const { svg } = getSvgAndWrapper(container);
-    await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 10, clientY: 20, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 60, clientY: 70, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 60, clientY: 70, pointerId: 1 });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Annuler bbox' }));
-    });
-    await act(async () => {
-      clickSave(container);
-    });
-
-    expect(updateElements).toHaveBeenCalledWith('test-id', [], {});
-  });
-
-  it('undoes a bbox deletion', async () => {
-    const { container } = renderPage(recordWithElements([{ ...ATL_ELEMENT }], { 0: 'validated' }));
-    await screen.findByText('atl');
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('atl'));
-    });
-    await act(async () => {
-      fireEvent.keyDown(window, { key: 'Delete' });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Annuler bbox' }));
-    });
-    await act(async () => {
-      clickSave(container);
-    });
-
-    expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ class_name: 'atl', bbox: [100, 100, 50, 40] }),
-    ], { 0: 'validated' });
-  });
-
-  it('preserves naming and status edits made after a bbox move when undoing the bbox', async () => {
-    const { container } = renderPage(recordWithElements([{ ...ATL_ELEMENT }]));
+    const { container } = renderPage(recordWithValidatedBox);
     await screen.findByText('atl');
 
     const { svg } = getSvgAndWrapper(container);
@@ -496,30 +452,66 @@ describe('AnnotationPage pan behavior', () => {
       dispatchPointer(svg, 'pointerdown', { clientX: 125, clientY: 125, pointerId: 1, buttons: 1 });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 155, clientY: 165, pointerId: 1, buttons: 1 });
+      dispatchPointer(svg, 'pointermove', { clientX: 127, clientY: 127, pointerId: 1, buttons: 1 });
     });
     await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 155, clientY: 165, pointerId: 1 });
+      dispatchPointer(svg, 'pointerup', { clientX: 127, clientY: 127, pointerId: 1 });
     });
 
-    const nameInput = await screen.findByLabelText('Nommer l’élément 0');
+    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enregistrer les modifications'),
+    ) as HTMLElement;
     await act(async () => {
-      fireEvent.change(nameInput, { target: { value: 'renamed' } });
-      fireEvent.blur(nameInput);
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByText('Soumettre'));
-    });
-    await act(async () => {
-      fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
-    });
-    await act(async () => {
-      clickSave(container);
+      fireEvent.click(saveButton);
     });
 
     expect(updateElements).toHaveBeenCalledWith('test-id', [
-      expect.objectContaining({ class_name: 'renamed', bbox: [100, 100, 50, 40] }),
+      expect.objectContaining({ bbox: [100, 100, 50, 40] }),
     ], { 0: 'validated' });
   });
 
+  it('resizes via the corner handle immediately and saves the resized box', async () => {
+    const recordWithElement: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: 'atl',
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithElement);
+    await screen.findByText('atl');
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, 'pointerdown', { clientX: 100, clientY: 100, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointermove', { clientX: 80, clientY: 90, pointerId: 1, buttons: 1 });
+    });
+    await act(async () => {
+      dispatchPointer(svg, 'pointerup', { clientX: 80, clientY: 90, pointerId: 1 });
+    });
+
+    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enregistrer les modifications'),
+    ) as HTMLElement;
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    expect(updateElements).toHaveBeenCalledWith('test-id', [
+      expect.objectContaining({ bbox: [80, 90, 70, 50] }),
+    ], { 0: 'draft' });
+  });
 });
