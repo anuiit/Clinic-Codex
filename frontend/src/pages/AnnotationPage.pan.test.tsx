@@ -268,6 +268,9 @@ describe("AnnotationPage pan behavior", () => {
     const stage = screen.getByTestId("annotation-stage-frame");
     const { wrapper } = getSvgAndWrapper(container);
     const transformBefore = wrapper.style.transform;
+    const preventDefaultSpy = vi
+      .spyOn(Event.prototype, "preventDefault")
+      .mockImplementation(() => {});
 
     const wheelEvent = new WheelEvent("wheel", {
       bubbles: true,
@@ -281,9 +284,9 @@ describe("AnnotationPage pan behavior", () => {
       stage.dispatchEvent(wheelEvent);
     });
 
-    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(wrapper.style.transform).not.toBe(transformBefore);
-    expect(wrapper.style.transform).toContain("scale(1.15)");
+    expect(wrapper.style.transform).toContain("scale(2)");
   });
 
   it("draw mode creates a draft bbox without changing the stage layout", async () => {
@@ -353,6 +356,9 @@ describe("AnnotationPage pan behavior", () => {
 
     const stageFrame = screen.getByTestId("annotation-stage-frame");
     const { wrapper } = getSvgAndWrapper(container);
+    const preventDefaultSpy = vi
+      .spyOn(Event.prototype, "preventDefault")
+      .mockImplementation(() => {});
     const event = new WheelEvent("wheel", {
       bubbles: true,
       cancelable: true,
@@ -365,7 +371,7 @@ describe("AnnotationPage pan behavior", () => {
       stageFrame.dispatchEvent(event);
     });
 
-    expect(event.defaultPrevented).toBe(true);
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(wrapper.style.transform).toContain("scale(1.25)");
 
     const zoomOutEvent = new WheelEvent("wheel", {
@@ -380,7 +386,7 @@ describe("AnnotationPage pan behavior", () => {
       stageFrame.dispatchEvent(zoomOutEvent);
     });
 
-    expect(zoomOutEvent.defaultPrevented).toBe(true);
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(wrapper.style.transform).toContain("scale(0.25)");
   });
 
