@@ -65,6 +65,7 @@ export const messages = {
       title: 'Modifier les annotations',
       drawMode: 'Mode dessin',
       selectMode: 'Mode sélection',
+      undoBbox: 'Annuler bbox',
       saveChanges: 'Enregistrer les modifications',
       selectElementCrop: 'Sélectionnez un élément pour voir le segment',
       elements: 'Éléments',
