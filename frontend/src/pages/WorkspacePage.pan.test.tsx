@@ -85,9 +85,16 @@ describe('WorkspacePage image pan behavior', () => {
 
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
 
-    await act(async () => {
-      fireEvent.wheel(viewport, { deltaY: -100 });
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: -100,
     });
+    const preventDefault = vi.spyOn(wheelEvent, 'preventDefault');
+    await act(async () => {
+      fireEvent(viewport, wheelEvent);
+    });
+    expect(preventDefault).toHaveBeenCalled();
     expect(wrapper.style.transform).toContain('scale(1.15)');
 
     await act(async () => {
@@ -108,14 +115,22 @@ describe('WorkspacePage image pan behavior', () => {
 
   it('collapses and expands the history sidebar via its toggle buttons', async () => {
     const user = userEvent.setup();
-    renderPage();
+    const { container } = renderPage();
 
     const expandButton = await screen.findByTitle('Déplier l’historique');
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
 
     await user.click(expandButton);
     expect(await screen.findByPlaceholderText('Filtrer par glyphe ou classe')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'workspace-test.png' })).toBeInTheDocument();
+    const historyHeader = screen.getByTestId('workspace-history-header');
+    expect(historyHeader).toHaveTextContent(/^History\s+1$/);
+    expect(screen.queryByText('Historique des analyses')).not.toBeInTheDocument();
+    expect(screen.queryByText('Analyses enregistrées')).not.toBeInTheDocument();
+
+    const historyList = screen.getByTestId('workspace-history-list');
+    expect(historyList).toHaveClass('workspace-history-list');
+    expect(historyList.querySelector('[role="button"]')).not.toHaveClass('transition-all');
+    expect(container.querySelector('.sidebar-shell')).not.toHaveClass('transition-all');
 
     await user.click(screen.getByTitle('Replier l’historique'));
     expect(screen.queryByPlaceholderText('Filtrer par glyphe ou classe')).not.toBeInTheDocument();
