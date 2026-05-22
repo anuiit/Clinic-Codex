@@ -1,0 +1,14 @@
+== post-deslop frontend API tests ==
+
+> codex-frontend@0.0.0 test
+> vitest run src/services/api.test.ts
+
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/services/api.test.ts (11 tests) 37ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  20:59:50
+   Duration  851ms (transform 69ms, setup 59ms, collect 35ms, tests 37ms, environment 405ms, prepare 95ms)

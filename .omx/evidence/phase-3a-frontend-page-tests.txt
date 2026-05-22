@@ -1,0 +1,30 @@
+== frontend phase 3a affected page tests ==
+
+> codex-frontend@0.0.0 test
+> vitest run WorkspacePage.interactions.test.tsx WorkspacePage.pan.test.tsx AnnotationPage.naming.test.tsx AnnotationPage.pan.test.tsx Image387Alignment.test.tsx
+
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/pages/Image387Alignment.test.tsx (2 tests) 430ms
+ ✓ src/pages/WorkspacePage.pan.test.tsx (3 tests) 993ms
+   ✓ WorkspacePage image pan behavior > collapses and expands the history sidebar via stable container animation and compact header  527ms
+ ✓ src/pages/AnnotationPage.pan.test.tsx (16 tests) 1606ms
+   ✓ AnnotationPage pan behavior > keeps image and SVG overlay locked to the same measured stage after resize  356ms
+ ✓ src/pages/WorkspacePage.interactions.test.tsx (10 tests) 3820ms
+   ✓ WorkspacePage interaction coverage > filters history results, selects a matching run, and deletes the active run  865ms
+   ✓ WorkspacePage interaction coverage > toggles overlays and opens focused region details without starting a pan  898ms
+   ✓ WorkspacePage interaction coverage > hands off the selected workspace region to the annotation editor query param  360ms
+   ✓ WorkspacePage interaction coverage > toggles workspace canvas bbox labels with an icon-only accessible control  308ms
+   ✓ WorkspacePage interaction coverage > keeps workspace list and detail panels in the narrowed image-dominant scroll layout without duplicate focus lists  488ms
+   ✓ WorkspacePage interaction coverage > opens the upload preview, cancels cleanly, and analyzes the selected image  312ms
+ ✓ src/pages/AnnotationPage.naming.test.tsx (21 tests) 4084ms
+   ✓ AnnotationPage element naming UX > renames from fuzzy suggestions while preserving the bbox  902ms
+   ✓ AnnotationPage element naming UX > creates a missing element name from typed text  403ms
+   ✓ AnnotationPage element naming UX > keeps compact chrome, analyzer toolbar, and list controls in stable regions  387ms
+   ✓ AnnotationPage element naming UX > filters and sorts the compact annotation list without changing bbox data  386ms
+
+ Test Files  5 passed (5)
+      Tests  52 passed (52)
+   Start at  20:52:43
+   Duration  13.05s (transform 7.61s, setup 4.89s, collect 13.79s, tests 10.93s, environment 24.06s, prepare 682ms)

@@ -1,11 +1,14 @@
+export type ClassLabel = string | number;
+
 export interface TopKItem {
   class_name: string;
+  class_label?: ClassLabel | null;
   confidence: number;
 }
 
 export interface ClassifyResult {
   class_name: string;
-  class_label: number;
+  class_label?: ClassLabel | null;
   confidence: number;
   rejected: boolean;
   top_k: TopKItem[];
@@ -30,7 +33,7 @@ export interface SimilarItem {
   rank: number;
   match_type: string;
   class_name: string;
-  class_label: number;
+  class_label: ClassLabel | null;
   similarity: number;
   band: 'high' | 'moderate' | 'low';
   asset: string | null;
@@ -89,12 +92,20 @@ export interface SaveAnnotationResponse {
   analysis_id: string;
   saved_count: number;
   classes: string[];
+  saved_at?: string;
   error?: string;
 }
 
+export type SaveAnnotationErrorCode =
+  | 'PERMISSION_DENIED'
+  | 'DISK_FULL'
+  | 'STORAGE_ERROR'
+  | 'INTERNAL_ERROR'
+  | 'NETWORK_ERROR';
+
 export interface SaveAnnotationError {
   ok: false;
-  error_code: string;
+  error_code: SaveAnnotationErrorCode;
   message: string;
   hint?: string;
   trace_id?: string;
