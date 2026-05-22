@@ -37,11 +37,11 @@ let historyRecords: AnalysisRecord[] = [record387];
 let annotationRecord: AnalysisRecord | null = record387;
 
 vi.mock('../services/storage', () => ({
-  deleteAnalysis: vi.fn(),
-  getAnalysisById: vi.fn(() => annotationRecord),
-  getHistory: vi.fn(() => historyRecords),
-  saveAnalysis: vi.fn(),
-  updateElements: vi.fn(() => true),
+  deleteAnalysis: vi.fn(async () => undefined),
+  getAnalysisById: vi.fn(async () => annotationRecord),
+  getHistory: vi.fn(async () => historyRecords),
+  saveAnalysis: vi.fn(async () => undefined),
+  updateElements: vi.fn(async () => true),
 }));
 
 vi.mock('../services/api', () => ({

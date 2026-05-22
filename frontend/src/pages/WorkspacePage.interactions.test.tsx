@@ -101,11 +101,11 @@ const TRUST_RESULT: TrustResult = {
 let historyRecords: AnalysisRecord[] = [];
 
 vi.mock('../services/storage', () => ({
-  deleteAnalysis: vi.fn((id: string) => {
+  deleteAnalysis: vi.fn(async (id: string) => {
     historyRecords = historyRecords.filter((record) => record.id !== id);
   }),
-  getHistory: vi.fn(() => historyRecords),
-  saveAnalysis: vi.fn((record: AnalysisRecord) => {
+  getHistory: vi.fn(async () => historyRecords),
+  saveAnalysis: vi.fn(async (record: AnalysisRecord) => {
     historyRecords = [record, ...historyRecords];
   }),
 }));
@@ -169,6 +169,11 @@ function stubSvgRect(svg: SVGSVGElement, width: number, height: number) {
   });
 }
 
+
+async function waitForWorkspaceHistory() {
+  await screen.findAllByText('alpha.png');
+}
+
 function stubCanvas() {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     clearRect: vi.fn(),
@@ -186,6 +191,7 @@ describe('WorkspacePage interaction coverage', () => {
   it('filters history results, selects a matching run, and deletes the active run', async () => {
     const user = userEvent.setup();
     renderPage();
+    await waitForWorkspaceHistory();
 
     await user.click(screen.getByTitle('Déplier l’historique'));
     await user.type(screen.getByPlaceholderText('Filtrer par glyphe ou classe'), 'beta');
@@ -206,6 +212,7 @@ describe('WorkspacePage interaction coverage', () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
+    await screen.findByTestId('workspace-overlay');
     expect(container.querySelector('svg.absolute')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'masqué' }));
@@ -261,6 +268,7 @@ describe('WorkspacePage interaction coverage', () => {
     const user = userEvent.setup();
     const { container } = renderPage();
 
+    await screen.findByTestId('workspace-overlay');
     const toggle = screen.getByRole('button', { name: /(?:afficher|masquer).*(?:noms|libellés)/i });
     expect(toggle).toHaveAccessibleName(/(?:afficher|masquer).*(?:noms|libellés)/i);
     expect(toggle.textContent?.trim()).not.toMatch(/(?:Noms|N°)/i);
@@ -387,6 +395,23 @@ describe('WorkspacePage interaction coverage', () => {
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'inner', 10));
     expect(saveAnalysis).not.toHaveBeenCalled();
     expect(historyRecords).toEqual(initialSnapshot);
+  });
+
+  it('keeps the pending upload visible when browser storage save fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveAnalysis).mockRejectedValueOnce(new Error('IndexedDB quota exceeded'));
+    const { container } = renderPage([]);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['glyph pixels'], 'glyph.png', { type: 'image/png' });
+
+    await user.upload(fileInput, file);
+    expect(await screen.findByText('Image prête à analyser')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Analyser' }).at(-1) as HTMLElement);
+
+    await waitFor(() => expect(segmentGlyph).toHaveBeenCalledWith(file));
+    expect(await screen.findByText('IndexedDB quota exceeded')).toBeInTheDocument();
+    expect(screen.getByText('Image prête à analyser')).toBeInTheDocument();
+    expect(screen.getAllByText('glyph.png').length).toBeGreaterThanOrEqual(1);
   });
 
   it('opens the upload preview, cancels cleanly, and analyzes the selected image', async () => {

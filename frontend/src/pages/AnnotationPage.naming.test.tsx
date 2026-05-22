@@ -1,4 +1,4 @@
-import { render, fireEvent, act, screen, within } from "@testing-library/react";
+import { render, fireEvent, act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import type { AnalysisRecord } from "../types";
 
 vi.mock("../services/storage", () => ({
   getAnalysisById: vi.fn(),
-  updateElements: vi.fn(() => true),
+  updateElements: vi.fn(async () => true),
 }));
 
 vi.mock("../services/api", () => ({
@@ -55,7 +55,7 @@ const CONTAINER_RECT = {
 } as DOMRect;
 
 function renderPage(record: AnalysisRecord = BASE_RECORD) {
-  vi.mocked(getAnalysisById).mockReturnValue(record);
+  vi.mocked(getAnalysisById).mockResolvedValue(record);
   return render(
     <MemoryRouter initialEntries={["/annotation/test-id"]}>
       <Routes>
@@ -136,6 +136,22 @@ describe("AnnotationPage element naming UX", () => {
       ],
       { 0: "draft" },
     );
+  });
+
+  it("shows an error and stays on the editor when local save persistence fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateElements).mockResolvedValueOnce(false);
+    const { container } = renderPage();
+    await screen.findByText("atl");
+
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Enregistrer les modifications"),
+    ) as HTMLElement;
+    await user.click(saveButton);
+
+    await waitFor(() => expect(updateElements).toHaveBeenCalled());
+    expect(await screen.findByText("Impossible de joindre le serveur")).toBeInTheDocument();
+    expect(screen.queryByText("home")).not.toBeInTheDocument();
   });
 
   it("creates a missing element name from typed text", async () => {
@@ -329,6 +345,27 @@ describe("AnnotationPage element naming UX", () => {
         ],
       }),
     );
+  });
+
+  it("shows the internal save error message when review send returns INTERNAL_ERROR", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveAnnotation).mockResolvedValueOnce({
+      ok: false,
+      error_code: "INTERNAL_ERROR",
+      message: "Erreur interne du serveur (id=trace-123)",
+      trace_id: "trace-123",
+    });
+
+    renderPage({
+      ...BASE_RECORD,
+      annotationStatus: { 0: "validated" },
+    });
+
+    await user.click(await screen.findByText("Envoyer les soumis"));
+
+    expect(
+      await screen.findByText("Erreur interne du serveur (id=trace-123)"),
+    ).toBeInTheDocument();
   });
 
   it("does not block review send because a draft element is unnamed", async () => {

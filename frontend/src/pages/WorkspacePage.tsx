@@ -55,10 +55,9 @@ export default function WorkspacePage() {
   const [searchParams] = useSearchParams();
   const initialPreferredId = searchParams.get("analysis");
 
-  const [records, setRecords] = useState<AnalysisRecord[]>(() => getHistory());
-  const [currentRecord, setCurrentRecord] = useState<AnalysisRecord | null>(
-    () => resolveCurrentRecord(getHistory(), initialPreferredId),
-  );
+  const [records, setRecords] = useState<AnalysisRecord[]>([]);
+  const [currentRecord, setCurrentRecord] = useState<AnalysisRecord | null>(null);
+  const [storageLoading, setStorageLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
   const [dragging, setDragging] = useState(false);
@@ -73,9 +72,7 @@ export default function WorkspacePage() {
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(
-    () => !resolveCurrentRecord(getHistory(), initialPreferredId),
-  );
+  const [historyOpen, setHistoryOpen] = useState(true);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("all");
   const [showLabelNames, setShowLabelNames] = useState(false);
   const [trustData, setTrustData] = useState<TrustResult | null>(null);
@@ -91,6 +88,7 @@ export default function WorkspacePage() {
   } | null>(null);
   const cropCanvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const detailCanvasRef = useRef<HTMLCanvasElement>(null);
+  const initializedHistoryRef = useRef(false);
   const t = appText.workspace;
 
   const resetWorkspaceView = useCallback(() => {
@@ -118,13 +116,49 @@ export default function WorkspacePage() {
   );
 
   const syncRecords = useCallback(
-    (preferredId?: string | null) => {
-      const nextRecords = getHistory();
+    async (preferredId?: string | null) => {
+      const nextRecords = await getHistory();
       setRecords(nextRecords);
       selectRecord(resolveCurrentRecord(nextRecords, preferredId));
+      return nextRecords;
     },
     [selectRecord],
   );
+
+
+  useEffect(() => {
+    let active = true;
+
+    getHistory()
+      .then((nextRecords) => {
+        if (!active) return;
+        setRecords(nextRecords);
+        const nextRecord = resolveCurrentRecord(nextRecords, initialPreferredId);
+        selectRecord(nextRecord);
+        if (!initializedHistoryRef.current) {
+          setHistoryOpen(!nextRecord);
+          initializedHistoryRef.current = true;
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setRecords([]);
+        selectRecord(null);
+        if (!initializedHistoryRef.current) {
+          setHistoryOpen(true);
+          initializedHistoryRef.current = true;
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setStorageLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [initialPreferredId, selectRecord]);
 
   useEffect(() => {
     if (location.pathname === "/" && searchParams.get("analysis")) {
@@ -324,8 +358,8 @@ export default function WorkspacePage() {
         annotations: {},
       };
 
-      saveAnalysis(record);
-      syncRecords(record.id);
+      await saveAnalysis(record);
+      await syncRecords(record.id);
       clearPendingFile();
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : t.apiError);
@@ -334,9 +368,9 @@ export default function WorkspacePage() {
     }
   };
 
-  const removeRecord = (id: string) => {
-    deleteAnalysis(id);
-    syncRecords(currentRecord?.id === id ? null : currentRecord?.id);
+  const removeRecord = async (id: string) => {
+    await deleteAnalysis(id);
+    await syncRecords(currentRecord?.id === id ? null : currentRecord?.id);
   };
 
   const handleEditorHandoff = () => {
@@ -581,7 +615,7 @@ export default function WorkspacePage() {
             expandHistory: t.expandHistory,
             collapseHistory: t.collapseHistory,
             filterPlaceholder: t.filterPlaceholder,
-            noAnalyses: t.noAnalyses,
+            noAnalyses: storageLoading ? "Chargement de l’historique…" : t.noAnalyses,
             noFilterMatch: t.noFilterMatch,
             elementsSuffix: t.elementsSuffix,
             rejectedSuffix: t.rejectedSuffix,

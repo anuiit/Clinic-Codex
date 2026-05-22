@@ -1,4 +1,5 @@
 import { test, expect, type Page } from 'playwright/test';
+import { seedIndexedDbRecord } from './storageSeed';
 
 const TEST_RECORD = {
   id: 'test-e2e-001',
@@ -26,9 +27,7 @@ const TEST_RECORD = {
 
 async function seedAndNavigate(page: Page, record = TEST_RECORD) {
   await page.goto('/');
-  await page.evaluate((rec) => {
-    localStorage.setItem('codex_analyses', JSON.stringify([rec]));
-  }, record);
+  await seedIndexedDbRecord(page, record);
   await page.goto(`/annotate/${record.id}`);
 }
 

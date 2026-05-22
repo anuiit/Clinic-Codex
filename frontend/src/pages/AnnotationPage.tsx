@@ -378,12 +378,19 @@ export default function AnnotationPage() {
   };
 
   useEffect(() => {
+    let active = true;
+
     async function loadData() {
       if (!id) {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
         return;
       }
-      const rec = getAnalysisById(id);
+
+      setLoading(true);
+      const rec = await getAnalysisById(id);
+      if (!active) return;
       setRecord(rec);
 
       if (!rec) {
@@ -397,14 +404,22 @@ export default function AnnotationPage() {
 
       try {
         const classesResult = await getClasses();
-        setClasses(classesResult.class_names);
+        if (active) {
+          setClasses(classesResult.class_names);
+        }
       } catch {
         // failed to load classes
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
     loadData();
+
+    return () => {
+      active = false;
+    };
   }, [id, setBboxHistoryEntries]);
 
   useEffect(() => {
@@ -926,10 +941,10 @@ export default function AnnotationPage() {
     cardRefs.current[focusedIdx]?.scrollIntoView?.({ block: "nearest" });
   }, [focusedIdx, elements.length]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!id) return;
     setSaving(true);
-    const ok = updateElements(id, elements, annotationStatus);
+    const ok = await updateElements(id, elements, annotationStatus);
     if (!ok) {
       setToast({ msg: translate("save.networkError"), ok: false });
       setSaving(false);
