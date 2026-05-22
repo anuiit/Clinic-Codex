@@ -30,6 +30,7 @@ import {
 import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
+import { MainImagePanel } from "../components/MainImagePanel";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -1226,8 +1227,8 @@ export default function AnnotationPage() {
   }
 
   return (
-    <div className="annotation-app flex h-full w-full flex-col gap-2 overflow-hidden p-2">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-4 py-3">
+    <div className="annotation-app flex h-full w-full flex-col gap-1 overflow-hidden p-1">
+      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
         <div className="flex min-w-0 items-center gap-4">
           <Link
             to="/"
@@ -1280,18 +1281,35 @@ export default function AnnotationPage() {
         </div>
       </div>
 
-      <div className="shrink-0 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
+      <div className="shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
         {t.adminApprovalNotice}
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-2">
-        <div
-          ref={containerRef}
-          data-testid="annotation-stage-frame"
-          className="image-stage-frame image-stage-scrollbar annotation-scrollbar image-stage-grid relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
-          onWheel={handleStageWheel}
-        >
-          <div className="annotation-floating-toolbar absolute left-4 top-4 z-10 flex items-center gap-1 rounded-2xl p-1">
+      <div className="flex min-h-0 flex-1 gap-1.5">
+        <MainImagePanel
+          tone="annotation"
+          className="flex-1"
+          stageRef={containerRef}
+          stageProps={{
+            "data-testid": "annotation-stage-frame",
+            onWheel: handleStageWheel,
+          }}
+          transformProps={{ "data-testid": "annotation-stage" }}
+          transformStyle={{
+            width: resolvedStageSize
+              ? `${resolvedStageSize.width}px`
+              : undefined,
+            height: resolvedStageSize
+              ? `${resolvedStageSize.height}px`
+              : undefined,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+            transformOrigin: "center center",
+            transition: isPanning ? "none" : "transform 0.1s ease",
+            willChange: "transform",
+          }}
+          transformClassName="annotation-stage shrink-0 overflow-hidden rounded-lg"
+          toolbar={
+            <div className="annotation-floating-toolbar flex items-center gap-1 rounded-2xl p-1">
             <button
               type="button"
               onClick={() => setDrawMode(!drawMode)}
@@ -1362,23 +1380,8 @@ export default function AnnotationPage() {
                 {Math.round(zoom * 100)}%
               </span>
             </div>
-          </div>
-          <div
-            data-testid="annotation-stage"
-            style={{
-              width: resolvedStageSize
-                ? `${resolvedStageSize.width}px`
-                : undefined,
-              height: resolvedStageSize
-                ? `${resolvedStageSize.height}px`
-                : undefined,
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
-              transformOrigin: "center center",
-              transition: isPanning ? "none" : "transform 0.1s ease",
-              willChange: "transform",
-            }}
-            className="annotation-stage relative shrink-0 overflow-hidden rounded-lg"
-          >
+            </div>
+          image={(
             <img
               ref={imageRef}
               src={record!.imageDataUrl}
@@ -1387,159 +1390,161 @@ export default function AnnotationPage() {
               onLoad={updateStageSize}
               className="block h-full w-full object-fill pointer-events-none"
             />
-            {record && (
-              <svg
-                data-testid="annotation-overlay"
-                className="absolute left-0 top-0 h-full w-full"
-                viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
-                preserveAspectRatio="none"
-                style={{ width: "100%", height: "100%" }}
-                onPointerDown={handleSvgPointerDown}
-                onPointerMove={handleSvgPointerMove}
-                onPointerUp={handleSvgPointerUp}
-              >
-                {elements.map((el, idx) => {
-                  const [x, y, w, h] =
-                    idx === dragState?.idx &&
-                    dragState.type !== "draw" &&
-                    tempBbox
-                      ? tempBbox
-                      : el.bbox;
-                  const isFocused = idx === focusedIdx;
-                  const isHovered = idx === hoveredIdx;
-                  const isListHovered = idx === listHoveredIdx;
-                  const isSubmitted = annotationStatus[idx] === "validated";
-                  const boxVisual = getBoxVisualState({
-                    focused: isFocused,
-                    hovered: isHovered,
-                    listHovered: isListHovered,
-                    submitted: isSubmitted,
-                    rejected: el.rejected,
-                  });
-                  const labelY = Math.max(0, y - 28);
-                  return (
-                    <g key={idx} className="pointer-events-none select-none">
-                      <rect
-                        x={x}
-                        y={y}
-                        width={w}
-                        height={h}
-                        data-testid={`annotation-box-${idx}`}
-                        fill={boxVisual.fillColor}
-                        stroke={boxVisual.strokeColor}
-                        strokeWidth={boxVisual.strokeWidth}
-                        strokeDasharray={boxVisual.strokeDasharray}
-                        vectorEffect="non-scaling-stroke"
-                      />
-                      {isFocused && !drawMode && (
-                        <>
-                          <rect
-                            x={x - 6}
-                            y={y - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nwse-resize"
-                          />
-                          <rect
-                            x={x + w - 6}
-                            y={y - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nesw-resize"
-                          />
-                          <rect
-                            x={x - 6}
-                            y={y + h - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nesw-resize"
-                          />
-                          <rect
-                            x={x + w - 6}
-                            y={y + h - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nwse-resize"
-                          />
-                        </>
-                      )}
-                      {(() => {
-                        const label = formatBboxLabel(
-                          idx,
-                          el.class_name,
-                          showLabelNames,
-                          t.unnamedElement,
-                        );
-                        const labelWidth = showLabelNames
-                          ? Math.min(168, Math.max(64, label.length * 8 + 18))
-                          : 44;
-                        return (
-                          <>
-                            <title>{label}</title>
-                            <rect
-                              x={x}
-                              y={labelY}
-                              width={labelWidth}
-                              height={24}
-                              rx={6}
-                              fill={boxVisual.strokeColor}
-                              opacity={0.95}
-                              pointerEvents="none"
-                              style={{ userSelect: "none" }}
-                            />
-                            <text
-                              x={x + 10}
-                              y={labelY + 12}
-                              fill="#0c0a09"
-                              fontSize="13"
-                              fontWeight="800"
-                              fontFamily="sans-serif"
-                              textAnchor="start"
-                              dominantBaseline="central"
-                              pointerEvents="none"
-                              style={{ userSelect: "none" }}
-                            >
-                              {label}
-                            </text>
-                          </>
-                        );
-                      })()}
-                    </g>
-                  );
-                })}
-                {drawMode && dragState?.type === "draw" && tempBbox && (
-                  <rect
-                    x={tempBbox[0]}
-                    y={tempBbox[1]}
-                    width={tempBbox[2]}
-                    height={tempBbox[3]}
-                    fill="rgba(59, 130, 246, 0.14)"
-                    stroke="#60a5fa"
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )}
-              </svg>
-            )}
-          </div>
-        </div>
+          )}
+          overlay={
+            record && (
+                          <svg
+                            data-testid="annotation-overlay"
+                            className="absolute left-0 top-0 h-full w-full"
+                            viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
+                            preserveAspectRatio="none"
+                            style={{ width: "100%", height: "100%" }}
+                            onPointerDown={handleSvgPointerDown}
+                            onPointerMove={handleSvgPointerMove}
+                            onPointerUp={handleSvgPointerUp}
+                          >
+                            {elements.map((el, idx) => {
+                              const [x, y, w, h] =
+                                idx === dragState?.idx &&
+                                dragState.type !== "draw" &&
+                                tempBbox
+                                  ? tempBbox
+                                  : el.bbox;
+                              const isFocused = idx === focusedIdx;
+                              const isHovered = idx === hoveredIdx;
+                              const isListHovered = idx === listHoveredIdx;
+                              const isSubmitted = annotationStatus[idx] === "validated";
+                              const boxVisual = getBoxVisualState({
+                                focused: isFocused,
+                                hovered: isHovered,
+                                listHovered: isListHovered,
+                                submitted: isSubmitted,
+                                rejected: el.rejected,
+                              });
+                              const labelY = Math.max(0, y - 28);
+                              return (
+                                <g key={idx} className="pointer-events-none select-none">
+                                  <rect
+                                    x={x}
+                                    y={y}
+                                    width={w}
+                                    height={h}
+                                    data-testid={`annotation-box-${idx}`}
+                                    fill={boxVisual.fillColor}
+                                    stroke={boxVisual.strokeColor}
+                                    strokeWidth={boxVisual.strokeWidth}
+                                    strokeDasharray={boxVisual.strokeDasharray}
+                                    vectorEffect="non-scaling-stroke"
+                                  />
+                                  {isFocused && !drawMode && (
+                                    <>
+                                      <rect
+                                        x={x - 6}
+                                        y={y - 6}
+                                        width={12}
+                                        height={12}
+                                        rx={3}
+                                        fill="#fef3c7"
+                                        stroke="#0c0a09"
+                                        strokeWidth={1.5}
+                                        className="cursor-nwse-resize"
+                                      />
+                                      <rect
+                                        x={x + w - 6}
+                                        y={y - 6}
+                                        width={12}
+                                        height={12}
+                                        rx={3}
+                                        fill="#fef3c7"
+                                        stroke="#0c0a09"
+                                        strokeWidth={1.5}
+                                        className="cursor-nesw-resize"
+                                      />
+                                      <rect
+                                        x={x - 6}
+                                        y={y + h - 6}
+                                        width={12}
+                                        height={12}
+                                        rx={3}
+                                        fill="#fef3c7"
+                                        stroke="#0c0a09"
+                                        strokeWidth={1.5}
+                                        className="cursor-nesw-resize"
+                                      />
+                                      <rect
+                                        x={x + w - 6}
+                                        y={y + h - 6}
+                                        width={12}
+                                        height={12}
+                                        rx={3}
+                                        fill="#fef3c7"
+                                        stroke="#0c0a09"
+                                        strokeWidth={1.5}
+                                        className="cursor-nwse-resize"
+                                      />
+                                    </>
+                                  )}
+                                  {(() => {
+                                    const label = formatBboxLabel(
+                                      idx,
+                                      el.class_name,
+                                      showLabelNames,
+                                      t.unnamedElement,
+                                    );
+                                    const labelWidth = showLabelNames
+                                      ? Math.min(168, Math.max(64, label.length * 8 + 18))
+                                      : 44;
+                                    return (
+                                      <>
+                                        <title>{label}</title>
+                                        <rect
+                                          x={x}
+                                          y={labelY}
+                                          width={labelWidth}
+                                          height={24}
+                                          rx={6}
+                                          fill={boxVisual.strokeColor}
+                                          opacity={0.95}
+                                          pointerEvents="none"
+                                          style={{ userSelect: "none" }}
+                                        />
+                                        <text
+                                          x={x + 10}
+                                          y={labelY + 12}
+                                          fill="#0c0a09"
+                                          fontSize="13"
+                                          fontWeight="800"
+                                          fontFamily="sans-serif"
+                                          textAnchor="start"
+                                          dominantBaseline="central"
+                                          pointerEvents="none"
+                                          style={{ userSelect: "none" }}
+                                        >
+                                          {label}
+                                        </text>
+                                      </>
+                                    );
+                                  })()}
+                                </g>
+                              );
+                            })}
+                            {drawMode && dragState?.type === "draw" && tempBbox && (
+                              <rect
+                                x={tempBbox[0]}
+                                y={tempBbox[1]}
+                                width={tempBbox[2]}
+                                height={tempBbox[3]}
+                                fill="rgba(59, 130, 246, 0.14)"
+                                stroke="#60a5fa"
+                                strokeWidth={2}
+                                strokeDasharray="4 4"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            )}
+                          </svg>
+                        )
+          }
+        />
 
         <aside
           className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4"

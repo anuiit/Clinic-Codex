@@ -21,6 +21,7 @@ import {
 import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
+import MainImagePanel from '../components/MainImagePanel';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
 import {
@@ -716,19 +717,21 @@ export default function WorkspacePage() {
           {currentRecord ? (
             <>
               <div className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]" data-testid="workspace-content-grid">
-                <section className="flex min-h-0 flex-col rounded-2xl border border-stone-800 bg-stone-900/75 p-4">
-                  <div className="flex flex-col gap-4 border-b border-stone-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-lg font-semibold text-stone-100 truncate max-w-[200px] sm:max-w-[300px]" title={currentRecord.imageName}>
-                        {currentRecord.imageName}
-                      </h2>
-                      {focusedIdx !== null && (
-                        <span className="rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500 border border-amber-500/20">
-                          {t.focusLabel}: {focusedIdx}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <MainImagePanel
+                  tone="workspace"
+                  className="h-full"
+                  title={(
+                    <h2 className="truncate text-lg font-semibold text-stone-100 max-w-[200px] sm:max-w-[300px]" title={currentRecord.imageName}>
+                      {currentRecord.imageName}
+                    </h2>
+                  )}
+                  badges={focusedIdx !== null && (
+                    <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500">
+                      {t.focusLabel}: {focusedIdx}
+                    </span>
+                  )}
+                  headerActions={(
+                    <>
                       <div className="inline-flex rounded-lg border border-stone-700 bg-stone-950 p-1">
                         {(['all', 'focused', 'hidden'] as OverlayMode[]).map((mode) => {
                           const isActive = overlayMode === mode;
@@ -754,113 +757,115 @@ export default function WorkspacePage() {
                       >
                         {showLabelNames ? <Tags size={16} aria-hidden="true" /> : <span aria-hidden="true" className="text-base font-black leading-none">#</span>}
                       </button>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`workspace-stage image-stage-frame image-stage-scrollbar image-stage-grid relative mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
-                    data-testid="workspace-stage"
-                    onPointerDown={startWorkspacePan}
-                    onPointerMove={moveWorkspacePan}
-                    onPointerUp={stopWorkspacePan}
-                    onPointerCancel={stopWorkspacePan}
-                    onWheel={handleWorkspaceStageWheel}
-                  >
-                    <div
-                      style={{
-                        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
-                        transformOrigin: 'center center',
-                        transition: isPanning ? 'none' : 'transform 0.1s ease',
-                        willChange: 'transform',
-                      }}
-                      className="relative inline-block"
+                    </>
+                  )}
+                  stageClassName={`workspace-stage ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                  stageProps={{
+                    onPointerDown: startWorkspacePan,
+                    onPointerMove: moveWorkspacePan,
+                    onPointerUp: stopWorkspacePan,
+                    onPointerCancel: stopWorkspacePan,
+                    onWheel: handleWorkspaceStageWheel,
+                  }}
+                  transformStyle={{
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+                    transformOrigin: 'center center',
+                    transition: isPanning ? 'none' : 'transform 0.1s ease',
+                    willChange: 'transform',
+                  }}
+                  image={(
+                    <img
+                      ref={imageRef}
+                      src={currentRecord.imageDataUrl}
+                      alt={currentRecord.imageName}
+                      draggable={false}
+                      className="block max-h-full max-w-full rounded-lg object-contain"
+                    />
+                  )}
+                  overlay={currentRecord && overlayMode !== 'hidden' && (
+                    <svg
+                      className="absolute left-0 top-0 h-full w-full"
+                      data-testid="workspace-overlay"
+                      viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
+                      preserveAspectRatio="none"
+                      style={{ width: '100%', height: '100%' }}
+                      onPointerDown={handleWorkspaceOverlayPointerDown}
+                      onPointerMove={handleWorkspaceOverlayPointerMove}
+                      onPointerLeave={() => { setHoveredIdx(null); setHoverSource(null); }}
                     >
-                      <img
-                        ref={imageRef}
-                        src={currentRecord.imageDataUrl}
-                        alt={currentRecord.imageName}
-                        draggable={false}
-                        className="block max-h-full max-w-full rounded-lg object-contain"
-                      />
-                      {currentRecord && overlayMode !== 'hidden' && (
-                        <svg
-                          className="absolute left-0 top-0 h-full w-full"
-                          data-testid="workspace-overlay"
-                          viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
-                          preserveAspectRatio="none"
-                          style={{ width: '100%', height: '100%' }}
-                          onPointerDown={handleWorkspaceOverlayPointerDown}
-                          onPointerMove={handleWorkspaceOverlayPointerMove}
-                          onPointerLeave={() => { setHoveredIdx(null); setHoverSource(null); }}
-                        >
-                          {currentRecord.result.elements.map((el, idx) => {
-                            if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) return null;
-                            const [x, y, w, h] = el.bbox;
-                            const visualState = getBoxVisualState({
-                              focused: idx === focusedIdx,
-                              hovered: idx === hoveredIdx && hoverSource === 'image',
-                              listHovered: idx === hoveredIdx && hoverSource === 'list',
-                              submitted: (currentRecord.annotations ?? {})[idx] !== undefined,
-                              rejected: el.rejected,
-                            });
-                            const labelY = Math.max(0, y - 28);
-                            return (
-                              <g key={idx} data-overlay-region="true" className="pointer-events-none select-none">
-                                <rect
-                                  x={x}
-                                  y={y}
-                                  width={w}
-                                  height={h}
-                                  fill={visualState.fillColor}
-                                  stroke={visualState.strokeColor}
-                                  strokeWidth={visualState.strokeWidth}
-                                  strokeDasharray={visualState.strokeDasharray}
-                                  vectorEffect="non-scaling-stroke"
-                                />
-                                {(() => {
-                                  const label = formatWorkspaceBboxLabel(idx, el.class_name, showLabelNames);
-                                  const labelWidth = showLabelNames ? Math.min(168, Math.max(64, label.length * 8 + 18)) : 44;
-                                  return (
-                                    <>
-                                      <title>{label}</title>
-                                      <rect x={x} y={labelY} width={labelWidth} height={24} rx={6} fill={visualState.strokeColor} opacity={0.95} />
-                                      <text x={x + 10} y={labelY + 12} fill={visualState.labelColor} fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="start" dominantBaseline="central">{label}</text>
-                                    </>
-                                  );
-                                })()}
-                              </g>
-                            );
-                          })}
-                        </svg>
-                      )}
-                    </div>
-                    
-                    <div className="absolute bottom-4 right-4 flex items-center gap-1">
-                      <button type="button" onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.zoomIn}>
-                        <ZoomIn size={16} />
-                      </button>
-                      <button type="button" onClick={resetWorkspaceView} className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100" title={t.fitToView}>
-                        <Maximize2 size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setZoom((currentZoom) => {
-                            const nextZoom = Math.max(0.25, currentZoom - 0.25);
-                            if (nextZoom <= 1) {
-                              setPanOffset({ x: 0, y: 0 });
-                            }
-                            return nextZoom;
-                          });
-                        }}
-                        className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100"
-                        title={t.zoomOut}
-                      >
-                        <ZoomOut size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </section>
+                      {currentRecord.result.elements.map((el, idx) => {
+                        if (overlayMode === 'focused' && focusedIdx !== null && focusedIdx !== idx) return null;
+                        const [x, y, w, h] = el.bbox;
+                        const visualState = getBoxVisualState({
+                          focused: idx === focusedIdx,
+                          hovered: idx === hoveredIdx && hoverSource === 'image',
+                          listHovered: idx === hoveredIdx && hoverSource === 'list',
+                          submitted: (currentRecord.annotations ?? {})[idx] !== undefined,
+                          rejected: el.rejected,
+                        });
+                        const labelY = Math.max(0, y - 28);
+                        return (
+                          <g key={idx} data-overlay-region="true" className="pointer-events-none select-none">
+                            <rect
+                              x={x}
+                              y={y}
+                              width={w}
+                              height={h}
+                              fill={visualState.fillColor}
+                              stroke={visualState.strokeColor}
+                              strokeWidth={visualState.strokeWidth}
+                              strokeDasharray={visualState.strokeDasharray}
+                              vectorEffect="non-scaling-stroke"
+                            />
+                            {(() => {
+                              const label = formatWorkspaceBboxLabel(idx, el.class_name, showLabelNames);
+                              const labelWidth = showLabelNames ? Math.min(168, Math.max(64, label.length * 8 + 18)) : 44;
+                              return (
+                                <>
+                                  <title>{label}</title>
+                                  <rect x={x} y={labelY} width={labelWidth} height={24} rx={6} fill={visualState.strokeColor} opacity={0.95} />
+                                  <text x={x + 10} y={labelY + 12} fill={visualState.labelColor} fontSize="13" fontWeight="800" fontFamily="sans-serif" textAnchor="start" dominantBaseline="central">{label}</text>
+                                </>
+                              );
+                            })()}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+                  controls={[
+                    {
+                      id: 'zoom-in',
+                      label: t.zoomIn,
+                      title: t.zoomIn,
+                      onClick: () => setZoom((z) => Math.min(4, z + 0.25)),
+                      icon: <ZoomIn size={16} />,
+                    },
+                    {
+                      id: 'fit-to-view',
+                      label: t.fitToView,
+                      title: t.fitToView,
+                      onClick: resetWorkspaceView,
+                      icon: <Maximize2 size={16} />,
+                    },
+                    {
+                      id: 'zoom-out',
+                      label: t.zoomOut,
+                      title: t.zoomOut,
+                      onClick: () => {
+                        setZoom((currentZoom) => {
+                          const nextZoom = Math.max(0.25, currentZoom - 0.25);
+                          if (nextZoom <= 1) {
+                            setPanOffset({ x: 0, y: 0 });
+                          }
+                          return nextZoom;
+                        });
+                      },
+                      icon: <ZoomOut size={16} />,
+                    },
+                  ]}
+                  testIds={{ stage: 'workspace-stage' }}
+                />
 
                 <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-stone-900/35 sidebar-shell" data-testid="workspace-detected-panel">
                   {focusedIdx !== null ? (
