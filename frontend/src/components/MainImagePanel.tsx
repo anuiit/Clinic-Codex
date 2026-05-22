@@ -36,6 +36,10 @@ export type MainImagePanelProps = {
   title?: ReactNode;
   eyebrow?: ReactNode;
   badges?: ReactNode;
+  /**
+   * Reserved for non-analyzer metadata actions in the panel header.
+   * Workflow/analyzer controls belong in the shared top-left `toolbar` slot.
+   */
   headerActions?: ReactNode;
   toolbar?: ReactNode;
   image: ReactNode;
@@ -57,6 +61,52 @@ export type MainImagePanelProps = {
 
 function cx(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
+}
+
+export type AnalyzerToolbarProps = HTMLAttributes<HTMLDivElement>;
+
+export function AnalyzerToolbar({
+  className,
+  children,
+  ...props
+}: AnalyzerToolbarProps) {
+  return (
+    <div
+      {...props}
+      className={cx("analyzer-toolbar flex items-center gap-1 rounded-2xl p-1", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
+export type AnalyzerToolbarButtonProps =
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    active?: boolean;
+  };
+
+export function AnalyzerToolbarButton({
+  active,
+  className,
+  type = "button",
+  children,
+  ...props
+}: AnalyzerToolbarButtonProps) {
+  return (
+    <button
+      {...props}
+      type={type}
+      className={cx(
+        "analyzer-toolbar__button rounded-xl px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        active
+          ? "bg-amber-400 text-stone-950 shadow-lg shadow-amber-950/30"
+          : "text-stone-300 hover:bg-stone-800 hover:text-stone-50 disabled:hover:bg-transparent disabled:hover:text-stone-300",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 export function MainImagePanel({
