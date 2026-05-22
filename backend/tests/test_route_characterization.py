@@ -228,7 +228,7 @@ def test_classify_batch_missing_and_happy_shapes(client):
     assert body and set(body[0].keys()) == {"class_name", "confidence", "rejected", "top_k"}
 
 
-def test_segment_missing_and_happy_shapes_preserve_per_crop_classify(client):
+def test_segment_missing_and_happy_shapes_use_batch_classify(client):
     missing = client.post("/segment", data={})
     assert missing.status_code == 400
     assert missing.get_json() == {"error": "No 'image' file in request"}
@@ -242,5 +242,5 @@ def test_segment_missing_and_happy_shapes_preserve_per_crop_classify(client):
     assert body["elements"][0]["bbox"] == [1, 2, 3, 4]
     assert {"class_name", "confidence", "rejected", "top_k"}.issubset(body["elements"][0].keys())
     assert StubMobileSAMSegmenter.init_calls == 1
-    assert StubCodexClassifier.classify_calls >= 1
-    assert StubCodexClassifier.classify_batch_calls == 0
+    assert StubCodexClassifier.classify_calls == 0
+    assert StubCodexClassifier.classify_batch_calls == 1

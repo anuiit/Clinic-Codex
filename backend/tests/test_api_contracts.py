@@ -181,8 +181,8 @@ def test_api_contract_segment_shape_and_missing_image(client, app_and_services):
     assert body["elements"][0]["bbox"] == [1, 2, 3, 4]
     assert {"class_name", "class_label", "confidence", "rejected", "top_k"}.issubset(body["elements"][0])
     assert services.segment_calls == 1
-    assert services.classify_calls == 1
-    assert services.classify_batch_calls == 0
+    assert services.classify_calls == 0
+    assert services.classify_batch_calls == 1
 
 
 @pytest.mark.parametrize("route", ["/similar", "/trust"])

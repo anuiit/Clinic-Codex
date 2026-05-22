@@ -36,6 +36,31 @@ class ApiError(Exception):
         return jsonify(body), self.status_code
 
 
+@dataclass
+class ModelAssetUnavailable(Exception):
+    """Raised when a local ML asset is missing and request handling cannot proceed."""
+
+    asset: str
+    path: str
+    hint: str
+
+    def to_response(self):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "MODEL_ASSET_UNAVAILABLE",
+                        "message": f"Required model asset is unavailable: {self.asset}",
+                        "asset": self.asset,
+                        "path": self.path,
+                        "hint": self.hint,
+                    }
+                }
+            ),
+            503,
+        )
+
+
 def annotation_error_response(exc: Exception):
     if isinstance(exc, ValueError):
         return jsonify({"status": "error", "error": str(exc)}), 400

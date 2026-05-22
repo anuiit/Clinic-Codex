@@ -24,6 +24,23 @@ def _invalid_request():
     return jsonify({"error": {"code": "INVALID_REQUEST", "message": "image_base64 and bbox required"}}), 400
 
 
+def _invalid_parameter(message: str):
+    return jsonify({"error": {"code": "INVALID_REQUEST", "message": message}}), 400
+
+
+def _bounded_positive_int(data, field: str, default: int, *, max_value: int = 50):
+    value = default if data is None else data.get(field, default)
+    if isinstance(value, bool):
+        return None, _invalid_parameter(f"{field} must be an integer")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None, _invalid_parameter(f"{field} must be an integer")
+    if parsed < 1 or parsed > max_value:
+        return None, _invalid_parameter(f"{field} must be between 1 and {max_value}")
+    return parsed, None
+
+
 def _load_image_and_bbox(data, *, require_positive_bbox: bool = False):
     if not data or "image_base64" not in data or "bbox" not in data:
         return None, None, _invalid_request()
@@ -54,7 +71,9 @@ def similar():
         return error
 
     crop = crop_bbox(img, bbox)
-    limit = data.get("limit", 5)
+    limit, limit_error = _bounded_positive_int(data, "limit", 5)
+    if limit_error:
+        return limit_error
     result = _services().classify(crop, top_k=limit)
 
     results = []
@@ -92,7 +111,9 @@ def trust():
         return error
 
     crop = crop_bbox(img, bbox)
-    top_k = data.get("top_k", 10)
+    top_k, top_k_error = _bounded_positive_int(data, "top_k", 10)
+    if top_k_error:
+        return top_k_error
     result = _services().classify(crop, top_k=top_k)
 
     predicted_class = data.get("predicted_class", result["class_name"])

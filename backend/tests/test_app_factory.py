@@ -26,7 +26,7 @@ def test_create_app_uses_injected_settings_and_services(tmp_path):
     assert app.extensions["clinic_services"] is services
 
     routes = {rule.rule for rule in app.url_map.iter_rules()}
-    assert {"/health", "/classes", "/save-annotation", "/similar", "/trust", "/segment"}.issubset(routes)
+    assert {"/health", "/ready", "/classes", "/save-annotation", "/similar", "/trust", "/segment"}.issubset(routes)
     assert {"/classify", "/classify-batch", "/sample-image", "/similar-samples"}.issubset(routes)
 
 
@@ -51,7 +51,7 @@ def test_legacy_sample_routes_can_be_disabled_without_hiding_active_routes(tmp_p
     settings = Settings(backend_root=tmp_path, testing=True, enable_legacy_endpoints=False)
     app = create_app(settings=settings, services=StubServices())
     routes = {rule.rule for rule in app.url_map.iter_rules()}
-    assert {"/health", "/classes", "/save-annotation", "/similar", "/trust", "/segment"}.issubset(routes)
+    assert {"/health", "/ready", "/classes", "/save-annotation", "/similar", "/trust", "/segment"}.issubset(routes)
     assert {"/classify", "/classify-batch"}.issubset(routes)
     assert "/sample-image" not in routes
     assert "/similar-samples" not in routes

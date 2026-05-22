@@ -82,6 +82,49 @@ def test_save_annotation_happy_path(client):
     assert body["analysis_id"] == "test-endpoint-001"
 
 
+@pytest.mark.parametrize(
+    ("patch", "message"),
+    [
+        ({"annotations": [{"class_name": "atl", "bbox": [0, 0, 5, 5]}]}, "annotations[0].index required"),
+        ({"annotations": [{"index": 0, "bbox": [0, 0, 5, 5]}]}, "annotations[0].class_name required"),
+        ({"annotations": [{"index": 0, "class_name": "atl"}]}, "annotations[0].bbox required"),
+        (
+            {"annotations": [{"index": 0, "class_name": "atl", "bbox": [0, 0, "wide", 5]}]},
+            "annotations[0].bbox values must be numeric",
+        ),
+        (
+            {"annotations": [{"index": 0, "class_name": "atl", "bbox": [0, 0, 0, 5]}]},
+            "annotations[0].bbox width and height must be positive",
+        ),
+        (
+            {
+                "annotations": [
+                    {"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5]},
+                    {"index": 0, "class_name": "calli", "bbox": [0, 0, 5, 5]},
+                ]
+            },
+            "annotations[1].index duplicates 0",
+        ),
+        (
+            {"annotations": [{"index": 0, "class_name": "../atl", "bbox": [0, 0, 5, 5]}]},
+            "annotations[0].class_name invalid",
+        ),
+    ],
+)
+def test_save_annotation_rejects_malformed_annotation_payloads(client, patch, message):
+    payload = _valid_payload()
+    payload.update(patch)
+
+    resp = client.post(
+        "/save-annotation",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert resp.status_code == 400
+    assert message in resp.get_json()["error"]
+
+
 def test_save_annotation_permission_denied(client, app_and_services):
     _app, services = app_and_services
     services.raise_exc = AnnotationPermissionError("denied")

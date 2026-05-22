@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image
 
 from backend.app.config import Settings
+from backend.app.errors import ModelAssetUnavailable
 
 try:
     from backend.services.annotation_storage import decode_image_data_url, save_annotation
@@ -37,6 +38,7 @@ class DefaultServices:
         self._sample_index: dict[str, list[dict[str, str]]] | None = None
 
     def get_classifier(self):
+        self._raise_for_missing_classifier_assets()
         if self._classifier is None:
             _ensure_backend_root_on_path(self.settings)
             from codex_model import CodexClassifier
@@ -54,11 +56,15 @@ class DefaultServices:
         return self.get_classifier().classify_batch(images)
 
     def get_segmenter(self):
+        self._raise_for_missing_mobile_sam_checkpoint()
         if self._segmenter is None:
             _ensure_backend_root_on_path(self.settings)
             from codex_pipeline.segmentation import MobileSAMSegmenter
 
-            self._segmenter = MobileSAMSegmenter(points_per_side=16)
+            self._segmenter = MobileSAMSegmenter(
+                checkpoint_path=str(self.settings.mobile_sam_checkpoint_path),
+                points_per_side=16,
+            )
         return self._segmenter
 
     def segment_page(self, image: np.ndarray):
@@ -86,6 +92,60 @@ class DefaultServices:
         if self._sample_index is None:
             self._sample_index = build_sample_index(self.settings.data_dir)
         return self._sample_index
+
+    def readiness(self) -> dict[str, Any]:
+        return readiness_report(self.settings)
+
+    def _raise_for_missing_classifier_assets(self) -> None:
+        for check in readiness_report(self.settings)["checks"]:
+            if check["name"].startswith("classifier_") and not check["available"]:
+                raise ModelAssetUnavailable(
+                    asset=check["name"],
+                    path=check["path"],
+                    hint=check["hint"],
+                )
+
+    def _raise_for_missing_mobile_sam_checkpoint(self) -> None:
+        check = mobile_sam_checkpoint_check(self.settings)
+        if not check["available"]:
+            raise ModelAssetUnavailable(
+                asset=check["name"],
+                path=check["path"],
+                hint=check["hint"],
+            )
+
+
+def _asset_check(name: str, path: Path, hint: str) -> dict[str, Any]:
+    expanded = path.expanduser()
+    return {
+        "name": name,
+        "available": expanded.is_file(),
+        "path": str(expanded),
+        "hint": hint,
+    }
+
+
+def classifier_asset_checks(settings: Settings) -> list[dict[str, Any]]:
+    weights_dir = settings.classifier_weights_dir
+    hint = "Prepare classifier weights with prototypes.pt and projection.pt before starting ML requests."
+    return [
+        _asset_check("classifier_prototypes", weights_dir / "prototypes.pt", hint),
+        _asset_check("classifier_projection", weights_dir / "projection.pt", hint),
+    ]
+
+
+def mobile_sam_checkpoint_check(settings: Settings) -> dict[str, Any]:
+    return _asset_check(
+        "mobile_sam_checkpoint",
+        settings.mobile_sam_checkpoint_path,
+        "Place mobile_sam.pt at this path or set MOBILE_SAM_CHECKPOINT to a local checkpoint before segmentation.",
+    )
+
+
+def readiness_report(settings: Settings) -> dict[str, Any]:
+    checks = [*classifier_asset_checks(settings), mobile_sam_checkpoint_check(settings)]
+    ready = all(check["available"] for check in checks)
+    return {"status": "ready" if ready else "not_ready", "ready": ready, "checks": checks}
 
 
 def sample_class_name(class_dir_name: str) -> str:

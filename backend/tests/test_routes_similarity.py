@@ -70,6 +70,14 @@ def test_similar_happy_path_shape(client):
     assert body["results"][0]["band"] == "high"
 
 
+@pytest.mark.parametrize("limit", [0, 51, "many", True])
+def test_similar_rejects_invalid_limit(client, limit):
+    resp = client.post("/similar", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4], "limit": limit})
+    assert resp.status_code == 400
+    assert resp.get_json()["error"]["code"] == "INVALID_REQUEST"
+    assert "limit must" in resp.get_json()["error"]["message"]
+
+
 def test_trust_happy_path_shape(client):
     resp = client.post(
         "/trust",
@@ -81,3 +89,28 @@ def test_trust_happy_path_shape(client):
     assert body["trust"]["predicted_class_rank"] == 1
     assert body["trust"]["top1_class"] == "atl"
     assert "top_k" in body["trust"]
+
+
+def test_trust_missing_predicted_class_defaults_to_classifier_top_class(client):
+    resp = client.post("/trust", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4]})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["query"]["predicted_class"] == "atl"
+    assert body["trust"]["predicted_class_rank"] == 1
+
+
+@pytest.mark.parametrize("top_k", [0, 51, "many", False])
+def test_trust_rejects_invalid_top_k(client, top_k):
+    resp = client.post("/trust", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4], "top_k": top_k})
+    assert resp.status_code == 400
+    assert resp.get_json()["error"]["code"] == "INVALID_REQUEST"
+    assert "top_k must" in resp.get_json()["error"]["message"]
+
+
+@pytest.mark.parametrize("route", ["/similar", "/trust"])
+def test_routes_reject_non_numeric_bbox_values(client, route):
+    resp = client.post(route, json={"image_base64": _png_base64(), "bbox": [0, "top", 4, 4]})
+    assert resp.status_code == 400
+    assert resp.get_json() == {
+        "error": {"code": "INVALID_BBOX", "message": "bbox values must be numeric"}
+    }

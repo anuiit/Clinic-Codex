@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import io
+from numbers import Real
 from typing import Any
 
 from PIL import Image
@@ -26,6 +27,8 @@ def validate_bbox(bbox: Any, image_size: tuple[int, int], *, require_positive: b
     if not isinstance(bbox, list) or len(bbox) != 4:
         raise ValueError("bbox must be [x, y, w, h]")
     x, y, w, h = bbox
+    if any(isinstance(value, bool) or not isinstance(value, Real) for value in bbox):
+        raise ValueError("bbox values must be numeric")
     iw, ih = image_size
     if x < 0 or y < 0 or x + w > iw or y + h > ih:
         raise ValueError("bbox out of image bounds")

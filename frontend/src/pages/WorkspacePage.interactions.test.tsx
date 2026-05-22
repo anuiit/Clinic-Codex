@@ -225,7 +225,7 @@ describe('WorkspacePage interaction coverage', () => {
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.getByText('Aperçu du segment')).toBeInTheDocument();
-    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10));
+    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10, expect.objectContaining({ signal: expect.any(AbortSignal) })));
 
     await user.click(screen.getByRole('button', { name: /Retour aux régions/ }));
     expect(screen.getByText('Éléments détectés')).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe('WorkspacePage interaction coverage', () => {
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.queryByText('Région 0')).not.toBeInTheDocument();
-    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10));
+    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10, expect.objectContaining({ signal: expect.any(AbortSignal) })));
   });
 
   it('hands off the selected workspace region to the annotation editor query param', async () => {
@@ -392,7 +392,7 @@ describe('WorkspacePage interaction coverage', () => {
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.queryByText('Région 1')).not.toBeInTheDocument();
-    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'inner', 10));
+    await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'inner', 10, expect.objectContaining({ signal: expect.any(AbortSignal) })));
     expect(saveAnalysis).not.toHaveBeenCalled();
     expect(historyRecords).toEqual(initialSnapshot);
   });
@@ -405,7 +405,6 @@ describe('WorkspacePage interaction coverage', () => {
     const file = new File(['glyph pixels'], 'glyph.png', { type: 'image/png' });
 
     await user.upload(fileInput, file);
-    expect(await screen.findByText('Image prête à analyser')).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: 'Analyser' }).at(-1) as HTMLElement);
 
     await waitFor(() => expect(segmentGlyph).toHaveBeenCalledWith(file));

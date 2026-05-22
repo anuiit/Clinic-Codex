@@ -136,6 +136,89 @@ describe("API client contract", () => {
     });
   });
 
+  it("normalizes structured saveAnnotation 400 validation errors as network-compatible failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(jsonResponse({ status: "error", error: "missing field: annotations" }, 400)),
+      ),
+    );
+    const api = await loadApi();
+
+    await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
+      ok: false,
+      error_code: "NETWORK_ERROR",
+      message: "save-annotation failed: 400",
+      hint: undefined,
+      trace_id: undefined,
+    });
+  });
+
+  it("normalizes saveAnnotation permission and disk-full error responses", async () => {
+    const api = await loadApi();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          jsonResponse(
+            {
+              error_code: "PERMISSION_DENIED",
+              message: "Droits insuffisants",
+              hint: "check permissions",
+            },
+            409,
+          ),
+        ),
+      ),
+    );
+    await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
+      ok: false,
+      error_code: "PERMISSION_DENIED",
+      message: "Droits insuffisants",
+      hint: "check permissions",
+      trace_id: undefined,
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          jsonResponse(
+            {
+              error_code: "DISK_FULL",
+              message: "Espace disque insuffisant",
+            },
+            507,
+          ),
+        ),
+      ),
+    );
+    await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
+      ok: false,
+      error_code: "DISK_FULL",
+      message: "Espace disque insuffisant",
+      hint: undefined,
+      trace_id: undefined,
+    });
+  });
+
+  it("falls back safely when saveAnnotation receives a malformed internal error body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(jsonResponse({ trace_id: "trace-only" }, 500))),
+    );
+    const api = await loadApi();
+
+    await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
+      ok: false,
+      error_code: "NETWORK_ERROR",
+      message: "save-annotation failed: 500",
+      hint: undefined,
+      trace_id: "trace-only",
+    });
+  });
+
   it("uses NETWORK_ERROR fallback for non-JSON saveAnnotation failures", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("not-json", { status: 503 }))));
     const api = await loadApi();

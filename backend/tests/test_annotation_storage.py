@@ -2,10 +2,12 @@
 # pyright: reportMissingImports=false
 """Tests for backend/services/annotation_storage.py."""
 import errno
+import base64
 import json
 import os
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
@@ -32,6 +34,7 @@ if _BACKEND_ROOT not in sys.path:
 from services.annotation_storage import (  # noqa: E402
     AnnotationDiskFullError,
     AnnotationPermissionError,
+    decode_image_data_url,
     save_annotation,
 )
 
@@ -167,3 +170,49 @@ def test_resave_same_analysis_id_overwrites(tmp_path):
     meta = json.loads((ann_dir / "metadata.json").read_text())
     assert len(meta["annotations"]) == 1
     assert not (ann_dir / "elements" / "1.png").exists()
+
+
+def test_decode_image_data_url_uses_strict_base64_validation():
+    valid_prefix = base64.b64encode(b"not an image").decode("ascii")
+    invalid = valid_prefix[:-2] + "$$"
+
+    with pytest.raises(ValueError, match="base64 decode failed"):
+        decode_image_data_url(invalid)
+
+
+def test_resave_same_analysis_id_uses_unique_temp_directory(tmp_path, monkeypatch):
+    """Each save attempt gets its own staging directory before replacing the target."""
+    base_dir = tmp_path / "annotations"
+    base_dir.mkdir()
+    analysis_id = "unique-temp-test"
+
+    import services.annotation_storage as _mod
+
+    original_move = _mod.shutil.move
+    staged_names: list[str] = []
+
+    def _record_move(src, dst, *args, **kwargs):
+        staged_names.append(Path(src).name)
+        return original_move(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(_mod.shutil, "move", _record_move)
+
+    save_annotation(
+        analysis_id,
+        _make_image(),
+        _make_annotations(),
+        base_dir=base_dir,
+        elements_dir=tmp_path / "training_data" / "Elements",
+    )
+    save_annotation(
+        analysis_id,
+        _make_image(),
+        [{"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5]}],
+        base_dir=base_dir,
+        elements_dir=tmp_path / "training_data" / "Elements",
+    )
+
+    assert len(staged_names) == 2
+    assert staged_names[0].startswith(f".tmp-{analysis_id}-")
+    assert staged_names[1].startswith(f".tmp-{analysis_id}-")
+    assert staged_names[0] != staged_names[1]

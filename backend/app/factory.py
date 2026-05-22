@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import Flask, request
 
 from backend.app.config import Settings
-from backend.app.errors import ApiError
+from backend.app.errors import ApiError, ModelAssetUnavailable
 from backend.app.routes import register_routes
 from backend.app.services.container import DefaultServices
 
@@ -33,6 +33,10 @@ def create_app(settings: Settings | None = None, services=None) -> Flask:
 
     @app.errorhandler(ApiError)
     def handle_api_error(error: ApiError):
+        return error.to_response()
+
+    @app.errorhandler(ModelAssetUnavailable)
+    def handle_model_asset_unavailable(error: ModelAssetUnavailable):
         return error.to_response()
 
     register_routes(app, settings, app.extensions["clinic_services"])
