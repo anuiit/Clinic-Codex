@@ -1,5 +1,5 @@
-import { PanelLeftClose, PanelLeftOpen, Search, Trash2 } from 'lucide-react';
-import type { AnalysisRecord } from '../types';
+import { PanelLeftClose, PanelLeftOpen, Search, Trash2 } from "lucide-react";
+import type { AnalysisRecord } from "../types";
 
 type Props = {
   records: AnalysisRecord[];
@@ -41,7 +41,7 @@ export function WorkspaceHistoryPanel({
   return (
     <aside
       data-testid="workspace-history-sidebar"
-      className={`flex flex-col overflow-hidden transition-[padding,border-color,background-color] duration-200 ease-out ${historyOpen ? 'min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3' : 'min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3'}`}
+      className={`flex flex-col overflow-hidden transition-[padding,border-color,background-color] duration-200 ease-out ${historyOpen ? "min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3" : "min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3"}`}
     >
       {!historyOpen ? (
         <div className="flex h-full w-full flex-col items-center overflow-hidden">
@@ -64,8 +64,8 @@ export function WorkspaceHistoryPanel({
                 onClick={() => onSelectRecord(record)}
                 className={`relative overflow-hidden rounded-lg border transition-colors ${
                   currentRecordId === record.id
-                    ? 'border-amber-500/60 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-                    : 'border-stone-800 hover:border-stone-600'
+                    ? "border-amber-500/60 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]"
+                    : "border-stone-800 hover:border-stone-600"
                 }`}
                 title={record.imageName}
               >
@@ -80,7 +80,10 @@ export function WorkspaceHistoryPanel({
         </div>
       ) : (
         <>
-          <div className="mb-3 flex items-center justify-between gap-2 border-b border-stone-800 pb-3" data-testid="workspace-history-header">
+          <div
+            className="mb-3 flex items-center justify-between gap-2 border-b border-stone-800 pb-3"
+            data-testid="workspace-history-header"
+          >
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="text-sm font-semibold text-stone-100">History</h2>
               <span className="rounded-full border border-stone-800 bg-stone-950/70 px-2 py-0.5 text-xs font-medium tabular-nums text-stone-400">
@@ -98,7 +101,10 @@ export function WorkspaceHistoryPanel({
           </div>
 
           <div className="relative mb-3">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500"
+            />
             <input
               value={filter}
               onChange={(event) => onFilterChange(event.target.value)}
@@ -107,7 +113,10 @@ export function WorkspaceHistoryPanel({
             />
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" data-testid="workspace-history-list">
+          <div
+            className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1"
+            data-testid="workspace-history-list"
+          >
             {records.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-stone-700 bg-stone-950/70 px-4 py-8 text-center text-sm text-stone-500">
                 {noAnalyses}
@@ -122,7 +131,12 @@ export function WorkspaceHistoryPanel({
                 const badges = [
                   ...new Set(
                     record.result.elements
-                      .map((element, idx) => (!element.rejected ? (record.annotations ?? {})[idx] ?? element.class_name : null))
+                      .map((element, idx) =>
+                        !element.rejected
+                          ? ((record.annotations ?? {})[idx] ??
+                            element.class_name)
+                          : null,
+                      )
                       .filter((value): value is string => Boolean(value)),
                   ),
                 ].slice(0, 3);
@@ -134,20 +148,29 @@ export function WorkspaceHistoryPanel({
                     tabIndex={0}
                     onClick={() => onSelectRecord(record)}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
+                      if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         onSelectRecord(record);
                       }
                     }}
-                    className={`group rounded-xl border p-2.5 transition-colors ${isActive ? 'border-amber-500/60 bg-amber-500/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]' : 'border-stone-800 bg-stone-950/70 hover:border-stone-700'}`}
+                    className={`group rounded-xl border p-2.5 transition-colors ${isActive ? "border-amber-500/60 bg-amber-500/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]" : "border-stone-800 bg-stone-950/70 hover:border-stone-700"}`}
                   >
                     <div className="flex items-start gap-3">
-                      <img src={record.imageDataUrl} alt={record.imageName} className="h-16 w-16 rounded-lg border border-stone-800 object-cover" />
+                      <img
+                        src={record.imageDataUrl}
+                        alt={record.imageName}
+                        className="h-16 w-16 rounded-lg border border-stone-800 object-cover"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="truncate text-sm font-medium text-stone-100">{record.imageName}</p>
-                            <p className="mt-1 text-xs text-stone-500">{new Date(record.timestamp).toLocaleDateString()} · {record.result.num_elements} {elementsSuffix}</p>
+                            <p className="truncate text-sm font-medium text-stone-100">
+                              {record.imageName}
+                            </p>
+                            <p className="mt-1 text-xs text-stone-500">
+                              {new Date(record.timestamp).toLocaleDateString()}{" "}
+                              · {record.result.num_elements} {elementsSuffix}
+                            </p>
                           </div>
                           <button
                             type="button"
@@ -163,13 +186,23 @@ export function WorkspaceHistoryPanel({
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {badges.map((badge) => (
-                            <span key={badge} className="rounded-md bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300">
+                            <span
+                              key={badge}
+                              className="rounded-md bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300"
+                            >
                               {badge}
                             </span>
                           ))}
-                          {record.result.elements.some((element) => element.rejected) && (
+                          {record.result.elements.some(
+                            (element) => element.rejected,
+                          ) && (
                             <span className="rounded-md bg-red-400/10 px-2 py-1 text-[11px] text-red-300">
-                              {record.result.elements.filter((element) => element.rejected).length} rejected
+                              {
+                                record.result.elements.filter(
+                                  (element) => element.rejected,
+                                ).length
+                              }{" "}
+                              rejected
                             </span>
                           )}
                         </div>
