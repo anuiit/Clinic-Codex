@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
@@ -13,14 +12,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import {
-  ArrowLeft,
-  Loader2,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Loader2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
@@ -28,6 +20,9 @@ import { MainImagePanel } from "../components/MainImagePanel";
 import { AnnotationAnalyzerToolbar } from "./AnnotationAnalyzerToolbar";
 import { AnnotationElementList } from "./AnnotationElementList";
 import { AnnotationPageChrome } from "./AnnotationPageChrome";
+import { AnnotationOverlay } from "./annotation/AnnotationOverlay";
+import { AnnotationSelectedInspector } from "./annotation/AnnotationSelectedInspector";
+import { AnnotationToast } from "./annotation/AnnotationToast";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -42,7 +37,6 @@ import {
   shouldConsumeStageWheel,
 } from "../utils/imageStageZoom";
 import {
-  getBoxVisualState,
   hitTestBBoxes,
   hitTestHandles,
   isDragIntent,
@@ -52,7 +46,6 @@ import {
   type BBoxHandle,
 } from "../utils/segmentationBoxes";
 import {
-  getFuzzyClassSuggestions,
   hasExactClassName,
   isUnnamedClass,
   normalizeClassName,
@@ -97,19 +90,6 @@ function areBboxesEqual(
   return a.every((value, idx) => value === b[idx]);
 }
 
-function formatBboxLabel(
-  idx: number,
-  className: string,
-  showName: boolean,
-  unnamedLabel: string,
-): string {
-  if (!showName) return `#${idx}`;
-  const displayName = isUnnamedClass(className) ? unnamedLabel : className;
-  const clippedName =
-    displayName.length > 18 ? `${displayName.slice(0, 17)}…` : displayName;
-  return clippedName;
-}
-
 function isEditableTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLInputElement ||
@@ -140,164 +120,6 @@ type PendingMoveState = {
   startClientY: number;
   origBbox: BBox;
 } | null;
-
-interface ElementNameComboboxProps {
-  value: string;
-  classNames: string[];
-  customClassNames: string[];
-  topK: DetectedElement["top_k"];
-  autoFocusToken: number;
-  labels: typeof appText.annotation;
-  index: number;
-  onCommit: (name: string) => void;
-}
-
-function ElementNameCombobox({
-  value,
-  classNames,
-  customClassNames,
-  topK,
-  autoFocusToken,
-  labels,
-  index,
-  onCommit,
-}: ElementNameComboboxProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState(() =>
-    isUnnamedClass(value) ? "" : value,
-  );
-  const [isOpen, setIsOpen] = useState(false);
-  const [highlightedIdx, setHighlightedIdx] = useState(0);
-  const suggestions = getFuzzyClassSuggestions(
-    inputValue,
-    classNames,
-    topK,
-    customClassNames,
-  );
-  const normalizedInput = normalizeClassName(inputValue);
-  const allCandidateNames = [
-    ...classNames,
-    ...customClassNames,
-    ...topK.map((item) => item.class_name),
-  ];
-  const canCreate =
-    normalizedInput.length > 0 &&
-    !hasExactClassName(normalizedInput, allCandidateNames);
-
-  useEffect(() => {
-    setInputValue(isUnnamedClass(value) ? "" : value);
-  }, [value]);
-
-  useEffect(() => {
-    if (autoFocusToken <= 0) return;
-    inputRef.current?.focus();
-    inputRef.current?.select();
-    setIsOpen(true);
-  }, [autoFocusToken]);
-
-  const commitName = (name: string) => {
-    const normalizedName = normalizeClassName(name);
-    if (!normalizedName) return;
-    onCommit(normalizedName);
-    setInputValue(normalizedName);
-    setIsOpen(false);
-  };
-
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setIsOpen(true);
-      setHighlightedIdx((current) =>
-        Math.min(current + 1, Math.max(suggestions.length - 1, 0)),
-      );
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setHighlightedIdx((current) => Math.max(current - 1, 0));
-      return;
-    }
-    if (event.key === "Escape") {
-      setIsOpen(false);
-      setInputValue(isUnnamedClass(value) ? "" : value);
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const highlightedSuggestion = suggestions[highlightedIdx];
-      commitName(highlightedSuggestion?.name ?? inputValue);
-    }
-  };
-
-  return (
-    <div className="relative" onClick={(event) => event.stopPropagation()}>
-      <label
-        className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500"
-        htmlFor={`element-name-${index}`}
-      >
-        {labels.renameElement}
-      </label>
-      <input
-        ref={inputRef}
-        id={`element-name-${index}`}
-        aria-label={`${labels.nameElement} ${index}`}
-        value={inputValue}
-        onChange={(event) => {
-          setInputValue(event.target.value);
-          setHighlightedIdx(0);
-          setIsOpen(true);
-        }}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => {
-          if (normalizedInput) {
-            commitName(inputValue);
-          } else {
-            setIsOpen(false);
-          }
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder={labels.elementNamePlaceholder}
-        className="w-full rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-colors placeholder:text-stone-600 focus:border-amber-500"
-      />
-      {isOpen && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-stone-700 bg-stone-950 shadow-xl">
-          <div className="border-b border-stone-800 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-stone-500">
-            {labels.suggestions}
-          </div>
-          {suggestions.length === 0 && !canCreate && (
-            <div className="px-3 py-2 text-sm text-stone-500">
-              {labels.noSuggestion}
-            </div>
-          )}
-          {suggestions.map((suggestion, suggestionIdx) => (
-            <button
-              key={`${suggestion.source}-${suggestion.name}`}
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => commitName(suggestion.name)}
-              className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${suggestionIdx === highlightedIdx ? "bg-amber-500/15 text-amber-100" : "text-stone-100 hover:bg-stone-800"}`}
-            >
-              <span>{suggestion.name}</span>
-              <span className="text-[10px] uppercase tracking-[0.18em] text-stone-500">
-                {suggestion.source}
-              </span>
-            </button>
-          ))}
-          {canCreate && (
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => commitName(normalizedInput)}
-              className="w-full border-t border-stone-800 px-3 py-2 text-left text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/10"
-            >
-              {labels.createElementName} « {normalizedInput} »
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function AnnotationPage() {
   const { id } = useParams<{ id: string }>();
@@ -1310,155 +1132,22 @@ export default function AnnotationPage() {
           }
           overlay={
             record && (
-              <svg
-                data-testid="annotation-overlay"
-                className="absolute left-0 top-0 h-full w-full"
-                viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
-                preserveAspectRatio="none"
-                style={{ width: "100%", height: "100%" }}
+              <AnnotationOverlay
+                imageSize={record.result.image_size}
+                elements={elements}
+                annotationStatus={annotationStatus}
+                focusedIdx={focusedIdx}
+                hoveredIdx={hoveredIdx}
+                listHoveredIdx={listHoveredIdx}
+                drawMode={drawMode}
+                dragState={dragState}
+                tempBbox={tempBbox}
+                showLabelNames={showLabelNames}
+                unnamedLabel={t.unnamedElement}
                 onPointerDown={handleSvgPointerDown}
                 onPointerMove={handleSvgPointerMove}
                 onPointerUp={handleSvgPointerUp}
-              >
-                {elements.map((el, idx) => {
-                  const [x, y, w, h] =
-                    idx === dragState?.idx &&
-                    dragState.type !== "draw" &&
-                    tempBbox
-                      ? tempBbox
-                      : el.bbox;
-                  const isFocused = idx === focusedIdx;
-                  const isHovered = idx === hoveredIdx;
-                  const isListHovered = idx === listHoveredIdx;
-                  const isSubmitted = annotationStatus[idx] === "validated";
-                  const boxVisual = getBoxVisualState({
-                    focused: isFocused,
-                    hovered: isHovered,
-                    listHovered: isListHovered,
-                    submitted: isSubmitted,
-                    rejected: el.rejected,
-                  });
-                  const labelY = Math.max(0, y - 28);
-                  return (
-                    <g key={idx} className="pointer-events-none select-none">
-                      <rect
-                        x={x}
-                        y={y}
-                        width={w}
-                        height={h}
-                        data-testid={`annotation-box-${idx}`}
-                        fill={boxVisual.fillColor}
-                        stroke={boxVisual.strokeColor}
-                        strokeWidth={boxVisual.strokeWidth}
-                        strokeDasharray={boxVisual.strokeDasharray}
-                        vectorEffect="non-scaling-stroke"
-                      />
-                      {isFocused && !drawMode && (
-                        <>
-                          <rect
-                            x={x - 6}
-                            y={y - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nwse-resize"
-                          />
-                          <rect
-                            x={x + w - 6}
-                            y={y - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nesw-resize"
-                          />
-                          <rect
-                            x={x - 6}
-                            y={y + h - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nesw-resize"
-                          />
-                          <rect
-                            x={x + w - 6}
-                            y={y + h - 6}
-                            width={12}
-                            height={12}
-                            rx={3}
-                            fill="#fef3c7"
-                            stroke="#0c0a09"
-                            strokeWidth={1.5}
-                            className="cursor-nwse-resize"
-                          />
-                        </>
-                      )}
-                      {(() => {
-                        const label = formatBboxLabel(
-                          idx,
-                          el.class_name,
-                          showLabelNames,
-                          t.unnamedElement,
-                        );
-                        const labelWidth = showLabelNames
-                          ? Math.min(168, Math.max(64, label.length * 8 + 18))
-                          : 44;
-                        return (
-                          <>
-                            <title>{label}</title>
-                            <rect
-                              x={x}
-                              y={labelY}
-                              width={labelWidth}
-                              height={24}
-                              rx={6}
-                              fill={boxVisual.strokeColor}
-                              opacity={0.95}
-                              pointerEvents="none"
-                              style={{ userSelect: "none" }}
-                            />
-                            <text
-                              x={x + 10}
-                              y={labelY + 12}
-                              fill="#0c0a09"
-                              fontSize="13"
-                              fontWeight="800"
-                              fontFamily="sans-serif"
-                              textAnchor="start"
-                              dominantBaseline="central"
-                              pointerEvents="none"
-                              style={{ userSelect: "none" }}
-                            >
-                              {label}
-                            </text>
-                          </>
-                        );
-                      })()}
-                    </g>
-                  );
-                })}
-                {drawMode && dragState?.type === "draw" && tempBbox && (
-                  <rect
-                    x={tempBbox[0]}
-                    y={tempBbox[1]}
-                    width={tempBbox[2]}
-                    height={tempBbox[3]}
-                    fill="rgba(59, 130, 246, 0.14)"
-                    stroke="#60a5fa"
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )}
-              </svg>
+              />
             )
           }
         />
@@ -1467,127 +1156,23 @@ export default function AnnotationPage() {
           className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4"
           aria-label="Inspecteur d’annotation"
         >
-          <section
-            className="annotation-selected-inspector mb-3 flex shrink-0 flex-col gap-3 overflow-hidden rounded-2xl p-3"
-            data-testid="selected-element-inspector"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-                  Inspecteur
-                </div>
-                <h2 className="mt-1 truncate text-xl font-black text-stone-50">
-                  {focusedElement && focusedIdx !== null
-                    ? `#${focusedIdx} · ${focusedDisplayName}`
-                    : "Sélectionnez un élément"}
-                </h2>
-              </div>
-              {focusedElement && focusedIdx !== null && (
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${focusedElement.rejected ? "bg-red-500/15 text-red-300" : focusedIsSubmitted ? "bg-emerald-500/15 text-emerald-300" : "bg-stone-800 text-stone-400"}`}
-                >
-                  {focusedIsSubmitted ? t.submitted : t.draft}
-                </span>
-              )}
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-hidden">
-              {focusedElement && focusedIdx !== null ? (
-                <div className="flex h-full min-h-0 flex-col gap-3">
-                  <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
-                    <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
-                      <canvas
-                        ref={previewCanvasRef}
-                        width={200}
-                        height={200}
-                        className="block h-[140px] w-[140px] rounded-lg object-contain"
-                      />
-                    </div>
-                    <div className="min-w-0 space-y-3">
-                      <div>
-                        <div className="mb-1 flex items-center justify-between text-xs font-semibold text-stone-400">
-                          <span>Confiance</span>
-                          <span className="tabular-nums text-stone-200">
-                            {focusedConfidencePercent}%
-                          </span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-stone-800">
-                          <div
-                            className={`h-full rounded-full ${focusedElement.rejected ? "bg-red-400" : focusedIsSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
-                            style={{
-                              width: `${Math.max(0, Math.min(100, focusedConfidencePercent))}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {(["x", "y", "w", "h"] as const).map(
-                          (label, coordIdx) => (
-                            <div
-                              key={label}
-                              className="rounded-xl border border-stone-700/60 bg-stone-950/50 px-3 py-2"
-                            >
-                              <div className="uppercase tracking-[0.18em] text-stone-500">
-                                {label}
-                              </div>
-                              <div className="mt-1 font-semibold tabular-nums text-stone-100">
-                                {Math.round(focusedElement.bbox[coordIdx])}
-                              </div>
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2"
-                    data-testid="annotation-inspector-action-row"
-                  >
-                    <div className="min-w-0">
-                      <ElementNameCombobox
-                        value={focusedElement.class_name}
-                        classNames={[focusedElement.class_name, ...classes]}
-                        customClassNames={customClasses}
-                        topK={focusedElement.top_k}
-                        autoFocusToken={namingFocusToken}
-                        labels={t}
-                        index={focusedIdx}
-                        onCommit={(name) => commitElementName(focusedIdx, name)}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setElementValidation(
-                          focusedIdx,
-                          focusedIsSubmitted ? "draft" : "validated",
-                        )
-                      }
-                      disabled={isUnnamedClass(focusedElement.class_name)}
-                      className={`shrink-0 rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
-                    >
-                      {focusedIsSubmitted ? t.markDraft : t.markSubmitted}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeElement(focusedIdx)}
-                      className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
-                    >
-                      <span className="sr-only">
-                        Supprimer l’élément #{focusedIdx}
-                      </span>
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/20 px-6 text-center text-sm text-stone-500">
-                  {t.selectElementCrop}
-                </div>
-              )}
-            </div>
-          </section>
+          <AnnotationSelectedInspector
+            focusedElement={focusedElement}
+            focusedIdx={focusedIdx}
+            focusedDisplayName={focusedDisplayName}
+            focusedConfidencePercent={focusedConfidencePercent}
+            focusedIsSubmitted={focusedIsSubmitted}
+            previewCanvasRef={previewCanvasRef}
+            classes={classes}
+            customClasses={customClasses}
+            namingFocusToken={namingFocusToken}
+            labels={t}
+            onCommitElementName={commitElementName}
+            onSetElementValidation={(idx, submitted) =>
+              setElementValidation(idx, submitted ? "validated" : "draft")
+            }
+            onRemoveElement={removeElement}
+          />
 
           <AnnotationElementList
             displayedElements={displayedElements}
@@ -1608,13 +1193,7 @@ export default function AnnotationPage() {
           />
         </aside>
       </div>
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 rounded-xl px-5 py-3 text-sm font-medium shadow-lg transition-all ${toast.ok ? "bg-emerald-700 text-white" : "bg-red-700 text-white"}`}
-        >
-          {toast.msg}
-        </div>
-      )}
+      {toast && <AnnotationToast toast={toast} />}
     </div>
   );
 }
