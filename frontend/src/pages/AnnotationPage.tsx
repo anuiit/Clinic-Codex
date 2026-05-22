@@ -1381,6 +1381,7 @@ export default function AnnotationPage() {
               </span>
             </div>
             </div>
+          }
           image={(
             <img
               ref={imageRef}
