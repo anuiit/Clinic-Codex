@@ -15,6 +15,7 @@ import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import MainImagePanel from '../components/MainImagePanel';
+import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
 import WorkspaceDetectedPanel from './workspace/WorkspaceDetectedPanel';
 import WorkspaceEmptyState from './workspace/WorkspaceEmptyState';
