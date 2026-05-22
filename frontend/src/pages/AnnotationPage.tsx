@@ -9,28 +9,25 @@ import {
 } from "react";
 import {
   useParams,
-  useNavigate,
   Link,
+  useNavigate,
   useSearchParams,
 } from "react-router-dom";
 import {
   ArrowLeft,
-  Save,
   Loader2,
   ZoomIn,
   ZoomOut,
   Maximize2,
-  PenTool,
-  MousePointer2,
   Trash2,
-  Upload,
-  Undo2,
-  Tags,
 } from "lucide-react";
 import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
 import { MainImagePanel } from "../components/MainImagePanel";
+import { AnnotationAnalyzerToolbar } from "./AnnotationAnalyzerToolbar";
+import { AnnotationElementList } from "./AnnotationElementList";
+import { AnnotationPageChrome } from "./AnnotationPageChrome";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -1228,67 +1225,20 @@ export default function AnnotationPage() {
 
   return (
     <div className="annotation-app flex h-full w-full flex-col gap-1 overflow-hidden p-1">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
-        <div className="flex min-w-0 items-center gap-4">
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-full border border-stone-700/70 bg-stone-950/70 px-3 py-1.5 text-sm font-medium text-stone-300 transition-colors hover:border-amber-500/50 hover:text-stone-50"
-          >
-            <ArrowLeft size={18} /> {t.back}
-          </Link>
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-              Clinic Codex
-            </div>
-            <h1 className="truncate text-lg font-black tracking-tight text-stone-50">
-              {t.title}
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={submitNamedElements}
-            className="rounded-lg border border-emerald-700/60 px-3 py-1.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/10"
-          >
-            {t.submitNamed}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Save size={18} />
-            )}
-            {t.saveChanges}
-          </button>
-          <button
-            onClick={handleSendSubmittedForReview}
-            disabled={sending}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-          >
-            {sending ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Upload size={18} />
-            )}
-            {t.sendSubmittedForReview}
-          </button>
-        </div>
-      </div>
-
-      <div className="shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
-        {t.adminApprovalNotice}
-      </div>
+      <AnnotationPageChrome
+        labels={t}
+        saving={saving}
+        sending={sending}
+        onSubmitNamed={submitNamedElements}
+        onSave={handleSave}
+        onSendSubmittedForReview={handleSendSubmittedForReview}
+      />
 
       <div className="flex min-h-0 flex-1 gap-1.5">
         <MainImagePanel
           tone="annotation"
           className="flex-1"
+          testIds={{ controls: "annotation-stage-controls" }}
           stageRef={containerRef}
           stageProps={{
             "data-testid": "annotation-stage-frame",
@@ -1309,80 +1259,46 @@ export default function AnnotationPage() {
           }}
           transformClassName="annotation-stage shrink-0 overflow-hidden rounded-lg"
           toolbar={
-            <div className="annotation-floating-toolbar flex items-center gap-1 rounded-2xl p-1">
-            <button
-              type="button"
-              onClick={() => setDrawMode(!drawMode)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${drawMode ? "bg-amber-400 text-stone-950 shadow-lg shadow-amber-950/30" : "text-stone-300 hover:bg-stone-800 hover:text-stone-50"}`}
-            >
-              {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
-              {drawMode ? t.drawMode : t.selectMode}
-            </button>
-            <button
-              type="button"
-              onClick={undoLastBboxChange}
-              disabled={bboxHistory.length === 0}
-              aria-label={t.undoBbox}
-              title={`${t.undoBbox} (Ctrl+Z)`}
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-stone-300"
-            >
-              <Undo2 size={16} />
-              {t.undoBbox}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLabelNames((current) => !current)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? "bg-stone-100 text-stone-950" : "text-stone-300 hover:bg-stone-800 hover:text-stone-50"}`}
-              aria-pressed={showLabelNames}
-              aria-label={
-                showLabelNames
-                  ? "Masquer les noms des libellés"
-                  : "Afficher les noms des libellés"
+            <AnnotationAnalyzerToolbar
+              drawMode={drawMode}
+              canUndo={bboxHistory.length > 0}
+              showLabelNames={showLabelNames}
+              labels={t}
+              onToggleDrawMode={() => setDrawMode((current) => !current)}
+              onUndo={undoLastBboxChange}
+              onToggleLabelNames={() =>
+                setShowLabelNames((current) => !current)
               }
-            >
-              {showLabelNames ? (
-                <Tags size={16} />
-              ) : (
-                <span className="text-xs font-black tabular-nums">N°</span>
-              )}
-              {showLabelNames ? "Noms" : "N°"}
-            </button>
-            <div className="mx-1 h-6 w-px bg-stone-700/70" />
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => applyZoom(zoom + 0.25)}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                aria-label={t.zoomIn}
-              >
-                <ZoomIn size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setZoom(1);
-                  setPanOffset({ x: 0, y: 0 });
-                }}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                title={t.resetView}
-              >
-                <Maximize2 size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => applyZoom(zoom - 0.25)}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                aria-label={t.zoomOut}
-              >
-                <ZoomOut size={16} />
-              </button>
-              <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">
-                {Math.round(zoom * 100)}%
-              </span>
-            </div>
-            </div>
+            />
           }
-          image={(
+          controls={[
+            {
+              id: "zoom-in",
+              label: t.zoomIn,
+              title: t.zoomIn,
+              onClick: () => applyZoom(zoom + 0.25),
+              icon: <ZoomIn size={16} />,
+            },
+            {
+              id: "reset-view",
+              label: t.resetView,
+              title: t.resetView,
+              onClick: () => {
+                setZoom(1);
+                setPanOffset({ x: 0, y: 0 });
+              },
+              icon: <Maximize2 size={16} />,
+            },
+            {
+              id: "zoom-out",
+              label: t.zoomOut,
+              title: t.zoomOut,
+              onClick: () => applyZoom(zoom - 0.25),
+              icon: <ZoomOut size={16} />,
+            },
+          ]}
+          zoomLabel={`${Math.round(zoom * 100)}%`}
+          image={
             <img
               ref={imageRef}
               src={record!.imageDataUrl}
@@ -1391,158 +1307,158 @@ export default function AnnotationPage() {
               onLoad={updateStageSize}
               className="block h-full w-full object-fill pointer-events-none"
             />
-          )}
+          }
           overlay={
             record && (
-                          <svg
-                            data-testid="annotation-overlay"
-                            className="absolute left-0 top-0 h-full w-full"
-                            viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
-                            preserveAspectRatio="none"
-                            style={{ width: "100%", height: "100%" }}
-                            onPointerDown={handleSvgPointerDown}
-                            onPointerMove={handleSvgPointerMove}
-                            onPointerUp={handleSvgPointerUp}
-                          >
-                            {elements.map((el, idx) => {
-                              const [x, y, w, h] =
-                                idx === dragState?.idx &&
-                                dragState.type !== "draw" &&
-                                tempBbox
-                                  ? tempBbox
-                                  : el.bbox;
-                              const isFocused = idx === focusedIdx;
-                              const isHovered = idx === hoveredIdx;
-                              const isListHovered = idx === listHoveredIdx;
-                              const isSubmitted = annotationStatus[idx] === "validated";
-                              const boxVisual = getBoxVisualState({
-                                focused: isFocused,
-                                hovered: isHovered,
-                                listHovered: isListHovered,
-                                submitted: isSubmitted,
-                                rejected: el.rejected,
-                              });
-                              const labelY = Math.max(0, y - 28);
-                              return (
-                                <g key={idx} className="pointer-events-none select-none">
-                                  <rect
-                                    x={x}
-                                    y={y}
-                                    width={w}
-                                    height={h}
-                                    data-testid={`annotation-box-${idx}`}
-                                    fill={boxVisual.fillColor}
-                                    stroke={boxVisual.strokeColor}
-                                    strokeWidth={boxVisual.strokeWidth}
-                                    strokeDasharray={boxVisual.strokeDasharray}
-                                    vectorEffect="non-scaling-stroke"
-                                  />
-                                  {isFocused && !drawMode && (
-                                    <>
-                                      <rect
-                                        x={x - 6}
-                                        y={y - 6}
-                                        width={12}
-                                        height={12}
-                                        rx={3}
-                                        fill="#fef3c7"
-                                        stroke="#0c0a09"
-                                        strokeWidth={1.5}
-                                        className="cursor-nwse-resize"
-                                      />
-                                      <rect
-                                        x={x + w - 6}
-                                        y={y - 6}
-                                        width={12}
-                                        height={12}
-                                        rx={3}
-                                        fill="#fef3c7"
-                                        stroke="#0c0a09"
-                                        strokeWidth={1.5}
-                                        className="cursor-nesw-resize"
-                                      />
-                                      <rect
-                                        x={x - 6}
-                                        y={y + h - 6}
-                                        width={12}
-                                        height={12}
-                                        rx={3}
-                                        fill="#fef3c7"
-                                        stroke="#0c0a09"
-                                        strokeWidth={1.5}
-                                        className="cursor-nesw-resize"
-                                      />
-                                      <rect
-                                        x={x + w - 6}
-                                        y={y + h - 6}
-                                        width={12}
-                                        height={12}
-                                        rx={3}
-                                        fill="#fef3c7"
-                                        stroke="#0c0a09"
-                                        strokeWidth={1.5}
-                                        className="cursor-nwse-resize"
-                                      />
-                                    </>
-                                  )}
-                                  {(() => {
-                                    const label = formatBboxLabel(
-                                      idx,
-                                      el.class_name,
-                                      showLabelNames,
-                                      t.unnamedElement,
-                                    );
-                                    const labelWidth = showLabelNames
-                                      ? Math.min(168, Math.max(64, label.length * 8 + 18))
-                                      : 44;
-                                    return (
-                                      <>
-                                        <title>{label}</title>
-                                        <rect
-                                          x={x}
-                                          y={labelY}
-                                          width={labelWidth}
-                                          height={24}
-                                          rx={6}
-                                          fill={boxVisual.strokeColor}
-                                          opacity={0.95}
-                                          pointerEvents="none"
-                                          style={{ userSelect: "none" }}
-                                        />
-                                        <text
-                                          x={x + 10}
-                                          y={labelY + 12}
-                                          fill="#0c0a09"
-                                          fontSize="13"
-                                          fontWeight="800"
-                                          fontFamily="sans-serif"
-                                          textAnchor="start"
-                                          dominantBaseline="central"
-                                          pointerEvents="none"
-                                          style={{ userSelect: "none" }}
-                                        >
-                                          {label}
-                                        </text>
-                                      </>
-                                    );
-                                  })()}
-                                </g>
-                              );
-                            })}
-                            {drawMode && dragState?.type === "draw" && tempBbox && (
-                              <rect
-                                x={tempBbox[0]}
-                                y={tempBbox[1]}
-                                width={tempBbox[2]}
-                                height={tempBbox[3]}
-                                fill="rgba(59, 130, 246, 0.14)"
-                                stroke="#60a5fa"
-                                strokeWidth={2}
-                                strokeDasharray="4 4"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                            )}
-                          </svg>
+              <svg
+                data-testid="annotation-overlay"
+                className="absolute left-0 top-0 h-full w-full"
+                viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
+                preserveAspectRatio="none"
+                style={{ width: "100%", height: "100%" }}
+                onPointerDown={handleSvgPointerDown}
+                onPointerMove={handleSvgPointerMove}
+                onPointerUp={handleSvgPointerUp}
+              >
+                {elements.map((el, idx) => {
+                  const [x, y, w, h] =
+                    idx === dragState?.idx &&
+                    dragState.type !== "draw" &&
+                    tempBbox
+                      ? tempBbox
+                      : el.bbox;
+                  const isFocused = idx === focusedIdx;
+                  const isHovered = idx === hoveredIdx;
+                  const isListHovered = idx === listHoveredIdx;
+                  const isSubmitted = annotationStatus[idx] === "validated";
+                  const boxVisual = getBoxVisualState({
+                    focused: isFocused,
+                    hovered: isHovered,
+                    listHovered: isListHovered,
+                    submitted: isSubmitted,
+                    rejected: el.rejected,
+                  });
+                  const labelY = Math.max(0, y - 28);
+                  return (
+                    <g key={idx} className="pointer-events-none select-none">
+                      <rect
+                        x={x}
+                        y={y}
+                        width={w}
+                        height={h}
+                        data-testid={`annotation-box-${idx}`}
+                        fill={boxVisual.fillColor}
+                        stroke={boxVisual.strokeColor}
+                        strokeWidth={boxVisual.strokeWidth}
+                        strokeDasharray={boxVisual.strokeDasharray}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {isFocused && !drawMode && (
+                        <>
+                          <rect
+                            x={x - 6}
+                            y={y - 6}
+                            width={12}
+                            height={12}
+                            rx={3}
+                            fill="#fef3c7"
+                            stroke="#0c0a09"
+                            strokeWidth={1.5}
+                            className="cursor-nwse-resize"
+                          />
+                          <rect
+                            x={x + w - 6}
+                            y={y - 6}
+                            width={12}
+                            height={12}
+                            rx={3}
+                            fill="#fef3c7"
+                            stroke="#0c0a09"
+                            strokeWidth={1.5}
+                            className="cursor-nesw-resize"
+                          />
+                          <rect
+                            x={x - 6}
+                            y={y + h - 6}
+                            width={12}
+                            height={12}
+                            rx={3}
+                            fill="#fef3c7"
+                            stroke="#0c0a09"
+                            strokeWidth={1.5}
+                            className="cursor-nesw-resize"
+                          />
+                          <rect
+                            x={x + w - 6}
+                            y={y + h - 6}
+                            width={12}
+                            height={12}
+                            rx={3}
+                            fill="#fef3c7"
+                            stroke="#0c0a09"
+                            strokeWidth={1.5}
+                            className="cursor-nwse-resize"
+                          />
+                        </>
+                      )}
+                      {(() => {
+                        const label = formatBboxLabel(
+                          idx,
+                          el.class_name,
+                          showLabelNames,
+                          t.unnamedElement,
+                        );
+                        const labelWidth = showLabelNames
+                          ? Math.min(168, Math.max(64, label.length * 8 + 18))
+                          : 44;
+                        return (
+                          <>
+                            <title>{label}</title>
+                            <rect
+                              x={x}
+                              y={labelY}
+                              width={labelWidth}
+                              height={24}
+                              rx={6}
+                              fill={boxVisual.strokeColor}
+                              opacity={0.95}
+                              pointerEvents="none"
+                              style={{ userSelect: "none" }}
+                            />
+                            <text
+                              x={x + 10}
+                              y={labelY + 12}
+                              fill="#0c0a09"
+                              fontSize="13"
+                              fontWeight="800"
+                              fontFamily="sans-serif"
+                              textAnchor="start"
+                              dominantBaseline="central"
+                              pointerEvents="none"
+                              style={{ userSelect: "none" }}
+                            >
+                              {label}
+                            </text>
+                          </>
+                        );
+                      })()}
+                    </g>
+                  );
+                })}
+                {drawMode && dragState?.type === "draw" && tempBbox && (
+                  <rect
+                    x={tempBbox[0]}
+                    y={tempBbox[1]}
+                    width={tempBbox[2]}
+                    height={tempBbox[3]}
+                    fill="rgba(59, 130, 246, 0.14)"
+                    stroke="#60a5fa"
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+              </svg>
             )
           }
         />
@@ -1673,133 +1589,23 @@ export default function AnnotationPage() {
             </div>
           </section>
 
-          <section
-            className="flex min-h-0 flex-1 flex-col"
-            aria-label="Liste compacte des éléments"
-          >
-            <div
-              className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2 xl:flex-nowrap"
-              data-testid="annotation-list-controls"
-            >
-              <div
-                className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
-                aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}
-              >
-                {t.submitted} {submittedCount}/{elements.length}
-              </div>
-              <label className="min-w-[128px] flex-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Filtrer
-                <input
-                  type="search"
-                  aria-label="Filtrer les éléments"
-                  value={listQuery}
-                  onChange={(event) => setListQuery(event.target.value)}
-                  placeholder="Nom ou numéro"
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
-                />
-              </label>
-              <label className="min-w-[112px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Statut
-                <select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(
-                      event.target.value as AnnotationStatusFilter,
-                    )
-                  }
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                >
-                  <option value="all">Tous</option>
-                  <option value="draft">Brouillons</option>
-                  <option value="submitted">Soumis</option>
-                  <option value="rejected">Rejetés</option>
-                </select>
-              </label>
-              <label className="min-w-[122px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Tri
-                <select
-                  value={sortMode}
-                  onChange={(event) =>
-                    setSortMode(event.target.value as AnnotationSortMode)
-                  }
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                >
-                  <option value="original">Original</option>
-                  <option value="confidence-asc">Confiance ↑</option>
-                  <option value="confidence-desc">Confiance ↓</option>
-                  <option value="name">Nom A→Z</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
-              {displayedElements.map(({ el, idx }) => {
-                const isFocused = idx === focusedIdx;
-                const displayName = isUnnamedClass(el.class_name)
-                  ? t.unnamedElement
-                  : el.class_name;
-                const isSubmitted = annotationStatus[idx] === "validated";
-                const confidencePercent = Math.round(el.confidence * 100);
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    ref={(node) => {
-                      cardRefs.current[idx] = node;
-                    }}
-                    onClick={() => setFocusedIdx(idx)}
-                    onMouseEnter={() => setListHoveredIdx(idx)}
-                    onMouseLeave={() =>
-                      setListHoveredIdx((current) =>
-                        current === idx ? null : current,
-                      )
-                    }
-                    onFocus={() => setListHoveredIdx(idx)}
-                    onBlur={() =>
-                      setListHoveredIdx((current) =>
-                        current === idx ? null : current,
-                      )
-                    }
-                    className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all ${isFocused ? "annotation-card-selected" : ""}`}
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isSubmitted ? "bg-emerald-400 text-stone-950" : isFocused ? "bg-amber-400 text-stone-950" : "bg-stone-800 text-stone-300"}`}
-                      >
-                        #{idx}
-                      </span>
-                      <span className="min-w-0">
-                        <span
-                          className={`block truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? "text-amber-300" : "text-stone-100"}`}
-                        >
-                          {displayName}
-                        </span>
-                        <span className="mt-1 flex items-center gap-2">
-                          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
-                            <span
-                              className={`block h-full rounded-full ${el.rejected ? "bg-red-400" : isSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
-                              style={{
-                                width: `${Math.max(0, Math.min(100, confidencePercent))}%`,
-                              }}
-                            />
-                          </span>
-                          <span className="text-[10px] font-semibold tabular-nums text-stone-500">
-                            {confidencePercent}%
-                          </span>
-                        </span>
-                      </span>
-                    </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? "bg-red-500/15 text-red-300" : isSubmitted ? "bg-emerald-500/15 text-emerald-300" : "bg-stone-800 text-stone-400"}`}
-                    >
-                      {isSubmitted ? t.submitted : t.draft}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <AnnotationElementList
+            displayedElements={displayedElements}
+            annotationStatus={annotationStatus}
+            focusedIdx={focusedIdx}
+            elementsCount={elements.length}
+            submittedCount={submittedCount}
+            listQuery={listQuery}
+            statusFilter={statusFilter}
+            sortMode={sortMode}
+            labels={t}
+            cardRefs={cardRefs}
+            setFocusedIdx={setFocusedIdx}
+            onListQueryChange={setListQuery}
+            onStatusFilterChange={setStatusFilter}
+            onSortModeChange={setSortMode}
+            setListHoveredIdx={setListHoveredIdx}
+          />
         </aside>
       </div>
       {toast && (
