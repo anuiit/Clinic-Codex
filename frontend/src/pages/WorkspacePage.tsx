@@ -8,11 +8,7 @@ import {
   ImagePlus,
   Info,
   Loader2,
-  Search,
-  Trash2,
   Upload,
-  PanelLeftClose,
-  PanelLeftOpen,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -23,6 +19,7 @@ import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import MainImagePanel from '../components/MainImagePanel';
 import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
+import { WorkspaceHistoryPanel } from '../components/WorkspaceHistoryPanel';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
 import {
@@ -567,152 +564,24 @@ export default function WorkspacePage() {
       )}
 
       <div className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
-        <aside
-          data-testid="workspace-history-sidebar"
-          className={`flex flex-col overflow-hidden transition-[padding,border-color,background-color] duration-200 ease-out ${historyOpen ? 'min-h-0 rounded-2xl border border-stone-800 bg-stone-900/75 p-3' : 'min-h-0 items-center rounded-2xl border border-stone-800 bg-stone-900/75 py-3'}`}
-        >
-              {!historyOpen ? (
-                <div className="flex flex-col items-center w-full h-full overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen(true)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-950 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100 shrink-0"
-                    title={t.expandHistory}
-                  >
-                    <PanelLeftOpen size={18} />
-                  </button>
-
-                  <div className="my-3 h-px w-8 bg-stone-800 shrink-0" />
-
-                  <div className="flex-1 flex flex-col items-center gap-2 overflow-y-auto w-full px-1 py-1">
-                    {records.map((record) => (
-                      <button
-                        key={record.id}
-                        type="button"
-                        onClick={() => selectRecord(record)}
-                        className={`relative rounded-lg overflow-hidden border transition-colors ${
-                          currentRecord?.id === record.id
-                            ? 'border-amber-500/60 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-                            : 'border-stone-800 hover:border-stone-600'
-                        }`}
-                        title={record.imageName}
-                      >
-                        <img
-                          src={record.imageDataUrl}
-                          alt={record.imageName}
-                          className="h-10 w-10 object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-            <>
-              <div className="mb-3 flex items-center justify-between gap-2 border-b border-stone-800 pb-3" data-testid="workspace-history-header">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h2 className="text-sm font-semibold text-stone-100">History</h2>
-                  <span className="rounded-full border border-stone-800 bg-stone-950/70 px-2 py-0.5 text-xs font-medium tabular-nums text-stone-400">
-                    {filteredRecords.length} total
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-950 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100"
-                    title={t.collapseHistory}
-                  >
-                    <PanelLeftClose size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative mb-3">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
-                <input
-                  value={filter}
-                  onChange={(event) => setFilter(event.target.value)}
-                  placeholder={t.filterPlaceholder}
-                  className="w-full rounded-xl border border-stone-700 bg-stone-950 px-10 py-2.5 text-sm text-stone-100 outline-none transition-colors focus:border-amber-400"
-                />
-              </div>
-
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" data-testid="workspace-history-list">
-                {records.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-stone-700 bg-stone-950/70 px-4 py-8 text-center text-sm text-stone-500">
-                    {t.noAnalyses}
-                  </div>
-                ) : filteredRecords.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-stone-700 bg-stone-950/70 px-4 py-8 text-center text-sm text-stone-500">
-                    {t.noFilterMatch}
-                  </div>
-                ) : (
-              filteredRecords.map((record) => {
-                const isActive = currentRecord?.id === record.id;
-                const badges = [
-                  ...new Set(
-                    record.result.elements
-                      .map((element, idx) => (!element.rejected ? (record.annotations ?? {})[idx] ?? element.class_name : null))
-                      .filter((value): value is string => Boolean(value)),
-                  ),
-                ].slice(0, 3);
-
-                return (
-                  <div
-                    key={record.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => selectRecord(record)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        selectRecord(record);
-                      }
-                    }}
-                    className={`group rounded-xl border p-2.5 transition-colors ${isActive ? 'border-amber-500/60 bg-amber-500/10 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]' : 'border-stone-800 bg-stone-950/70 hover:border-stone-700'}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <img src={record.imageDataUrl} alt={record.imageName} className="h-16 w-16 rounded-lg border border-stone-800 object-cover" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="truncate text-sm font-medium text-stone-100">{record.imageName}</p>
-                            <p className="mt-1 text-xs text-stone-500">{new Date(record.timestamp).toLocaleDateString()} · {record.result.num_elements} {t.elementsSuffix}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              removeRecord(record.id);
-                            }}
-                            className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-300"
-                            aria-label={`${t.deleteLabel} ${record.imageName}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {badges.map((badge) => (
-                            <span key={badge} className="rounded-md bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300">
-                              {badge}
-                            </span>
-                          ))}
-                          {record.result.elements.some((element) => element.rejected) && (
-                            <span className="rounded-md bg-red-400/10 px-2 py-1 text-[11px] text-red-300">
-                              {record.result.elements.filter((element) => element.rejected).length} {t.rejectedSuffix}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-            </>
-          )}
-        </aside>
+        <WorkspaceHistoryPanel
+          records={records}
+          filteredRecords={filteredRecords}
+          currentRecordId={currentRecord?.id ?? null}
+          historyOpen={historyOpen}
+          filter={filter}
+          onFilterChange={setFilter}
+          onSelectRecord={selectRecord}
+          onDeleteRecord={removeRecord}
+          onToggleHistoryOpen={setHistoryOpen}
+          expandLabel={t.expandHistory}
+          collapseLabel={t.collapseHistory}
+          filterPlaceholder={t.filterPlaceholder}
+          noAnalyses={t.noAnalyses}
+          noFilterMatch={t.noFilterMatch}
+          elementsSuffix={t.elementsSuffix}
+          deleteLabel={t.deleteLabel}
+        />
 
         <section className="min-h-0 overflow-hidden">
           {currentRecord ? (
