@@ -29,6 +29,9 @@ import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import MainImagePanel from '../components/MainImagePanel';
 import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
+import { WorkspaceEmptyState } from './workspace/WorkspaceEmptyState';
+import { WorkspaceHeader } from './workspace/WorkspaceHeader';
+import { WorkspaceUploadModal } from './workspace/WorkspaceUploadModal';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
 import {
@@ -543,143 +546,37 @@ export default function WorkspacePage() {
       }}
       onDrop={onDrop}
     >
-      <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500 text-stone-950">
-            <ImagePlus size={18} />
-          </div>
-          <span className="font-semibold tracking-tight text-stone-100">
-            {t.appTitle}
-          </span>
-        </div>
+      <WorkspaceHeader
+        title={t.appTitle}
+        error={error}
+        dragging={dragging}
+        preview={preview}
+        fileName={file?.name ?? null}
+        loading={loading}
+        uploadPrompt={t.uploadPrompt}
+        previewAlt={t.previewAlt}
+        analyzeLabel={t.analyze}
+        analyzingLabel={t.analyzing}
+        onUploadClick={() => inputRef.current?.click()}
+        onAnalyze={analyze}
+        onFileChange={handleFile}
+        inputRef={inputRef}
+      />
 
-        <div className="flex flex-1 items-center justify-end gap-3">
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-400/10 px-3 py-1.5 text-xs text-red-300">
-              <AlertCircle size={14} className="shrink-0" />
-              <span className="max-w-[300px] truncate">{error}</span>
-            </div>
-          )}
-
-          <div
-            className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-2 transition-colors ${dragging ? "border-amber-400 bg-amber-400/10" : "border-stone-700/80 bg-stone-950/60 hover:border-stone-500"}`}
-            onClick={() => inputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/bmp,image/*"
-              className="hidden"
-              onChange={(event) => {
-                const nextFile = event.target.files?.[0];
-                if (nextFile) {
-                  handleFile(nextFile);
-                }
-              }}
-            />
-            {preview ? (
-              <div className="flex items-center gap-3">
-                <img
-                  src={preview}
-                  alt={t.previewAlt}
-                  className="h-8 w-8 rounded object-cover"
-                />
-                <div className="flex flex-col">
-                  <span className="max-w-[120px] truncate text-xs font-medium text-stone-100">
-                    {file?.name}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    analyze();
-                  }}
-                  disabled={loading}
-                  className="ml-2 inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 text-xs font-semibold text-stone-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />{" "}
-                      {t.analyzing}
-                    </>
-                  ) : (
-                    <>{t.analyze}</>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-stone-400">
-                <Upload size={16} />
-                <span>{t.uploadPrompt}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {preview && file && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/80 p-6 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[28px] border border-stone-800 bg-stone-900 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
-            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                  {t.uploadModalTitle}
-                </p>
-                <h2 className="mt-1 truncate text-lg font-semibold text-stone-100">
-                  {file.name}
-                </h2>
-                <p className="mt-1 text-sm text-stone-400">
-                  {t.uploadModalDescription}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={clearPendingFile}
-                disabled={loading}
-                className="rounded-xl border border-stone-700 px-3 py-2 text-sm font-semibold text-stone-300 transition-colors hover:border-stone-500 hover:text-stone-100 disabled:opacity-50"
-              >
-                {t.cancel}
-              </button>
-            </div>
-
-            <div className="my-5 flex max-h-[46vh] items-center justify-center overflow-hidden rounded-2xl border border-stone-800 bg-stone-950">
-              <img
-                src={preview}
-                alt={t.previewAlt}
-                className="max-h-[46vh] max-w-full object-contain"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={clearPendingFile}
-                disabled={loading}
-                className="rounded-xl border border-stone-700 px-4 py-2 text-sm font-semibold text-stone-300 transition-colors hover:border-stone-500 hover:text-stone-100 disabled:opacity-50"
-              >
-                {t.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={analyze}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-2 text-sm font-bold text-stone-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> {t.analyzing}
-                  </>
-                ) : (
-                  t.analyze
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WorkspaceUploadModal
+        open={Boolean(preview && file)}
+        preview={preview}
+        fileName={file?.name ?? null}
+        loading={loading}
+        title={t.uploadModalTitle}
+        description={t.uploadModalDescription}
+        previewAlt={t.previewAlt}
+        cancelLabel={t.cancel}
+        analyzeLabel={t.analyze}
+        analyzingLabel={t.analyzing}
+        onClose={clearPendingFile}
+        onAnalyze={analyze}
+      />
 
       <div className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
         <WorkspaceHistoryPanel
@@ -1406,17 +1303,10 @@ export default function WorkspacePage() {
               </div>
             </>
           ) : (
-            <div className="flex min-h-[520px] flex-col items-center justify-center rounded-[28px] border border-dashed border-stone-700 bg-stone-900/60 px-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
-                <Info size={28} />
-              </div>
-              <h2 className="mt-5 text-xl font-semibold text-stone-100">
-                {t.noAnalysisSelected}
-              </h2>
-              <p className="mt-2 text-sm text-stone-400">
-                {t.noAnalysisDetails}
-              </p>
-            </div>
+            <WorkspaceEmptyState
+              title={t.noAnalysisSelected}
+              description={t.noAnalysisDetails}
+            />
           )}
         </section>
       </div>
