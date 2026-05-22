@@ -22,18 +22,15 @@ import {
   ZoomOut,
   Maximize2,
   Tags,
-} from "lucide-react";
-import { segmentGlyph, getTrust } from "../services/api";
-import { appText } from "../i18n/text";
-import { deleteAnalysis, getHistory, saveAnalysis } from "../services/storage";
-import MainImagePanel from "../components/MainImagePanel";
-import {
-  AnalyzerToolbar,
-  AnalyzerToolbarButton,
-} from "../components/AnalyzerToolbar";
-import { WorkspaceHistoryPanel } from "../components/WorkspaceHistoryPanel";
-import type { AnalysisRecord, TrustResult } from "../types";
-import { clientToImage } from "../utils/imageCoords";
+} from 'lucide-react';
+import { segmentGlyph, getTrust } from '../services/api';
+import { appText } from '../i18n/text';
+import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
+import MainImagePanel from '../components/MainImagePanel';
+import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
+import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
+import type { AnalysisRecord, TrustResult } from '../types';
+import { clientToImage } from '../utils/imageCoords';
 import {
   nextZoomFromWheel,
   shouldConsumeStageWheel,
@@ -684,26 +681,29 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      <div
-        className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? "xl:grid-cols-[300px_minmax(0,1fr)]" : "xl:grid-cols-[56px_minmax(0,1fr)]"}`}
-      >
+      <div className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
         <WorkspaceHistoryPanel
           records={records}
           filteredRecords={filteredRecords}
           currentRecordId={currentRecord?.id ?? null}
-          historyOpen={historyOpen}
           filter={filter}
+          historyOpen={historyOpen}
+          labels={{
+            expandHistory: t.expandHistory,
+            collapseHistory: t.collapseHistory,
+            filterPlaceholder: t.filterPlaceholder,
+            noAnalyses: t.noAnalyses,
+            noFilterMatch: t.noFilterMatch,
+            elementsSuffix: t.elementsSuffix,
+            rejectedSuffix: t.rejectedSuffix,
+            historyTitle: 'History',
+            totalSuffix: 'total',
+            deleteLabel: t.deleteLabel,
+          }}
           onFilterChange={setFilter}
-          onSelectRecord={selectRecord}
-          onDeleteRecord={removeRecord}
           onToggleHistoryOpen={setHistoryOpen}
-          expandLabel={t.expandHistory}
-          collapseLabel={t.collapseHistory}
-          filterPlaceholder={t.filterPlaceholder}
-          noAnalyses={t.noAnalyses}
-          noFilterMatch={t.noFilterMatch}
-          elementsSuffix={t.elementsSuffix}
-          deleteLabel={t.deleteLabel}
+          onSelectRecord={selectRecord}
+          onRemoveRecord={removeRecord}
         />
 
         <section className="min-h-0 overflow-hidden">
