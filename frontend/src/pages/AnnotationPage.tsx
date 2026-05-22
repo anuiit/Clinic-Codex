@@ -30,6 +30,7 @@ import {
 import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
+import { MainImagePanel } from "../components/MainImagePanel";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -1226,8 +1227,8 @@ export default function AnnotationPage() {
   }
 
   return (
-    <div className="annotation-app flex h-full w-full flex-col gap-2 overflow-hidden p-2">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-4 py-3">
+    <div className="annotation-app flex h-full w-full flex-col gap-1 overflow-hidden p-1">
+      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
         <div className="flex min-w-0 items-center gap-4">
           <Link
             to="/"
@@ -1280,18 +1281,18 @@ export default function AnnotationPage() {
         </div>
       </div>
 
-      <div className="shrink-0 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
+      <div className="shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
         {t.adminApprovalNotice}
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-2">
-        <div
+      <div className="flex min-h-0 flex-1 gap-1.5">
+        <MainImagePanel
           ref={containerRef}
           data-testid="annotation-stage-frame"
-          className="image-stage-frame image-stage-scrollbar annotation-scrollbar image-stage-grid relative flex flex-1 items-center justify-center overflow-auto rounded-2xl"
+          tone="annotation"
           onWheel={handleStageWheel}
-        >
-          <div className="annotation-floating-toolbar absolute left-4 top-4 z-10 flex items-center gap-1 rounded-2xl p-1">
+          toolbar={
+            <div className="annotation-floating-toolbar absolute left-3 top-3 z-10 flex items-center gap-1 rounded-2xl p-1">
             <button
               type="button"
               onClick={() => setDrawMode(!drawMode)}
@@ -1362,7 +1363,9 @@ export default function AnnotationPage() {
                 {Math.round(zoom * 100)}%
               </span>
             </div>
-          </div>
+            </div>
+          }
+        >
           <div
             data-testid="annotation-stage"
             style={{
@@ -1539,7 +1542,7 @@ export default function AnnotationPage() {
               </svg>
             )}
           </div>
-        </div>
+        </MainImagePanel>
 
         <aside
           className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4"

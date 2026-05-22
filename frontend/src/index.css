@@ -40,6 +40,19 @@ body,
   overflow-y: auto;
 }
 
+/* Shared main image panel primitives: behavior-neutral viewport/chrome. */
+.main-image-panel {
+  isolation: isolate;
+}
+
+.main-image-panel--workspace {
+  background: #0a0a0a;
+}
+
+.main-image-panel--annotation {
+  background: #0a0a0a;
+}
+
 /* Annotation editor visual primitives: page-scoped, behavior-neutral. */
 :root {
   --annotation-bg: #050505;
