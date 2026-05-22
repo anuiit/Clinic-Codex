@@ -466,9 +466,7 @@ describe("AnnotationPage element naming UX", () => {
     const chrome = screen.getByTestId("annotation-page-chrome");
     const topbar = container.querySelector(".annotation-topbar") as HTMLElement;
     expect(chrome).toContainElement(topbar);
-    expect(
-      within(chrome).getByRole("link", { name: "Retour" }),
-    ).toBeInTheDocument();
+    expect(within(chrome).getByRole("link", { name: "Retour" })).toBeInTheDocument();
     expect(
       within(chrome).getByRole("button", {
         name: "Soumettre les éléments nommés",
@@ -483,7 +481,7 @@ describe("AnnotationPage element naming UX", () => {
       within(chrome).getByRole("button", { name: "Envoyer les soumis" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("annotation-admin-notice")).toHaveTextContent(
-      "approbation admin",
+      "Ces annotations sont soumises",
     );
     expect(
       within(chrome).queryByRole("searchbox", { name: /filtrer/i }),
@@ -492,36 +490,28 @@ describe("AnnotationPage element naming UX", () => {
     const compactList = screen.getByLabelText("Liste compacte des éléments");
     const toolbar = container.querySelector(".main-image-panel__toolbar");
     expect(toolbar).toBeInTheDocument();
-    expect(
-      within(toolbar as HTMLElement).getByRole("button", {
-        name: "Mode sélection",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(toolbar as HTMLElement).getByRole("button", {
-        name: "Annuler bbox",
-      }),
-    ).toBeInTheDocument();
+    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Mode sélection" })).toBeInTheDocument();
+    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Annuler bbox" })).toBeInTheDocument();
     expect(
       within(toolbar as HTMLElement).getByRole("button", {
         name: "Afficher les noms des libellés",
       }),
     ).toBeInTheDocument();
-    expect(toolbar).toContainElement(
-      screen.getByTestId("annotation-analyzer-toolbar"),
-    );
+    expect(toolbar).toContainElement(screen.getByTestId("annotation-analyzer-toolbar"));
 
-    const controls = screen.getByTestId("annotation-stage-controls");
+    const stageControls = screen.getByTestId("annotation-stage-controls");
     expect(
-      within(controls).getByRole("button", { name: "Zoom avant" }),
+      within(stageControls).getByRole("button", { name: "Zoom avant" }),
     ).toBeInTheDocument();
     expect(
-      within(controls).getByRole("button", { name: "Réinitialiser la vue" }),
+      within(stageControls).getByRole("button", {
+        name: "Réinitialiser la vue",
+      }),
     ).toBeInTheDocument();
     expect(
-      within(controls).getByRole("button", { name: "Zoom arrière" }),
+      within(stageControls).getByRole("button", { name: "Zoom arrière" }),
     ).toBeInTheDocument();
-    expect(within(controls).getByText("100%")).toBeInTheDocument();
+    expect(within(stageControls).getByText("100%")).toBeInTheDocument();
 
     expect(
       within(compactList).getByRole("searchbox", { name: /filtrer/i }),
