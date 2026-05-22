@@ -198,13 +198,6 @@ body,
     0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.annotation-floating-toolbar {
-  border: 1px solid rgba(120, 113, 108, 0.22);
-  background: rgba(12, 10, 9, 0.82);
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(16px);
-}
-
 .annotation-rail {
   background: rgba(12, 10, 9, 0.96);
 }

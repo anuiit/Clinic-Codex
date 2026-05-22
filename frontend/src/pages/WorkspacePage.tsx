@@ -22,6 +22,7 @@ import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import MainImagePanel from '../components/MainImagePanel';
+import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
 import {
@@ -730,34 +731,36 @@ export default function WorkspacePage() {
                       {t.focusLabel}: {focusedIdx}
                     </span>
                   )}
-                  headerActions={(
-                    <>
+                  toolbar={(
+                    <AnalyzerToolbar>
                       <div className="inline-flex rounded-lg border border-stone-700 bg-stone-950 p-1">
                         {(['all', 'focused', 'hidden'] as OverlayMode[]).map((mode) => {
                           const isActive = overlayMode === mode;
                           return (
-                            <button
+                            <AnalyzerToolbarButton
                               key={mode}
                               type="button"
                               onClick={() => setOverlayMode(mode)}
-                              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${isActive ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-stone-100'}`}
+                              active={isActive}
+                              className="rounded-md px-3 py-1.5 capitalize"
                             >
                               {mode === 'all' ? t.overlayAll : mode === 'focused' ? t.overlayFocused : t.overlayHidden}
-                            </button>
+                            </AnalyzerToolbarButton>
                           );
                         })}
                       </div>
-                      <button
+                      <AnalyzerToolbarButton
                         type="button"
                         onClick={() => setShowLabelNames((current) => !current)}
+                        active={showLabelNames}
                         aria-pressed={showLabelNames}
                         aria-label={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
                         title={showLabelNames ? 'Masquer les noms des libellés' : 'Afficher les noms des libellés'}
-                        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-colors ${showLabelNames ? 'border-stone-100 bg-stone-100 text-stone-950' : 'border-stone-700 bg-stone-950 text-stone-300 hover:text-stone-100'}`}
+                        className="w-10 justify-center px-0"
                       >
                         {showLabelNames ? <Tags size={16} aria-hidden="true" /> : <span aria-hidden="true" className="text-base font-black leading-none">#</span>}
-                      </button>
-                    </>
+                      </AnalyzerToolbarButton>
+                    </AnalyzerToolbar>
                   )}
                   stageClassName={`workspace-stage ${zoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
                   stageProps={{

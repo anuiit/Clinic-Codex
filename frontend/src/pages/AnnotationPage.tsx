@@ -31,6 +31,7 @@ import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
 import { MainImagePanel } from "../components/MainImagePanel";
+import { AnalyzerToolbar, AnalyzerToolbarButton } from "../components/AnalyzerToolbar";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -1309,79 +1310,72 @@ export default function AnnotationPage() {
           }}
           transformClassName="annotation-stage shrink-0 overflow-hidden rounded-lg"
           toolbar={
-            <div className="annotation-floating-toolbar flex items-center gap-1 rounded-2xl p-1">
-            <button
-              type="button"
-              onClick={() => setDrawMode(!drawMode)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${drawMode ? "bg-amber-400 text-stone-950 shadow-lg shadow-amber-950/30" : "text-stone-300 hover:bg-stone-800 hover:text-stone-50"}`}
-            >
-              {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
-              {drawMode ? t.drawMode : t.selectMode}
-            </button>
-            <button
-              type="button"
-              onClick={undoLastBboxChange}
-              disabled={bboxHistory.length === 0}
-              aria-label={t.undoBbox}
-              title={`${t.undoBbox} (Ctrl+Z)`}
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-stone-300"
-            >
-              <Undo2 size={16} />
-              {t.undoBbox}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLabelNames((current) => !current)}
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${showLabelNames ? "bg-stone-100 text-stone-950" : "text-stone-300 hover:bg-stone-800 hover:text-stone-50"}`}
-              aria-pressed={showLabelNames}
-              aria-label={
-                showLabelNames
-                  ? "Masquer les noms des libellés"
-                  : "Afficher les noms des libellés"
-              }
-            >
-              {showLabelNames ? (
-                <Tags size={16} />
-              ) : (
-                <span className="text-xs font-black tabular-nums">N°</span>
-              )}
-              {showLabelNames ? "Noms" : "N°"}
-            </button>
-            <div className="mx-1 h-6 w-px bg-stone-700/70" />
-            <div className="flex items-center gap-1">
-              <button
+            <AnalyzerToolbar>
+              <AnalyzerToolbarButton
                 type="button"
-                onClick={() => applyZoom(zoom + 0.25)}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                aria-label={t.zoomIn}
+                onClick={() => setDrawMode(!drawMode)}
+                active={drawMode}
               >
-                <ZoomIn size={16} />
-              </button>
-              <button
+                {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
+                {drawMode ? t.drawMode : t.selectMode}
+              </AnalyzerToolbarButton>
+              <AnalyzerToolbarButton
                 type="button"
-                onClick={() => {
-                  setZoom(1);
-                  setPanOffset({ x: 0, y: 0 });
-                }}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                title={t.resetView}
+                onClick={undoLastBboxChange}
+                disabled={bboxHistory.length === 0}
+                aria-label={t.undoBbox}
+                title={`${t.undoBbox} (Ctrl+Z)`}
               >
-                <Maximize2 size={16} />
-              </button>
-              <button
+                <Undo2 size={16} />
+                {t.undoBbox}
+              </AnalyzerToolbarButton>
+              <AnalyzerToolbarButton
                 type="button"
-                onClick={() => applyZoom(zoom - 0.25)}
-                className="rounded-xl p-1.5 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50"
-                aria-label={t.zoomOut}
+                onClick={() => setShowLabelNames((current) => !current)}
+                active={showLabelNames}
+                aria-pressed={showLabelNames}
+                aria-label={
+                  showLabelNames
+                    ? "Masquer les noms des libellés"
+                    : "Afficher les noms des libellés"
+                }
               >
-                <ZoomOut size={16} />
-              </button>
-              <span className="px-2 text-xs font-semibold tabular-nums text-stone-400">
-                {Math.round(zoom * 100)}%
-              </span>
-            </div>
-            </div>
+                {showLabelNames ? (
+                  <Tags size={16} />
+                ) : (
+                  <span className="text-xs font-black tabular-nums">N°</span>
+                )}
+                {showLabelNames ? "Noms" : "N°"}
+              </AnalyzerToolbarButton>
+            </AnalyzerToolbar>
           }
+          controls={[
+            {
+              id: "zoom-in",
+              label: t.zoomIn,
+              title: t.zoomIn,
+              onClick: () => applyZoom(zoom + 0.25),
+              icon: <ZoomIn size={16} />,
+            },
+            {
+              id: "reset-view",
+              label: t.resetView,
+              title: t.resetView,
+              onClick: () => {
+                setZoom(1);
+                setPanOffset({ x: 0, y: 0 });
+              },
+              icon: <Maximize2 size={16} />,
+            },
+            {
+              id: "zoom-out",
+              label: t.zoomOut,
+              title: t.zoomOut,
+              onClick: () => applyZoom(zoom - 0.25),
+              icon: <ZoomOut size={16} />,
+            },
+          ]}
+          zoomLabel={`${Math.round(zoom * 100)}%`}
           image={(
             <img
               ref={imageRef}

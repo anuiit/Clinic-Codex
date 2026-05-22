@@ -35,7 +35,6 @@ describe("MainImagePanel shared boundary", () => {
         title={<h1>Shared image</h1>}
         eyebrow="Clinic Codex"
         badges={<span>validated</span>}
-        headerActions={<button type="button">Save</button>}
         toolbar={(
           <AnalyzerToolbar aria-label="Analyzer tools">
             <AnalyzerToolbarButton active>Draw</AnalyzerToolbarButton>
@@ -115,13 +114,10 @@ describe("MainImagePanel shared boundary", () => {
   it("documents the neutral analyzer chrome CSS contract", () => {
     const source = readFileSync("src/index.css", "utf8");
 
-    expect(source).not.toMatch(/\\.main-image-panel__stage\\s*{[^}]*margin\\s*:\\s*1rem/i);
-    expect(source).not.toMatch(
-      /\\.main-image-panel--annotation\\s*{[^}]*(border(?:-color)?\\s*:|rgba\\(245,\\s*158,\\s*11|amber)/i,
-    );
-    expect(source).not.toMatch(
-      /\\.annotation-stage-frame\\s*,\\s*\\.image-stage-frame\\s*{|\\.image-stage-frame\\s*,\\s*\\.annotation-stage-frame\\s*{/,
-    );
+    expect(source).not.toContain(".main-image-panel__stage {\n  margin: 1rem;");
+    const annotationBlock = source.match(/\.main-image-panel--annotation\s*{[^}]*}/s)?.[0] ?? "";
+    expect(annotationBlock).not.toMatch(/border/i);
+    expect(annotationBlock).not.toMatch(/gradient/i);
   });
 
   it("keeps storage, API, router, and bbox-editing logic out of the shared component", () => {

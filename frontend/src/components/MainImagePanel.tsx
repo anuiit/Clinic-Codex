@@ -36,11 +36,6 @@ export type MainImagePanelProps = {
   title?: ReactNode;
   eyebrow?: ReactNode;
   badges?: ReactNode;
-  /**
-   * Reserved for non-analyzer metadata actions in the panel header.
-   * Workflow/analyzer controls belong in the shared top-left `toolbar` slot.
-   */
-  headerActions?: ReactNode;
   toolbar?: ReactNode;
   image: ReactNode;
   overlay?: ReactNode;
@@ -114,7 +109,6 @@ export function MainImagePanel({
   title,
   eyebrow,
   badges,
-  headerActions,
   toolbar,
   image,
   overlay,
@@ -143,7 +137,7 @@ export function MainImagePanel({
     "data-testid": transformTestId,
     ...transformRest
   } = transformProps ?? {};
-  const hasHeader = Boolean(eyebrow || title || badges || headerActions);
+  const hasHeader = Boolean(eyebrow || title || badges);
 
   return (
     <section
@@ -177,11 +171,6 @@ export function MainImagePanel({
               </div>
             )}
           </div>
-          {headerActions && (
-            <div className="main-image-panel__header-actions flex shrink-0 flex-wrap items-center gap-2">
-              {headerActions}
-            </div>
-          )}
         </div>
       )}
 
