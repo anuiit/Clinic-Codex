@@ -19,7 +19,7 @@ import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
 import WorkspaceDetectedPanel from './workspace/WorkspaceDetectedPanel';
 import WorkspaceEmptyState from './workspace/WorkspaceEmptyState';
 import WorkspaceHeader from './workspace/WorkspaceHeader';
-import WorkspaceOverlay from './workspace/WorkspaceOverlay';
+import { WorkspaceOverlay } from './workspace/WorkspaceOverlay';
 import WorkspaceOverlayToolbar from './workspace/WorkspaceOverlayToolbar';
 import WorkspaceUploadModal from './workspace/WorkspaceUploadModal';
 import type { WorkspaceHoverSource, WorkspaceOverlayMode } from './workspace/workspaceViewUtils';
@@ -510,36 +510,40 @@ export default function WorkspacePage() {
       onDrop={onDrop}
     >
       <WorkspaceHeader
-        title={t.appTitle}
-        error={error}
+        inputRef={inputRef}
         dragging={dragging}
         preview={preview}
-        fileName={file?.name ?? null}
+        file={file}
         loading={loading}
-        uploadPrompt={t.uploadPrompt}
-        previewAlt={t.previewAlt}
-        analyzeLabel={t.analyze}
-        analyzingLabel={t.analyzing}
-        onUploadClick={() => inputRef.current?.click()}
+        error={error}
+        labels={{
+          appTitle: t.appTitle,
+          previewAlt: t.previewAlt,
+          uploadPrompt: t.uploadPrompt,
+          analyze: t.analyze,
+          analyzing: t.analyzing,
+        }}
+        onFileSelected={handleFile}
         onAnalyze={analyze}
-        onFileChange={handleFile}
-        inputRef={inputRef}
       />
 
-      <WorkspaceUploadModal
-        open={Boolean(preview && file)}
-        preview={preview}
-        fileName={file?.name ?? null}
-        loading={loading}
-        title={t.uploadModalTitle}
-        description={t.uploadModalDescription}
-        previewAlt={t.previewAlt}
-        cancelLabel={t.cancel}
-        analyzeLabel={t.analyze}
-        analyzingLabel={t.analyzing}
-        onClose={clearPendingFile}
-        onAnalyze={analyze}
-      />
+      {preview && file && (
+        <WorkspaceUploadModal
+          preview={preview}
+          file={file}
+          loading={loading}
+          labels={{
+            uploadModalTitle: t.uploadModalTitle,
+            uploadModalDescription: t.uploadModalDescription,
+            previewAlt: t.previewAlt,
+            cancel: t.cancel,
+            analyze: t.analyze,
+            analyzing: t.analyzing,
+          }}
+          onCancel={clearPendingFile}
+          onAnalyze={analyze}
+        />
+      )}
 
       <div className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${historyOpen ? 'xl:grid-cols-[300px_minmax(0,1fr)]' : 'xl:grid-cols-[56px_minmax(0,1fr)]'}`}>
         <WorkspaceHistoryPanel
