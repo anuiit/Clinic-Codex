@@ -79,8 +79,7 @@ body,
 .annotation-topbar,
 .annotation-panel,
 .annotation-rail,
-.annotation-stage-frame,
-.image-stage-frame {
+.annotation-stage-frame {
   border: 1px solid var(--annotation-border);
   background: linear-gradient(
     180deg,
@@ -99,14 +98,13 @@ body,
   z-index: 30;
 }
 
-.annotation-stage-frame,
-.image-stage-frame {
+.annotation-stage-frame {
   background: #0a0a0a;
   box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.45);
 }
 
 .image-stage-scrollbar {
-  scrollbar-color: rgba(245, 158, 11, 0.36) rgba(12, 10, 9, 0.55);
+  scrollbar-color: rgba(120, 113, 108, 0.36) rgba(12, 10, 9, 0.55);
   scrollbar-width: thin;
 }
 
@@ -122,17 +120,17 @@ body,
 .image-stage-scrollbar::-webkit-scrollbar-thumb {
   border: 2px solid rgba(12, 10, 9, 0.8);
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.34);
+  background: rgba(120, 113, 108, 0.34);
 }
 
 .image-stage-grid {
   background-color: #0a0a0a;
   background-image:
-    linear-gradient(rgba(245, 158, 11, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245, 158, 11, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(120, 113, 108, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 113, 108, 0.08) 1px, transparent 1px),
     radial-gradient(
       circle at 50% 42%,
-      rgba(245, 158, 11, 0.06),
+      rgba(120, 113, 108, 0.055),
       transparent 34rem
     );
   background-size:
@@ -153,13 +151,7 @@ body,
 }
 
 .main-image-panel--annotation {
-  border-color: rgba(245, 158, 11, 0.2);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(28, 25, 23, 0.82),
-      rgba(12, 10, 9, 0.92)
-    );
+  background: rgba(28, 25, 23, 0.75);
 }
 
 .main-image-panel__header {
@@ -176,7 +168,6 @@ body,
 }
 
 .main-image-panel__stage {
-  margin: 1rem;
   scrollbar-width: none;
 }
 
