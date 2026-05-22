@@ -9,7 +9,7 @@ Default runtime: `http://localhost:7117` (`HOST=0.0.0.0`, `PORT=7117`).
 ```bash
 cd backend
 pip install -r requirements.txt
-python examples/flask_api.py
+python -m flask --app backend.wsgi run --host 0.0.0.0 --port 7117
 ```
 
 The repository-level dev helper starts backend and frontend together:
@@ -26,6 +26,7 @@ bash scripts/run-dev.sh
 | `HOST` | `0.0.0.0` | Flask bind host. |
 | `CORS_ORIGINS` | `http://localhost:7118` | Comma-separated browser origins. |
 | `MODEL_DIR` | auto-detected | Optional classifier weights/config directory. |
+| `ENABLE_LEGACY_ENDPOINTS` | `true` | Keep sample/demo endpoints `/sample-image` and `/similar-samples` available during Phase 1 compatibility. |
 
 Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`.
 
@@ -39,7 +40,7 @@ Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`.
 | `/trust` | `POST` | JSON `{ image_base64, bbox, predicted_class, top_k }` | trust signals: predicted rank/similarity, top1, margin, ambiguity, entropy |
 | `/save-annotation` | `POST` | JSON payload below | saves validated annotation crops under `backend/annotations/<analysis_id>/` |
 
-Legacy/demo endpoints `/classify`, `/classify-batch`, `/sample-image`, and `/similar-samples` may also exist for local experiments; the current frontend workflow depends on the endpoints listed above.
+Compatibility endpoints `/classify` and `/classify-batch` remain available and tested during Phase 1. Sample/demo endpoints `/sample-image` and `/similar-samples` remain enabled by default (`ENABLE_LEGACY_ENDPOINTS=true`); set `ENABLE_LEGACY_ENDPOINTS=false` to hide only those sample/demo endpoints while retaining active frontend endpoints. `backend/examples/flask_api.py` is now a thin compatibility runner for the modular `backend.wsgi` app, not the primary route implementation.
 
 ## `/save-annotation` payload
 
@@ -77,7 +78,7 @@ Common errors:
 - `409 PERMISSION_DENIED`: backend cannot write to `backend/annotations/`.
 - `413`: request exceeds 50 MB.
 - `507 DISK_FULL`: no disk space.
-- `500 STORAGE_ERROR` or `INTERNAL`: unexpected storage/server failure.
+- `500 STORAGE_ERROR` or `INTERNAL_ERROR`: unexpected storage/server failure.
 
 ## Annotation storage
 
@@ -104,8 +105,7 @@ backend/annotations/<analysis_id>/
 ## Tests
 
 ```bash
-backend/.venv/bin/python -m pytest backend/tests/test_annotation_storage.py backend/tests/test_save_endpoint.py
-backend/.venv/bin/python -m pytest scripts/test_export_annotations.py
+backend/.venv/bin/python -m pytest backend/tests scripts/test_export_annotations.py
 ```
 
 ## Retraining
