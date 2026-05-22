@@ -28,7 +28,9 @@ import MainImagePanel from '../components/MainImagePanel';
 import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
 import { WorkspaceEmptyState } from './workspace/WorkspaceEmptyState';
+import { WorkspaceDetectedPanel } from './workspace/WorkspaceDetectedPanel';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
+import { WorkspaceOverlay } from './workspace/WorkspaceOverlay';
 import { WorkspaceUploadModal } from './workspace/WorkspaceUploadModal';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
@@ -706,99 +708,25 @@ export default function WorkspacePage() {
                   overlay={
                     currentRecord &&
                     overlayMode !== "hidden" && (
-                      <svg
-                        className="absolute left-0 top-0 h-full w-full"
-                        data-testid="workspace-overlay"
-                        viewBox={`0 0 ${currentRecord.result.image_size[0]} ${currentRecord.result.image_size[1]}`}
-                        preserveAspectRatio="none"
-                        style={{ width: "100%", height: "100%" }}
-                        onPointerDown={handleWorkspaceOverlayPointerDown}
-                        onPointerMove={handleWorkspaceOverlayPointerMove}
-                        onPointerLeave={() => {
-                          setHoveredIdx(null);
-                          setHoverSource(null);
-                        }}
-                      >
-                        {currentRecord.result.elements.map((el, idx) => {
-                          if (
-                            overlayMode === "focused" &&
-                            focusedIdx !== null &&
-                            focusedIdx !== idx
-                          )
-                            return null;
-                          const [x, y, w, h] = el.bbox;
-                          const visualState = getBoxVisualState({
-                            focused: idx === focusedIdx,
-                            hovered:
-                              idx === hoveredIdx && hoverSource === "image",
-                            listHovered:
-                              idx === hoveredIdx && hoverSource === "list",
-                            submitted:
-                              (currentRecord.annotations ?? {})[idx] !==
-                              undefined,
-                            rejected: el.rejected,
-                          });
-                          const labelY = Math.max(0, y - 28);
-                          return (
-                            <g
-                              key={idx}
-                              data-overlay-region="true"
-                              className="pointer-events-none select-none"
-                            >
-                              <rect
-                                x={x}
-                                y={y}
-                                width={w}
-                                height={h}
-                                fill={visualState.fillColor}
-                                stroke={visualState.strokeColor}
-                                strokeWidth={visualState.strokeWidth}
-                                strokeDasharray={visualState.strokeDasharray}
-                                vectorEffect="non-scaling-stroke"
-                              />
-                              {(() => {
-                                const label = formatWorkspaceBboxLabel(
-                                  idx,
-                                  el.class_name,
-                                  showLabelNames,
-                                );
-                                const labelWidth = showLabelNames
-                                  ? Math.min(
-                                      168,
-                                      Math.max(64, label.length * 8 + 18),
-                                    )
-                                  : 44;
-                                return (
-                                  <>
-                                    <title>{label}</title>
-                                    <rect
-                                      x={x}
-                                      y={labelY}
-                                      width={labelWidth}
-                                      height={24}
-                                      rx={6}
-                                      fill={visualState.strokeColor}
-                                      opacity={0.95}
-                                    />
-                                    <text
-                                      x={x + 10}
-                                      y={labelY + 12}
-                                      fill={visualState.labelColor}
-                                      fontSize="13"
-                                      fontWeight="800"
-                                      fontFamily="sans-serif"
-                                      textAnchor="start"
-                                      dominantBaseline="central"
-                                    >
-                                      {label}
-                                    </text>
-                                  </>
-                                );
-                              })()}
-                            </g>
-                          );
-                        })}
-                      </svg>
+                        <WorkspaceOverlay
+                          imageSize={currentRecord.result.image_size}
+                          elements={currentRecord.result.elements}
+                          annotations={currentRecord.annotations}
+                          focusedIdx={focusedIdx}
+                          hoveredIdx={hoveredIdx}
+                          hoverSource={hoverSource}
+                          overlayMode={overlayMode}
+                          showLabelNames={showLabelNames}
+                          zoom={zoom}
+                          onPointerDown={handleWorkspaceOverlayPointerDown}
+                          onPointerMove={handleWorkspaceOverlayPointerMove}
+                          onPointerLeave={() => {
+                            setHoveredIdx(null);
+                            setHoverSource(null);
+                          }}
+                          formatLabel={formatWorkspaceBboxLabel}
+                          testId="workspace-overlay"
+                        />
                     )
                   }
                   controls={[
@@ -835,469 +763,48 @@ export default function WorkspacePage() {
                   testIds={{ stage: "workspace-stage" }}
                 />
 
-                <section
-                  className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-stone-900/35 sidebar-shell"
-                  data-testid="workspace-detected-panel"
-                >
-                  {focusedIdx !== null ? (
-                    <div className="flex h-full flex-col">
-                      <div className="flex items-center justify-between sidebar-header px-5 py-4 border-b border-stone-800/60">
-                        <button
-                          onClick={() => setFocusedIdx(null)}
-                          className="flex items-center gap-2 text-stone-400 hover:text-stone-100 transition-colors"
-                        >
-                          <ChevronLeft size={16} />
-                          <span className="text-sm font-medium">
-                            {t.backToRegions}
-                          </span>
-                        </button>
-                      </div>
-
-                      <div className="annotation-scrollbar flex-1 overflow-y-auto sidebar-body p-5 space-y-6">
-                        {(() => {
-                          const element =
-                            currentRecord.result.elements[focusedIdx];
-                          const trust = trustData?.trust;
-                          const summaryClass =
-                            trust?.top1_class ?? element.class_name;
-                          const topPrediction =
-                            trust?.top1_similarity ?? element.confidence;
-                          const runnerUp =
-                            trust?.top_k?.[1]?.confidence ??
-                            element.top_k[1]?.confidence ??
-                            0;
-                          const margin =
-                            trust?.margin_to_second ?? topPrediction - runnerUp;
-                          const isRejected = trust
-                            ? !trust.above_rejection_threshold
-                            : element.rejected;
-                          const isAmbiguous = trust?.ambiguous ?? margin < 0.05;
-                          const detailPreviewSize = getCropPreviewSize(
-                            element.bbox,
-                            180,
-                          );
-                          const initialPredictionDiffers = Boolean(
-                            trust && trust.top1_class !== element.class_name,
-                          );
-
-                          return (
-                            <>
-                              <div className="flex flex-col gap-3 p-1">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="text-base font-semibold text-stone-300">
-                                    {t.segmentPreview}
-                                  </h4>
-                                </div>
-                                <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-stone-950/55 p-3">
-                                  <canvas
-                                    ref={detailCanvasRef}
-                                    width={detailPreviewSize.width}
-                                    height={detailPreviewSize.height}
-                                    className="max-h-[180px] max-w-full rounded-lg bg-stone-800"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-3 p-1">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="text-base font-semibold text-stone-300">
-                                    {t.trustSummary}
-                                  </h4>
-                                  {contextLoading && (
-                                    <Loader2
-                                      size={14}
-                                      className="animate-spin text-stone-500"
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-2xl font-bold text-stone-100 truncate">
-                                    {summaryClass}
-                                  </span>
-                                  <span
-                                    className={`shrink-0 px-3 py-1.5 rounded-md text-base font-bold ${
-                                      isRejected
-                                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                                        : "bg-green-500/10 text-green-400 border border-green-500/20"
-                                    }`}
-                                  >
-                                    {(topPrediction * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                                {initialPredictionDiffers && trust && (
-                                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-300">
-                                    <div className="font-semibold">
-                                      {t.recalculatedPrediction}
-                                    </div>
-                                    <div className="mt-1 text-amber-200/80">
-                                      {t.initialProposal}:{" "}
-                                      <span className="font-medium text-amber-200">
-                                        {element.class_name}
-                                      </span>{" "}
-                                      #{trust.predicted_class_rank} ·{" "}
-                                      {(
-                                        trust.predicted_class_similarity * 100
-                                      ).toFixed(1)}
-                                      %
-                                    </div>
-                                  </div>
-                                )}
-                                {isAmbiguous && !isRejected && (
-                                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-400">
-                                    <AlertCircle
-                                      size={16}
-                                      className="shrink-0 mt-0.5"
-                                    />
-                                    <div className="text-sm">
-                                      <strong>{t.ambiguousPrediction}</strong>
-                                      <p className="mt-1 text-xs opacity-80">
-                                        {t.ambiguousDetails}{" "}
-                                        {(margin * 100).toFixed(1)}%.{" "}
-                                        {t.alternativesExist}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-                                {isRejected && (
-                                  <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-red-400">
-                                    <AlertCircle
-                                      size={16}
-                                      className="shrink-0 mt-0.5"
-                                    />
-                                    <div className="text-sm">
-                                      <strong>{t.lowConfidenceFlag}</strong>
-                                      <p className="mt-1 text-xs opacity-80">
-                                        {t.thresholdDetails}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-                                {trust && (
-                                  <div className="flex gap-2 text-sm">
-                                    <div className="flex-1 rounded-lg bg-stone-950/50 p-2">
-                                      <span className="text-stone-500 block">
-                                        {t.rank}
-                                      </span>
-                                      <span className="text-stone-200 font-semibold">
-                                        #1
-                                      </span>
-                                    </div>
-                                    <div className="flex-1 rounded-lg bg-stone-950/50 p-2">
-                                      <span className="text-stone-500 block">
-                                        {t.margin}
-                                      </span>
-                                      <span
-                                        className={`font-semibold ${isAmbiguous ? "text-amber-400" : "text-stone-200"}`}
-                                      >
-                                        {(margin * 100).toFixed(1)}%
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex flex-col gap-3 p-1">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="text-base font-semibold text-stone-300">
-                                    {t.topPredictions}
-                                  </h4>
-                                </div>
-                                <div className="space-y-2">
-                                  {(trust?.top_k ?? element.top_k).map(
-                                    (item, i) => (
-                                      <div
-                                        key={i}
-                                        className="flex items-center gap-2"
-                                      >
-                                        <span className="w-4 text-[10px] text-stone-500 text-right">
-                                          {i + 1}
-                                        </span>
-                                        <div className="flex-1">
-                                          <div className="flex justify-between text-sm mb-0.5">
-                                            <span
-                                              className={
-                                                i === 0
-                                                  ? "text-stone-200 font-medium"
-                                                  : "text-stone-400"
-                                              }
-                                            >
-                                              {item.class_name}
-                                            </span>
-                                            <span
-                                              className={
-                                                i === 0
-                                                  ? "text-stone-300 font-medium"
-                                                  : "text-stone-500"
-                                              }
-                                            >
-                                              {(item.confidence * 100).toFixed(
-                                                1,
-                                              )}
-                                              %
-                                            </span>
-                                          </div>
-                                          <div className="h-1 w-full overflow-hidden rounded-full bg-stone-800">
-                                            <div
-                                              className={`h-full rounded-full ${i === 0 ? (isRejected ? "bg-amber-500" : "bg-green-500") : "bg-stone-600"}`}
-                                              style={{
-                                                width: `${item.confidence * 100}%`,
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ),
-                                  )}
-                                </div>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-
-                      <div className="p-5 border-t border-stone-800 sidebar-header">
-                        <button
-                          type="button"
-                          onClick={handleEditorHandoff}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-stone-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
-                        >
-                          <Edit3 size={16} />
-                          {currentRecord.result.elements[focusedIdx].rejected
-                            ? t.correctElement
-                            : t.annotateRegion}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-full flex-col p-4 lg:p-5">
-                      <div className="mb-3 flex items-start justify-between gap-3 border-b border-stone-800 pb-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-                            {t.proposalPanel}
-                          </p>
-                          <h2 className="mt-1 text-base font-semibold text-stone-100">
-                            {t.detectedElements}
-                          </h2>
-                        </div>
-                        <div className="text-right">
-                          <button
-                            type="button"
-                            onClick={handleEditorHandoff}
-                            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400"
-                          >
-                            <Edit3 size={16} /> {t.annotateRecord}
-                          </button>
-                        </div>
-                      </div>
-
-                      {stats &&
-                        stats.rejectedCount === stats.total &&
-                        stats.total > 0 && (
-                          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3">
-                            <Info
-                              className="mt-0.5 shrink-0 text-amber-500"
-                              size={18}
-                            />
-                            <div>
-                              <p className="text-sm text-stone-200">
-                                {t.allRejected}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={handleEditorHandoff}
-                                className="mt-1 text-xs font-medium text-amber-400 hover:text-amber-300"
-                              >
-                                {t.goToAnnotation}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                      {stats && (
-                        <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-                          <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
-                            <span className="block text-stone-500">Image</span>
-                            <span
-                              className="mt-1 block truncate font-semibold text-stone-200"
-                              title={currentRecord.imageName}
-                            >
-                              {currentRecord.imageName}
-                            </span>
-                          </div>
-                          <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
-                            <span className="block text-stone-500">
-                              Dimensions
-                            </span>
-                            <span className="mt-1 block font-semibold tabular-nums text-stone-200">
-                              {stats.imageSizeLabel}
-                            </span>
-                          </div>
-                          <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
-                            <span className="block text-stone-500">
-                              Annotés / rejetés
-                            </span>
-                            <span className="mt-1 block font-semibold tabular-nums text-stone-200">
-                              {stats.annotatedCount}/{stats.total} ·{" "}
-                              {stats.rejectedCount}
-                            </span>
-                          </div>
-                          <div className="rounded-xl border border-stone-800 bg-stone-950/55 p-2">
-                            <span className="block text-stone-500">
-                              Classes
-                            </span>
-                            <span
-                              className="mt-1 block truncate font-semibold text-stone-200"
-                              title={stats.topClasses.join(", ")}
-                            >
-                              {stats.topClasses.join(", ") || stats.topClass}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div
-                        className="annotation-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto pr-2"
-                        data-testid="workspace-detected-list"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (!currentRecord) return;
-                          const total = currentRecord.result.elements.length;
-                          if (total === 0) return;
-                          if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-                            e.preventDefault();
-                            setFocusedIdx((prev) =>
-                              prev === null ? 0 : (prev + 1) % total,
-                            );
-                          } else if (
-                            e.key === "ArrowUp" ||
-                            e.key === "ArrowLeft"
-                          ) {
-                            e.preventDefault();
-                            setFocusedIdx((prev) =>
-                              prev === null
-                                ? total - 1
-                                : (prev - 1 + total) % total,
-                            );
-                          } else if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            if (focusedIdx !== null) setFocusedIdx(focusedIdx);
-                          } else if (e.key === "Escape") {
-                            setFocusedIdx(null);
-                          }
-                        }}
-                      >
-                        {currentRecord.result.elements.length === 0 ? (
-                          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-stone-800 bg-stone-950/50 p-6 text-center">
-                            <Info className="mb-3 text-stone-600" size={32} />
-                            <p className="text-stone-400">{t.noElements}</p>
-                          </div>
-                        ) : (
-                          currentRecord.result.elements.map((element, idx) => {
-                            const hasAnnotation =
-                              (currentRecord.annotations ?? {})[idx] !==
-                              undefined;
-                            const displayClass = hasAnnotation
-                              ? (currentRecord.annotations ?? {})[idx]
-                              : element.class_name;
-                            const isHovered = hoveredIdx === idx;
-                            const badgeClasses = element.rejected
-                              ? "bg-red-400/10 text-red-400 border border-red-400/20"
-                              : "bg-amber-400/10 text-amber-400 border border-amber-400/20";
-                            const indexBadgeClasses = element.rejected
-                              ? "bg-red-500 text-stone-950"
-                              : "bg-amber-500 text-stone-950";
-
-                            const [, , boxWidth, boxHeight] = element.bbox;
-                            let destinationWidth = 48;
-                            let destinationHeight = 48;
-                            if (boxWidth >= boxHeight) {
-                              destinationHeight = Math.max(
-                                1,
-                                48 * (boxHeight / boxWidth),
-                              );
-                            } else {
-                              destinationWidth = Math.max(
-                                1,
-                                48 * (boxWidth / boxHeight),
-                              );
-                            }
-
-                            return (
-                              <div key={idx} className="flex flex-col">
-                                <div
-                                  role="button"
-                                  aria-label={`${displayClass} région ${idx}`}
-                                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${
-                                    focusedIdx === idx
-                                      ? "border-amber-500/60 bg-amber-500/5"
-                                      : isHovered
-                                        ? "border-stone-700 bg-stone-900"
-                                        : "border-stone-800 bg-stone-950"
-                                  }`}
-                                  onClick={() => setFocusedIdx(idx)}
-                                  onMouseEnter={() => {
-                                    setHoveredIdx(idx);
-                                    setHoverSource("list");
-                                  }}
-                                  onMouseLeave={() => {
-                                    setHoveredIdx((current) =>
-                                      current === idx ? null : current,
-                                    );
-                                    setHoverSource((current) =>
-                                      current === "list" ? null : current,
-                                    );
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (
-                                      event.key === "Enter" ||
-                                      event.key === " "
-                                    ) {
-                                      event.preventDefault();
-                                      setFocusedIdx(idx);
-                                    }
-                                  }}
-                                  tabIndex={0}
-                                >
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-stone-800/50 bg-stone-900">
-                                    <canvas
-                                      ref={(canvas) => {
-                                        cropCanvasRefs.current[idx] = canvas;
-                                      }}
-                                      width={destinationWidth}
-                                      height={destinationHeight}
-                                      className="block rounded bg-stone-800"
-                                    />
-                                  </div>
-                                  <span
-                                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold ${indexBadgeClasses}`}
-                                  >
-                                    {idx}
-                                  </span>
-                                  <span className="flex-1 truncate text-sm text-stone-100">
-                                    {displayClass}
-                                  </span>
-                                  {hasAnnotation && (
-                                    <CheckCircle2
-                                      size={12}
-                                      className="text-green-400 shrink-0"
-                                    />
-                                  )}
-                                  <div className="flex shrink-0 flex-col items-end gap-0.5">
-                                    <span
-                                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none ${badgeClasses}`}
-                                    >
-                                      {(element.confidence * 100).toFixed(1)}%
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </section>
+                <WorkspaceDetectedPanel
+                  currentRecord={currentRecord}
+                  focusedIdx={focusedIdx}
+                  trustData={trustData}
+                  contextLoading={contextLoading}
+                  showLabelNames={showLabelNames}
+                  onBack={() => setFocusedIdx(null)}
+                  onHandoff={handleEditorHandoff}
+                  onSelectRegion={setFocusedIdx}
+                  onHoverRegion={(idx) => {
+                    setHoveredIdx(idx);
+                    setHoverSource("list");
+                  }}
+                  onLeaveRegion={() => {
+                    setHoveredIdx(null);
+                    setHoverSource(null);
+                  }}
+                  formatCropSize={getCropPreviewSize}
+                  labels={{
+                    backToRegions: t.backToRegions,
+                    segmentPreview: t.segmentPreview,
+                    trustSummary: t.trustSummary,
+                    recalculatedPrediction: t.recalculatedPrediction,
+                    initialProposal: t.initialProposal,
+                    ambiguousPrediction: t.ambiguousPrediction,
+                    ambiguousDetails: t.ambiguousDetails,
+                    alternativesExist: t.alternativesExist,
+                    lowConfidenceFlag: t.lowConfidenceFlag,
+                    thresholdDetails: t.thresholdDetails,
+                    rank: t.rank,
+                    margin: t.margin,
+                    topPredictions: t.topPredictions,
+                    proposalPanel: t.proposalPanel,
+                    detectedElements: t.detectedElements,
+                    annotateRecord: t.annotateRecord,
+                    allRejected: t.allRejected,
+                    goToAnnotation: t.goToAnnotation,
+                    noElements: t.noElements,
+                    annotateRegion: t.annotateRegion,
+                    correctElement: t.correctElement,
+                  }}
+                />
               </div>
             </>
           ) : (
