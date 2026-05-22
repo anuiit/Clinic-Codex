@@ -1,74 +1,66 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
+import type { AnalysisRecord } from "../../types";
 import { getBoxVisualState } from "../../utils/segmentationBoxes";
-
-type OverlayMode = "all" | "focused" | "hidden";
+import {
+  formatWorkspaceBboxLabel,
+  type WorkspaceHoverSource,
+  type WorkspaceOverlayMode,
+} from "./workspaceViewUtils";
 
 type WorkspaceOverlayProps = {
-  imageSize: [number, number];
-  elements: Array<{
-    bbox: [number, number, number, number];
-    class_name: string;
-    rejected: boolean;
-  }>;
-  annotations: Record<number, string> | undefined;
+  record: AnalysisRecord;
+  overlayMode: WorkspaceOverlayMode;
   focusedIdx: number | null;
   hoveredIdx: number | null;
-  hoverSource: "image" | "list" | null;
-  overlayMode: OverlayMode;
+  hoverSource: WorkspaceHoverSource;
   showLabelNames: boolean;
-  zoom: number;
   onPointerDown: (event: ReactPointerEvent<SVGSVGElement>) => void;
   onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => void;
   onPointerLeave: () => void;
-  getHitIdx: (clientX: number, clientY: number) => number | null;
-  formatLabel: (idx: number, className: string, showName: boolean) => string;
-  testId?: string;
 };
 
-export function WorkspaceOverlay({
-  imageSize,
-  elements,
-  annotations,
+export default function WorkspaceOverlay({
+  record,
+  overlayMode,
   focusedIdx,
   hoveredIdx,
   hoverSource,
-  overlayMode,
   showLabelNames,
-  zoom,
   onPointerDown,
   onPointerMove,
   onPointerLeave,
-  formatLabel,
-  testId,
 }: WorkspaceOverlayProps) {
+  if (overlayMode === "hidden") return null;
+
   return (
     <svg
       className="absolute left-0 top-0 h-full w-full"
-      data-testid={testId}
-      viewBox={`0 0 ${imageSize[0]} ${imageSize[1]}`}
+      data-testid="workspace-overlay"
+      viewBox={`0 0 ${record.result.image_size[0]} ${record.result.image_size[1]}`}
       preserveAspectRatio="none"
       style={{ width: "100%", height: "100%" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
-      {elements.map((el, idx) => {
+      {record.result.elements.map((element, idx) => {
         if (overlayMode === "focused" && focusedIdx !== null && focusedIdx !== idx) {
           return null;
         }
-        const [x, y, w, h] = el.bbox;
+
+        const [x, y, w, h] = element.bbox;
         const visualState = getBoxVisualState({
           focused: idx === focusedIdx,
           hovered: idx === hoveredIdx && hoverSource === "image",
           listHovered: idx === hoveredIdx && hoverSource === "list",
-          submitted: annotations?.[idx] !== undefined,
-          rejected: el.rejected,
+          submitted: (record.annotations ?? {})[idx] !== undefined,
+          rejected: element.rejected,
         });
-        const labelY = Math.max(0, y - 28);
-        const label = formatLabel(idx, el.class_name, showLabelNames);
+        const label = formatWorkspaceBboxLabel(idx, element.class_name, showLabelNames);
         const labelWidth = showLabelNames
           ? Math.min(168, Math.max(64, label.length * 8 + 18))
           : 44;
+        const labelY = Math.max(0, y - 28);
 
         return (
           <g key={idx} data-overlay-region="true" className="pointer-events-none select-none">
