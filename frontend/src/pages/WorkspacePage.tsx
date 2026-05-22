@@ -5,43 +5,34 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronLeft,
-  Edit3,
-  Info,
-  Loader2,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Tags,
-} from 'lucide-react';
+import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import { segmentGlyph, getTrust } from '../services/api';
 import { appText } from '../i18n/text';
 import { deleteAnalysis, getHistory, saveAnalysis } from '../services/storage';
 import MainImagePanel from '../components/MainImagePanel';
-import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
-import { WorkspaceEmptyState } from './workspace/WorkspaceEmptyState';
 import WorkspaceDetectedPanel from './workspace/WorkspaceDetectedPanel';
-import { WorkspaceHeader } from './workspace/WorkspaceHeader';
-import { WorkspaceOverlay } from './workspace/WorkspaceOverlay';
-import { WorkspaceUploadModal } from './workspace/WorkspaceUploadModal';
+import WorkspaceEmptyState from './workspace/WorkspaceEmptyState';
+import WorkspaceHeader from './workspace/WorkspaceHeader';
+import WorkspaceOverlay from './workspace/WorkspaceOverlay';
+import WorkspaceOverlayToolbar from './workspace/WorkspaceOverlayToolbar';
+import WorkspaceUploadModal from './workspace/WorkspaceUploadModal';
+import type { WorkspaceHoverSource, WorkspaceOverlayMode } from './workspace/workspaceViewUtils';
 import type { AnalysisRecord, TrustResult } from '../types';
 import { clientToImage } from '../utils/imageCoords';
 import {
   nextZoomFromWheel,
   shouldConsumeStageWheel,
 } from "../utils/imageStageZoom";
-import { getBoxVisualState, hitTestBBoxes } from "../utils/segmentationBoxes";
+import { hitTestBBoxes } from "../utils/segmentationBoxes";
 
-type OverlayMode = "all" | "focused" | "hidden";
-type HoverSource = "image" | "list" | null;
+type OverlayMode = WorkspaceOverlayMode;
+type HoverSource = WorkspaceHoverSource;
 
 const WORKSPACE_WHEEL_ZOOM_SENSITIVITY = 0.0015;
 
