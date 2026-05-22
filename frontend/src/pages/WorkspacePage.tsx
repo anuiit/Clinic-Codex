@@ -597,58 +597,19 @@ export default function WorkspacePage() {
                     )
                   }
                   toolbar={
-                    <AnalyzerToolbar>
-                      <div className="inline-flex rounded-lg border border-stone-700 bg-stone-950 p-1">
-                        {(["all", "focused", "hidden"] as OverlayMode[]).map(
-                          (mode) => {
-                            const isActive = overlayMode === mode;
-                            return (
-                              <AnalyzerToolbarButton
-                                key={mode}
-                                type="button"
-                                onClick={() => setOverlayMode(mode)}
-                                active={isActive}
-                                className="rounded-md px-3 py-1.5 capitalize"
-                              >
-                                {mode === "all"
-                                  ? t.overlayAll
-                                  : mode === "focused"
-                                    ? t.overlayFocused
-                                    : t.overlayHidden}
-                              </AnalyzerToolbarButton>
-                            );
-                          },
-                        )}
-                      </div>
-                      <AnalyzerToolbarButton
-                        type="button"
-                        onClick={() => setShowLabelNames((current) => !current)}
-                        active={showLabelNames}
-                        aria-pressed={showLabelNames}
-                        aria-label={
-                          showLabelNames
-                            ? "Masquer les noms des libellés"
-                            : "Afficher les noms des libellés"
-                        }
-                        title={
-                          showLabelNames
-                            ? "Masquer les noms des libellés"
-                            : "Afficher les noms des libellés"
-                        }
-                        className="w-10 justify-center px-0"
-                      >
-                        {showLabelNames ? (
-                          <Tags size={16} aria-hidden="true" />
-                        ) : (
-                          <span
-                            aria-hidden="true"
-                            className="text-base font-black leading-none"
-                          >
-                            #
-                          </span>
-                        )}
-                      </AnalyzerToolbarButton>
-                    </AnalyzerToolbar>
+                    <WorkspaceOverlayToolbar
+                      overlayMode={overlayMode}
+                      showLabelNames={showLabelNames}
+                      labels={{
+                        overlayAll: t.overlayAll,
+                        overlayFocused: t.overlayFocused,
+                        overlayHidden: t.overlayHidden,
+                      }}
+                      onOverlayModeChange={setOverlayMode}
+                      onToggleLabelNames={() =>
+                        setShowLabelNames((current) => !current)
+                      }
+                    />
                   }
                   stageClassName={`workspace-stage ${zoom > 1 ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
                   stageProps={{
@@ -674,28 +635,20 @@ export default function WorkspacePage() {
                     />
                   }
                   overlay={
-                    currentRecord &&
-                    overlayMode !== "hidden" && (
-                        <WorkspaceOverlay
-                          imageSize={currentRecord.result.image_size}
-                          elements={currentRecord.result.elements}
-                          annotations={currentRecord.annotations}
-                          focusedIdx={focusedIdx}
-                          hoveredIdx={hoveredIdx}
-                          hoverSource={hoverSource}
-                          overlayMode={overlayMode}
-                          showLabelNames={showLabelNames}
-                          zoom={zoom}
-                          onPointerDown={handleWorkspaceOverlayPointerDown}
-                          onPointerMove={handleWorkspaceOverlayPointerMove}
-                          onPointerLeave={() => {
-                            setHoveredIdx(null);
-                            setHoverSource(null);
-                          }}
-                          formatLabel={formatWorkspaceBboxLabel}
-                          testId="workspace-overlay"
-                        />
-                    )
+                    <WorkspaceOverlay
+                      record={currentRecord}
+                      focusedIdx={focusedIdx}
+                      hoveredIdx={hoveredIdx}
+                      hoverSource={hoverSource}
+                      overlayMode={overlayMode}
+                      showLabelNames={showLabelNames}
+                      onPointerDown={handleWorkspaceOverlayPointerDown}
+                      onPointerMove={handleWorkspaceOverlayPointerMove}
+                      onPointerLeave={() => {
+                        setHoveredIdx(null);
+                        setHoverSource(null);
+                      }}
+                    />
                   }
                   controls={[
                     {
