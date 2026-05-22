@@ -7,14 +7,6 @@ import MainImagePanel, {
   AnalyzerToolbarButton,
 } from "./MainImagePanel";
 
-function readSource(filePath: string) {
-  return readFileSync(filePath, "utf8");
-}
-
-function readJson<T>(filePath: string): T {
-  return JSON.parse(readSource(filePath)) as T;
-}
-
 function sourceImports(filePath: string) {
   const source = readSource(filePath);
   return Array.from(
@@ -94,6 +86,34 @@ describe("MainImagePanel shared boundary", () => {
     expect(screen.getByTestId("shared-controls")).toHaveTextContent("125%");
     expect(screen.getByRole("button", { name: "Draw" }).closest(".main-image-panel__toolbar")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "fixture" }).parentElement).toBe(screen.getByLabelText("overlay").parentElement);
+  });
+
+  it("keeps image and overlay as siblings inside the shared transform wrapper", () => {
+    render(
+      <MainImagePanel
+        image={<img alt="fixture" src="data:image/png;base64,abc" />}
+        overlay={<svg aria-label="overlay" />}
+        testIds={{ transform: "shared-transform" }}
+      />,
+    );
+
+    const transform = screen.getByTestId("shared-transform");
+
+    expect(transform.children).toHaveLength(2);
+    expect(transform.children[0]).toBe(screen.getByRole("img", { name: "fixture" }));
+    expect(transform.children[1]).toBe(screen.getByLabelText("overlay"));
+  });
+
+  it("documents the neutral analyzer chrome CSS contract", () => {
+    const source = readFileSync("src/index.css", "utf8");
+
+    expect(source).not.toMatch(/\\.main-image-panel__stage\\s*{[^}]*margin\\s*:\\s*1rem/i);
+    expect(source).not.toMatch(
+      /\\.main-image-panel--annotation\\s*{[^}]*(border(?:-color)?\\s*:|rgba\\(245,\\s*158,\\s*11|amber)/i,
+    );
+    expect(source).not.toMatch(
+      /\\.annotation-stage-frame\\s*,\\s*\\.image-stage-frame\\s*{|\\.image-stage-frame\\s*,\\s*\\.annotation-stage-frame\\s*{/,
+    );
   });
 
   it("keeps storage, API, router, and bbox-editing logic out of the shared component", () => {
