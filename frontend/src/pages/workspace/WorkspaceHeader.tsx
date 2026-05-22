@@ -1,38 +1,36 @@
-import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
 import type { RefObject } from "react";
+import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
 
-type WorkspaceHeaderProps = {
-  title: string;
-  error: string | null;
-  dragging: boolean;
-  preview: string | null;
-  fileName: string | null;
-  loading: boolean;
-  uploadPrompt: string;
+type WorkspaceHeaderLabels = {
+  appTitle: string;
   previewAlt: string;
-  analyzeLabel: string;
-  analyzingLabel: string;
-  onUploadClick: () => void;
-  onAnalyze: () => void;
-  onFileChange: (file: File) => void;
-  inputRef: RefObject<HTMLInputElement | null>;
+  uploadPrompt: string;
+  analyze: string;
+  analyzing: string;
 };
 
-export function WorkspaceHeader({
-  title,
-  error,
+type WorkspaceHeaderProps = {
+  inputRef: RefObject<HTMLInputElement | null>;
+  dragging: boolean;
+  preview: string | null;
+  file: File | null;
+  loading: boolean;
+  error: string | null;
+  labels: WorkspaceHeaderLabels;
+  onFileSelected: (file: File) => void;
+  onAnalyze: () => void;
+};
+
+export default function WorkspaceHeader({
+  inputRef,
   dragging,
   preview,
-  fileName,
+  file,
   loading,
-  uploadPrompt,
-  previewAlt,
-  analyzeLabel,
-  analyzingLabel,
-  onUploadClick,
+  error,
+  labels,
+  onFileSelected,
   onAnalyze,
-  onFileChange,
-  inputRef,
 }: WorkspaceHeaderProps) {
   return (
     <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-stone-800 bg-stone-900/80 p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -41,7 +39,7 @@ export function WorkspaceHeader({
           <ImagePlus size={18} />
         </div>
         <span className="font-semibold tracking-tight text-stone-100">
-          {title}
+          {labels.appTitle}
         </span>
       </div>
 
@@ -55,7 +53,7 @@ export function WorkspaceHeader({
 
         <div
           className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-2 transition-colors ${dragging ? "border-amber-400 bg-amber-400/10" : "border-stone-700/80 bg-stone-950/60 hover:border-stone-500"}`}
-          onClick={onUploadClick}
+          onClick={() => inputRef.current?.click()}
           role="button"
           tabIndex={0}
         >
@@ -66,25 +64,25 @@ export function WorkspaceHeader({
             className="hidden"
             onChange={(event) => {
               const nextFile = event.target.files?.[0];
-              if (nextFile) onFileChange(nextFile);
+              if (nextFile) onFileSelected(nextFile);
             }}
           />
           {preview ? (
             <div className="flex items-center gap-3">
               <img
                 src={preview}
-                alt={previewAlt}
+                alt={labels.previewAlt}
                 className="h-8 w-8 rounded object-cover"
               />
               <div className="flex flex-col">
                 <span className="max-w-[120px] truncate text-xs font-medium text-stone-100">
-                  {fileName}
+                  {file?.name}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
                   onAnalyze();
                 }}
                 disabled={loading}
@@ -92,18 +90,17 @@ export function WorkspaceHeader({
               >
                 {loading ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />{" "}
-                    {analyzingLabel}
+                    <Loader2 size={14} className="animate-spin" /> {labels.analyzing}
                   </>
                 ) : (
-                  <>{analyzeLabel}</>
+                  labels.analyze
                 )}
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm text-stone-400">
               <Upload size={16} />
-              <span>{uploadPrompt}</span>
+              <span>{labels.uploadPrompt}</span>
             </div>
           )}
         </div>
