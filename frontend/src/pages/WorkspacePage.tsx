@@ -488,6 +488,31 @@ export default function WorkspacePage() {
       hitIdx === null ? (zoom > 1 ? "grab" : "default") : "pointer";
   };
 
+  const handleWorkspaceDetectedListKeyDown = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (!currentRecord) return;
+    const total = currentRecord.result.elements.length;
+    if (total === 0) return;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      setFocusedIdx((previous) =>
+        previous === null ? 0 : (previous + 1) % total,
+      );
+    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      setFocusedIdx((previous) =>
+        previous === null ? total - 1 : (previous - 1 + total) % total,
+      );
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (focusedIdx !== null) setFocusedIdx(focusedIdx);
+    } else if (event.key === "Escape") {
+      setFocusedIdx(null);
+    }
+  };
+
   return (
     <div
       className={`workspace-page flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl transition-colors ${dragging ? "ring-2 ring-amber-400/60 ring-offset-2 ring-offset-stone-950" : ""}`}
@@ -685,23 +710,30 @@ export default function WorkspacePage() {
                 />
 
                 <WorkspaceDetectedPanel
-                  currentRecord={currentRecord}
+                  record={currentRecord}
                   focusedIdx={focusedIdx}
+                  hoveredIdx={hoveredIdx}
+                  stats={stats}
                   trustData={trustData}
                   contextLoading={contextLoading}
-                  showLabelNames={showLabelNames}
-                  onBack={() => setFocusedIdx(null)}
-                  onHandoff={handleEditorHandoff}
-                  onSelectRegion={setFocusedIdx}
-                  onHoverRegion={(idx) => {
+                  cropCanvasRefs={cropCanvasRefs}
+                  detailCanvasRef={detailCanvasRef}
+                  onBackToRegions={() => setFocusedIdx(null)}
+                  onEditorHandoff={handleEditorHandoff}
+                  onDetectedListKeyDown={handleWorkspaceDetectedListKeyDown}
+                  onFocusRegion={setFocusedIdx}
+                  onListRegionEnter={(idx) => {
                     setHoveredIdx(idx);
                     setHoverSource("list");
                   }}
-                  onLeaveRegion={() => {
-                    setHoveredIdx(null);
-                    setHoverSource(null);
+                  onListRegionLeave={(idx) => {
+                    setHoveredIdx((current) =>
+                      current === idx ? null : current,
+                    );
+                    setHoverSource((current) =>
+                      current === "list" ? null : current,
+                    );
                   }}
-                  formatCropSize={getCropPreviewSize}
                   labels={{
                     backToRegions: t.backToRegions,
                     segmentPreview: t.segmentPreview,
@@ -731,7 +763,7 @@ export default function WorkspacePage() {
           ) : (
             <WorkspaceEmptyState
               title={t.noAnalysisSelected}
-              description={t.noAnalysisDetails}
+              details={t.noAnalysisDetails}
             />
           )}
         </section>
