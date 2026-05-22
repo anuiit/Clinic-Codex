@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import MainImagePanel from "./MainImagePanel";
+import MainImagePanel, {
+  AnalyzerToolbar,
+  AnalyzerToolbarButton,
+} from "./MainImagePanel";
 
 function sourceImports(filePath: string) {
   const source = readFileSync(filePath, "utf8");
@@ -25,7 +28,11 @@ describe("MainImagePanel shared boundary", () => {
         eyebrow="Clinic Codex"
         badges={<span>validated</span>}
         headerActions={<button type="button">Save</button>}
-        toolbar={<button type="button">Draw</button>}
+        toolbar={(
+          <AnalyzerToolbar aria-label="Analyzer tools">
+            <AnalyzerToolbarButton active>Draw</AnalyzerToolbarButton>
+          </AnalyzerToolbar>
+        )}
         image={<img alt="fixture" src="data:image/png;base64,abc" />}
         overlay={<svg aria-label="overlay" />}
         controls={[
@@ -68,8 +75,43 @@ describe("MainImagePanel shared boundary", () => {
     expect(transform).toHaveStyle({ transform: "translate(4px, 5px) scale(1.25)" });
     expect(stageRef.current).toBe(stage);
     expect(transformRef.current).toBe(transform);
+    expect(stage.querySelector(".main-image-panel__toolbar")).toContainElement(
+      screen.getByLabelText("Analyzer tools"),
+    );
+    expect(screen.getByRole("button", { name: "Draw" })).toHaveClass(
+      "analyzer-toolbar__button",
+      "bg-amber-400",
+    );
     expect(screen.getByRole("button", { name: "Zoom in" })).toBeEnabled();
     expect(screen.getByTestId("shared-controls")).toHaveTextContent("125%");
+  });
+
+  it("keeps image and overlay as siblings inside the shared transform wrapper", () => {
+    render(
+      <MainImagePanel
+        image={<img alt="fixture" src="data:image/png;base64,abc" />}
+        overlay={<svg aria-label="overlay" />}
+        testIds={{ transform: "shared-transform" }}
+      />,
+    );
+
+    const transform = screen.getByTestId("shared-transform");
+
+    expect(transform.children).toHaveLength(2);
+    expect(transform.children[0]).toBe(screen.getByRole("img", { name: "fixture" }));
+    expect(transform.children[1]).toBe(screen.getByLabelText("overlay"));
+  });
+
+  it("documents the neutral analyzer chrome CSS contract", () => {
+    const source = readFileSync("src/index.css", "utf8");
+
+    expect(source).not.toMatch(/\\.main-image-panel__stage\\s*{[^}]*margin\\s*:\\s*1rem/i);
+    expect(source).not.toMatch(
+      /\\.main-image-panel--annotation\\s*{[^}]*(border(?:-color)?\\s*:|rgba\\(245,\\s*158,\\s*11|amber)/i,
+    );
+    expect(source).not.toMatch(
+      /\\.annotation-stage-frame\\s*,\\s*\\.image-stage-frame\\s*{|\\.image-stage-frame\\s*,\\s*\\.annotation-stage-frame\\s*{/,
+    );
   });
 
   it("keeps storage, API, router, and bbox-editing logic out of the shared component", () => {
