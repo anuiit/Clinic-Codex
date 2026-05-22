@@ -28,7 +28,7 @@ import MainImagePanel from '../components/MainImagePanel';
 import { AnalyzerToolbar, AnalyzerToolbarButton } from '../components/AnalyzerToolbar';
 import WorkspaceHistoryPanel from '../components/WorkspaceHistoryPanel';
 import { WorkspaceEmptyState } from './workspace/WorkspaceEmptyState';
-import { WorkspaceDetectedPanel } from './workspace/WorkspaceDetectedPanel';
+import WorkspaceDetectedPanel from './workspace/WorkspaceDetectedPanel';
 import { WorkspaceHeader } from './workspace/WorkspaceHeader';
 import { WorkspaceOverlay } from './workspace/WorkspaceOverlay';
 import { WorkspaceUploadModal } from './workspace/WorkspaceUploadModal';
