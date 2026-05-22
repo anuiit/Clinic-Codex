@@ -1381,6 +1381,7 @@ export default function AnnotationPage() {
               </span>
             </div>
             </div>
+          }
           image={(
             <img
               ref={imageRef}
@@ -1542,7 +1543,7 @@ export default function AnnotationPage() {
                               />
                             )}
                           </svg>
-                        )
+            )
           }
         />
 
