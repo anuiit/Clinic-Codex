@@ -10,28 +10,22 @@ import {
 import {
   useParams,
   useNavigate,
-  Link,
   useSearchParams,
 } from "react-router-dom";
 import {
-  ArrowLeft,
-  Save,
   Loader2,
   ZoomIn,
   ZoomOut,
   Maximize2,
-  PenTool,
-  MousePointer2,
   Trash2,
-  Upload,
-  Undo2,
-  Tags,
 } from "lucide-react";
 import { getAnalysisById, updateElements } from "../services/storage";
 import { getClasses, saveAnnotation } from "../services/api";
 import { t as translate } from "../i18n/annotation.fr";
 import { MainImagePanel } from "../components/MainImagePanel";
-import { AnalyzerToolbar, AnalyzerToolbarButton } from "../components/AnalyzerToolbar";
+import { AnnotationAnalyzerToolbar } from "./AnnotationAnalyzerToolbar";
+import { AnnotationElementList } from "./AnnotationElementList";
+import { AnnotationPageChrome } from "./AnnotationPageChrome";
 import { appText } from "../i18n/text";
 import type {
   AnalysisRecord,
@@ -1229,67 +1223,20 @@ export default function AnnotationPage() {
 
   return (
     <div className="annotation-app flex h-full w-full flex-col gap-1 overflow-hidden p-1">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
-        <div className="flex min-w-0 items-center gap-4">
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-full border border-stone-700/70 bg-stone-950/70 px-3 py-1.5 text-sm font-medium text-stone-300 transition-colors hover:border-amber-500/50 hover:text-stone-50"
-          >
-            <ArrowLeft size={18} /> {t.back}
-          </Link>
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-              Clinic Codex
-            </div>
-            <h1 className="truncate text-lg font-black tracking-tight text-stone-50">
-              {t.title}
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={submitNamedElements}
-            className="rounded-lg border border-emerald-700/60 px-3 py-1.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/10"
-          >
-            {t.submitNamed}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Save size={18} />
-            )}
-            {t.saveChanges}
-          </button>
-          <button
-            onClick={handleSendSubmittedForReview}
-            disabled={sending}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-          >
-            {sending ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Upload size={18} />
-            )}
-            {t.sendSubmittedForReview}
-          </button>
-        </div>
-      </div>
-
-      <div className="shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
-        {t.adminApprovalNotice}
-      </div>
+      <AnnotationPageChrome
+        labels={t}
+        saving={saving}
+        sending={sending}
+        onSubmitNamed={submitNamedElements}
+        onSave={handleSave}
+        onSendSubmittedForReview={handleSendSubmittedForReview}
+      />
 
       <div className="flex min-h-0 flex-1 gap-1.5">
         <MainImagePanel
           tone="annotation"
           className="flex-1"
+          testIds={{ controls: "annotation-stage-controls" }}
           stageRef={containerRef}
           stageProps={{
             "data-testid": "annotation-stage-frame",
@@ -1310,44 +1257,17 @@ export default function AnnotationPage() {
           }}
           transformClassName="annotation-stage shrink-0 overflow-hidden rounded-lg"
           toolbar={
-            <AnalyzerToolbar>
-              <AnalyzerToolbarButton
-                type="button"
-                onClick={() => setDrawMode(!drawMode)}
-                active={drawMode}
-              >
-                {drawMode ? <PenTool size={16} /> : <MousePointer2 size={16} />}
-                {drawMode ? t.drawMode : t.selectMode}
-              </AnalyzerToolbarButton>
-              <AnalyzerToolbarButton
-                type="button"
-                onClick={undoLastBboxChange}
-                disabled={bboxHistory.length === 0}
-                aria-label={t.undoBbox}
-                title={`${t.undoBbox} (Ctrl+Z)`}
-              >
-                <Undo2 size={16} />
-                {t.undoBbox}
-              </AnalyzerToolbarButton>
-              <AnalyzerToolbarButton
-                type="button"
-                onClick={() => setShowLabelNames((current) => !current)}
-                active={showLabelNames}
-                aria-pressed={showLabelNames}
-                aria-label={
-                  showLabelNames
-                    ? "Masquer les noms des libellés"
-                    : "Afficher les noms des libellés"
-                }
-              >
-                {showLabelNames ? (
-                  <Tags size={16} />
-                ) : (
-                  <span className="text-xs font-black tabular-nums">N°</span>
-                )}
-                {showLabelNames ? "Noms" : "N°"}
-              </AnalyzerToolbarButton>
-            </AnalyzerToolbar>
+            <AnnotationAnalyzerToolbar
+              drawMode={drawMode}
+              canUndo={bboxHistory.length > 0}
+              showLabelNames={showLabelNames}
+              labels={t}
+              onToggleDrawMode={() => setDrawMode((current) => !current)}
+              onUndo={undoLastBboxChange}
+              onToggleLabelNames={() =>
+                setShowLabelNames((current) => !current)
+              }
+            />
           }
           controls={[
             {
@@ -1667,133 +1587,23 @@ export default function AnnotationPage() {
             </div>
           </section>
 
-          <section
-            className="flex min-h-0 flex-1 flex-col"
-            aria-label="Liste compacte des éléments"
-          >
-            <div
-              className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2 xl:flex-nowrap"
-              data-testid="annotation-list-controls"
-            >
-              <div
-                className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
-                aria-label={`${t.submitted} ${submittedCount}/${elements.length}`}
-              >
-                {t.submitted} {submittedCount}/{elements.length}
-              </div>
-              <label className="min-w-[128px] flex-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Filtrer
-                <input
-                  type="search"
-                  aria-label="Filtrer les éléments"
-                  value={listQuery}
-                  onChange={(event) => setListQuery(event.target.value)}
-                  placeholder="Nom ou numéro"
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
-                />
-              </label>
-              <label className="min-w-[112px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Statut
-                <select
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(
-                      event.target.value as AnnotationStatusFilter,
-                    )
-                  }
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                >
-                  <option value="all">Tous</option>
-                  <option value="draft">Brouillons</option>
-                  <option value="submitted">Soumis</option>
-                  <option value="rejected">Rejetés</option>
-                </select>
-              </label>
-              <label className="min-w-[122px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Tri
-                <select
-                  value={sortMode}
-                  onChange={(event) =>
-                    setSortMode(event.target.value as AnnotationSortMode)
-                  }
-                  className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
-                >
-                  <option value="original">Original</option>
-                  <option value="confidence-asc">Confiance ↑</option>
-                  <option value="confidence-desc">Confiance ↓</option>
-                  <option value="name">Nom A→Z</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
-              {displayedElements.map(({ el, idx }) => {
-                const isFocused = idx === focusedIdx;
-                const displayName = isUnnamedClass(el.class_name)
-                  ? t.unnamedElement
-                  : el.class_name;
-                const isSubmitted = annotationStatus[idx] === "validated";
-                const confidencePercent = Math.round(el.confidence * 100);
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    ref={(node) => {
-                      cardRefs.current[idx] = node;
-                    }}
-                    onClick={() => setFocusedIdx(idx)}
-                    onMouseEnter={() => setListHoveredIdx(idx)}
-                    onMouseLeave={() =>
-                      setListHoveredIdx((current) =>
-                        current === idx ? null : current,
-                      )
-                    }
-                    onFocus={() => setListHoveredIdx(idx)}
-                    onBlur={() =>
-                      setListHoveredIdx((current) =>
-                        current === idx ? null : current,
-                      )
-                    }
-                    className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all ${isFocused ? "annotation-card-selected" : ""}`}
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isSubmitted ? "bg-emerald-400 text-stone-950" : isFocused ? "bg-amber-400 text-stone-950" : "bg-stone-800 text-stone-300"}`}
-                      >
-                        #{idx}
-                      </span>
-                      <span className="min-w-0">
-                        <span
-                          className={`block truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? "text-amber-300" : "text-stone-100"}`}
-                        >
-                          {displayName}
-                        </span>
-                        <span className="mt-1 flex items-center gap-2">
-                          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
-                            <span
-                              className={`block h-full rounded-full ${el.rejected ? "bg-red-400" : isSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
-                              style={{
-                                width: `${Math.max(0, Math.min(100, confidencePercent))}%`,
-                              }}
-                            />
-                          </span>
-                          <span className="text-[10px] font-semibold tabular-nums text-stone-500">
-                            {confidencePercent}%
-                          </span>
-                        </span>
-                      </span>
-                    </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? "bg-red-500/15 text-red-300" : isSubmitted ? "bg-emerald-500/15 text-emerald-300" : "bg-stone-800 text-stone-400"}`}
-                    >
-                      {isSubmitted ? t.submitted : t.draft}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <AnnotationElementList
+            displayedElements={displayedElements}
+            annotationStatus={annotationStatus}
+            focusedIdx={focusedIdx}
+            elementsCount={elements.length}
+            submittedCount={submittedCount}
+            listQuery={listQuery}
+            statusFilter={statusFilter}
+            sortMode={sortMode}
+            labels={t}
+            cardRefs={cardRefs}
+            setFocusedIdx={setFocusedIdx}
+            onListQueryChange={setListQuery}
+            onStatusFilterChange={setStatusFilter}
+            onSortModeChange={setSortMode}
+            setListHoveredIdx={setListHoveredIdx}
+          />
         </aside>
       </div>
       {toast && (
