@@ -1,4 +1,5 @@
 import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
+import type { RefObject } from "react";
 
 type WorkspaceHeaderProps = {
   title: string;
@@ -14,7 +15,7 @@ type WorkspaceHeaderProps = {
   onUploadClick: () => void;
   onAnalyze: () => void;
   onFileChange: (file: File) => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLInputElement | null>;
 };
 
 export function WorkspaceHeader({
