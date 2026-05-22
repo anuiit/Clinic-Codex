@@ -1,7 +1,7 @@
 # Roadmap d’amélioration — Clinic Codex
 
-_Date de revue : 22 mai 2026_  
-_Dépôt analysé : `anuiit/clinic-codex`_  
+_Date de revue : 22 mai 2026_
+_Dépôt analysé : `anuiit/clinic-codex`_
 _Nature de la revue : analyse statique du repository via les fichiers backend/frontend disponibles. Les tests et builds n’ont pas été exécutés dans cet environnement ; la roadmap inclut donc une première étape de vérification CI locale._
 
 ---
