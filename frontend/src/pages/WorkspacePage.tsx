@@ -36,34 +36,6 @@ type HoverSource = WorkspaceHoverSource;
 
 const WORKSPACE_WHEEL_ZOOM_SENSITIVITY = 0.0015;
 
-function formatWorkspaceBboxLabel(
-  idx: number,
-  className: string,
-  showName: boolean,
-) {
-  if (!showName) return `#${idx}`;
-  const clippedName =
-    className.length > 18 ? `${className.slice(0, 17)}…` : className;
-  return clippedName;
-}
-
-function getCropPreviewSize(
-  bbox: [number, number, number, number],
-  maxSize: number,
-) {
-  const [, , boxWidth, boxHeight] = bbox;
-  let width = maxSize;
-  let height = maxSize;
-
-  if (boxWidth >= boxHeight) {
-    height = Math.max(1, maxSize * (boxHeight / boxWidth));
-  } else {
-    width = Math.max(1, maxSize * (boxWidth / boxHeight));
-  }
-
-  return { width, height };
-}
-
 function resolveCurrentRecord(
   records: AnalysisRecord[],
   preferredId?: string | null,
