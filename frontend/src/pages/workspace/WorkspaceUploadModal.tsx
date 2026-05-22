@@ -1,63 +1,60 @@
 import { Loader2 } from "lucide-react";
 
-type WorkspaceUploadModalProps = {
-  open: boolean;
-  preview: string | null;
-  fileName: string | null;
-  loading: boolean;
-  title: string;
-  description: string;
+type WorkspaceUploadModalLabels = {
+  uploadModalTitle: string;
+  uploadModalDescription: string;
   previewAlt: string;
-  cancelLabel: string;
-  analyzeLabel: string;
-  analyzingLabel: string;
-  onClose: () => void;
-  onAnalyze: () => void;
+  cancel: string;
+  analyze: string;
+  analyzing: string;
 };
 
-export function WorkspaceUploadModal({
-  open,
-  preview,
-  fileName,
-  loading,
-  title,
-  description,
-  previewAlt,
-  cancelLabel,
-  analyzeLabel,
-  analyzingLabel,
-  onClose,
-  onAnalyze,
-}: WorkspaceUploadModalProps) {
-  if (!open || !preview || !fileName) return null;
+type WorkspaceUploadModalProps = {
+  preview: string;
+  file: File;
+  loading: boolean;
+  labels: WorkspaceUploadModalLabels;
+  onAnalyze: () => void;
+  onCancel: () => void;
+};
 
+export default function WorkspaceUploadModal({
+  preview,
+  file,
+  loading,
+  labels,
+  onAnalyze,
+  onCancel,
+}: WorkspaceUploadModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/80 p-6 backdrop-blur-sm">
       <div className="w-full max-w-xl rounded-[28px] border border-stone-800 bg-stone-900 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
         <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-stone-500">
-              {title}
+              {labels.uploadModalTitle}
             </p>
             <h2 className="mt-1 truncate text-lg font-semibold text-stone-100">
-              {fileName}
+              {file.name}
             </h2>
-            <p className="mt-1 text-sm text-stone-400">{description}</p>
+            <p className="mt-1 text-sm text-stone-400">
+              {labels.uploadModalDescription}
+            </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={onCancel}
             disabled={loading}
             className="rounded-xl border border-stone-700 px-3 py-2 text-sm font-semibold text-stone-300 transition-colors hover:border-stone-500 hover:text-stone-100 disabled:opacity-50"
           >
-            {cancelLabel}
+            {labels.cancel}
           </button>
         </div>
 
         <div className="my-5 flex max-h-[46vh] items-center justify-center overflow-hidden rounded-2xl border border-stone-800 bg-stone-950">
           <img
             src={preview}
-            alt={previewAlt}
+            alt={labels.previewAlt}
             className="max-h-[46vh] max-w-full object-contain"
           />
         </div>
@@ -65,11 +62,11 @@ export function WorkspaceUploadModal({
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            onClick={onClose}
+            onClick={onCancel}
             disabled={loading}
             className="rounded-xl border border-stone-700 px-4 py-2 text-sm font-semibold text-stone-300 transition-colors hover:border-stone-500 hover:text-stone-100 disabled:opacity-50"
           >
-            {cancelLabel}
+            {labels.cancel}
           </button>
           <button
             type="button"
@@ -79,10 +76,10 @@ export function WorkspaceUploadModal({
           >
             {loading ? (
               <>
-                <Loader2 size={16} className="animate-spin" /> {analyzingLabel}
+                <Loader2 size={16} className="animate-spin" /> {labels.analyzing}
               </>
             ) : (
-              analyzeLabel
+              labels.analyze
             )}
           </button>
         </div>
