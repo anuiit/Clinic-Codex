@@ -467,7 +467,7 @@ describe("AnnotationPage element naming UX", () => {
     const topbar = container.querySelector(".annotation-topbar") as HTMLElement;
     expect(chrome).toContainElement(topbar);
     expect(
-      within(chrome).getByRole("button", { name: "Retour" }),
+      within(chrome).getByRole("link", { name: "Retour" }),
     ).toBeInTheDocument();
     expect(
       within(chrome).getByRole("button", {
@@ -483,7 +483,7 @@ describe("AnnotationPage element naming UX", () => {
       within(chrome).getByRole("button", { name: "Envoyer les soumis" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("annotation-admin-notice")).toHaveTextContent(
-      "Gardez",
+      "approbation admin",
     );
     expect(
       within(chrome).queryByRole("searchbox", { name: /filtrer/i }),
@@ -492,26 +492,46 @@ describe("AnnotationPage element naming UX", () => {
     const compactList = screen.getByLabelText("Liste compacte des éléments");
     const toolbar = container.querySelector(".main-image-panel__toolbar");
     expect(toolbar).toBeInTheDocument();
-    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Mode sélection" })).toBeInTheDocument();
-    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Annuler bbox" })).toBeInTheDocument();
-    expect(within(toolbar as HTMLElement).getByRole("button", { name: "N°" })).toBeInTheDocument();
-    expect(toolbar).toContainElement(screen.getByTestId("annotation-analyzer-toolbar"));
+    expect(
+      within(toolbar as HTMLElement).getByRole("button", {
+        name: "Mode sélection",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(toolbar as HTMLElement).getByRole("button", {
+        name: "Annuler bbox",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(toolbar as HTMLElement).getByRole("button", {
+        name: "Afficher les noms des libellés",
+      }),
+    ).toBeInTheDocument();
+    expect(toolbar).toContainElement(
+      screen.getByTestId("annotation-analyzer-toolbar"),
+    );
 
     const controls = screen.getByTestId("annotation-stage-controls");
-    expect(within(controls).getByRole("button", { name: "Zoom avant" })).toBeInTheDocument();
-    expect(within(controls).getByRole("button", { name: "Réinitialiser la vue" })).toBeInTheDocument();
-    expect(within(controls).getByRole("button", { name: "Zoom arrière" })).toBeInTheDocument();
+    expect(
+      within(controls).getByRole("button", { name: "Zoom avant" }),
+    ).toBeInTheDocument();
+    expect(
+      within(controls).getByRole("button", { name: "Réinitialiser la vue" }),
+    ).toBeInTheDocument();
+    expect(
+      within(controls).getByRole("button", { name: "Zoom arrière" }),
+    ).toBeInTheDocument();
     expect(within(controls).getByText("100%")).toBeInTheDocument();
 
     expect(
       within(compactList).getByRole("searchbox", { name: /filtrer/i }),
     ).toBeInTheDocument();
-    const controls = screen.getByTestId("annotation-list-controls");
-    expect(controls).toHaveClass("xl:flex-nowrap");
-    expect(controls).toContainElement(
+    const listControls = screen.getByTestId("annotation-list-controls");
+    expect(listControls).toHaveClass("xl:flex-nowrap");
+    expect(listControls).toContainElement(
       within(compactList).getByLabelText(/statut/i),
     );
-    expect(controls).toContainElement(
+    expect(listControls).toContainElement(
       within(compactList).getByLabelText(/tri/i),
     );
 
@@ -616,39 +636,41 @@ describe("AnnotationPage element naming UX", () => {
     expect(compactList).not.toHaveTextContent(/Éléments\s*38\s*\/\s*38/i);
   });
 
-  it('keeps selected and empty inspector shells on the reduced shared size contract', async () => {
+  it("keeps selected and empty inspector shells on the reduced shared size contract", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const inspector = await screen.findByTestId('selected-element-inspector');
-    expect(inspector).toHaveClass('annotation-selected-inspector');
-    expect(inspector).not.toHaveClass('h-[360px]');
-    expect(inspector).not.toHaveClass('annotation-panel');
+    const inspector = await screen.findByTestId("selected-element-inspector");
+    expect(inspector).toHaveClass("annotation-selected-inspector");
+    expect(inspector).not.toHaveClass("h-[360px]");
+    expect(inspector).not.toHaveClass("annotation-panel");
 
     await user.click(await screen.findByText("atl"));
 
-    expect(inspector).toHaveClass('annotation-selected-inspector');
-    expect(inspector).not.toHaveClass('h-[360px]');
-    expect(inspector).not.toHaveClass('annotation-panel');
+    expect(inspector).toHaveClass("annotation-selected-inspector");
+    expect(inspector).not.toHaveClass("h-[360px]");
+    expect(inspector).not.toHaveClass("annotation-panel");
   });
 
-  it('keeps filter, status, and Tri controls in one readable compact row contract', async () => {
+  it("keeps filter, status, and Tri controls in one readable compact row contract", async () => {
     renderPage();
 
-    const controls = await screen.findByTestId('annotation-list-controls');
-    expect(controls).toHaveClass('annotation-list-controls');
-    expect(controls).toContainElement(screen.getByRole('searchbox', { name: /filtrer/i }));
+    const controls = await screen.findByTestId("annotation-list-controls");
+    expect(controls).toHaveClass("annotation-list-controls");
+    expect(controls).toContainElement(
+      screen.getByRole("searchbox", { name: /filtrer/i }),
+    );
     expect(controls).toContainElement(screen.getByLabelText(/statut/i));
     expect(controls).toContainElement(screen.getByLabelText(/tri/i));
 
-    for (const labelText of ['Filtrer', 'Statut', 'Tri']) {
-      const label = within(controls).getByText(labelText).closest('label');
-      expect(label).toHaveClass('text-xs');
-      expect(label).not.toHaveClass('text-[10px]');
+    for (const labelText of ["Filtrer", "Statut", "Tri"]) {
+      const label = within(controls).getByText(labelText).closest("label");
+      expect(label).toHaveClass("text-xs");
+      expect(label).not.toHaveClass("text-[10px]");
     }
   });
 
-  it('groups rename, submit, and delete controls in one inspector action row', async () => {
+  it("groups rename, submit, and delete controls in one inspector action row", async () => {
     const user = userEvent.setup();
     renderPage();
 
