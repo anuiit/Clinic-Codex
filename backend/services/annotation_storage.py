@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,7 +51,7 @@ def decode_image_data_url(data_url: str) -> Image.Image:
     else:
         b64 = data_url
     try:
-        raw = base64.b64decode(b64)
+        raw = base64.b64decode(b64, validate=True)
     except Exception as exc:
         raise ValueError(f"base64 decode failed: {exc}") from exc
     try:
@@ -92,7 +93,7 @@ def save_annotation(
         )
 
     target_dir = base_dir / analysis_id
-    tmp_dir = base_dir / f".tmp-{analysis_id}-{os.getpid()}"
+    tmp_dir = base_dir / f".tmp-{analysis_id}-{os.getpid()}-{uuid.uuid4().hex}"
 
     try:
         (tmp_dir / "elements").mkdir(parents=True)

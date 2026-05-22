@@ -1,0 +1,14 @@
+== frontend phase 3a API tests ==
+
+> codex-frontend@0.0.0 test
+> vitest run src/services/api.test.ts
+
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/services/api.test.ts (11 tests) 40ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  20:52:41
+   Duration  931ms (transform 71ms, setup 72ms, collect 34ms, tests 40ms, environment 435ms, prepare 105ms)

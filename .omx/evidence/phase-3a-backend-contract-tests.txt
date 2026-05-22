@@ -1,0 +1,17 @@
+== backend phase 3a contract + route tests ==
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/sina/omxpro/clinic-codex/backend
+configfile: pytest.ini
+plugins: anyio-4.13.0
+collected 39 items
+
+backend/tests/test_api_contracts.py .........                            [ 23%]
+backend/tests/test_app_factory.py ....                                   [ 33%]
+backend/tests/test_route_characterization.py ...............             [ 71%]
+backend/tests/test_routes_classes.py .                                   [ 74%]
+backend/tests/test_routes_classify_segment.py ..                         [ 79%]
+backend/tests/test_routes_similarity.py ....                             [ 89%]
+backend/tests/test_save_endpoint.py ....                                 [100%]
+
+============================== 39 passed in 0.41s ==============================

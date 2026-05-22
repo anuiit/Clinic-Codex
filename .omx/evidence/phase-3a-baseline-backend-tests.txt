@@ -1,0 +1,16 @@
+== backend baseline route tests (backend/.venv) ==
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/sina/omxpro/clinic-codex/backend
+configfile: pytest.ini
+plugins: anyio-4.13.0
+collected 30 items
+
+backend/tests/test_app_factory.py ....                                   [ 13%]
+backend/tests/test_route_characterization.py ...............             [ 63%]
+backend/tests/test_routes_classes.py .                                   [ 66%]
+backend/tests/test_routes_classify_segment.py ..                         [ 73%]
+backend/tests/test_routes_similarity.py ....                             [ 86%]
+backend/tests/test_save_endpoint.py ....                                 [100%]
+
+============================== 30 passed in 0.31s ==============================

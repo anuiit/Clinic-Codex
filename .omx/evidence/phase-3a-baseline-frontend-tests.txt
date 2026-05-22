@@ -1,0 +1,26 @@
+== frontend baseline targeted tests ==
+
+> codex-frontend@0.0.0 test
+> vitest run WorkspacePage.interactions.test.tsx AnnotationPage.naming.test.tsx
+
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/pages/WorkspacePage.interactions.test.tsx (10 tests) 3819ms
+   ✓ WorkspacePage interaction coverage > filters history results, selects a matching run, and deletes the active run  521ms
+   ✓ WorkspacePage interaction coverage > toggles overlays and opens focused region details without starting a pan  1013ms
+   ✓ WorkspacePage interaction coverage > hands off the selected workspace region to the annotation editor query param  389ms
+   ✓ WorkspacePage interaction coverage > toggles workspace canvas bbox labels with an icon-only accessible control  306ms
+   ✓ WorkspacePage interaction coverage > keeps workspace list and detail panels in the narrowed image-dominant scroll layout without duplicate focus lists  329ms
+   ✓ WorkspacePage interaction coverage > opens the upload preview, cancels cleanly, and analyzes the selected image  594ms
+ ✓ src/pages/AnnotationPage.naming.test.tsx (21 tests) 4422ms
+   ✓ AnnotationPage element naming UX > renames from fuzzy suggestions while preserving the bbox  497ms
+   ✓ AnnotationPage element naming UX > creates a missing element name from typed text  808ms
+   ✓ AnnotationPage element naming UX > commits a typed missing name with Enter  398ms
+   ✓ AnnotationPage element naming UX > keeps compact chrome, analyzer toolbar, and list controls in stable regions  592ms
+   ✓ AnnotationPage element naming UX > filters and sorts the compact annotation list without changing bbox data  406ms
+
+ Test Files  2 passed (2)
+      Tests  31 passed (31)
+   Start at  20:47:26
+   Duration  8.46s (transform 1.35s, setup 457ms, collect 4.70s, tests 8.24s, environment 2.09s, prepare 243ms)

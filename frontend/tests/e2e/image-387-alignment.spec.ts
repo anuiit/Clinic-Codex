@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from 'playwright/test';
+import { seedIndexedDbRecord } from './storageSeed';
 
 const imageBytes = readFileSync(new URL('../../src/test/fixtures/387_769v.jpg', import.meta.url));
 const imageDataUrl = `data:image/jpeg;base64,${imageBytes.toString('base64')}`;
@@ -29,9 +30,7 @@ const RECORD = {
 
 async function seedAndNavigate(page: Page) {
   await page.goto('/');
-  await page.evaluate((record) => {
-    localStorage.setItem('codex_analyses', JSON.stringify([record]));
-  }, RECORD);
+  await seedIndexedDbRecord(page, RECORD);
   await page.goto(`/annotate/${RECORD.id}`);
 }
 

@@ -145,7 +145,7 @@ cd frontend && npm install && cd ..
 
 ### 7. Start the Backend Server
 ```bash
-PORT=7117 backend/.venv/bin/python backend/examples/flask_api.py
+PORT=7117 backend/.venv/bin/python -m flask --app backend.wsgi run --host 0.0.0.0 --port 7117
 ```
 
 ### 8. Start the Web Interface

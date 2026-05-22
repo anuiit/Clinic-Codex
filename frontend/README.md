@@ -7,9 +7,9 @@ React/Vite interface for uploading codex glyph images, inspecting segmentation r
 | Route | Purpose |
 | --- | --- |
 | `/` | Workspace/dashboard: upload an image, run `/segment`, inspect prior analyses, view boxes over the image, pan/zoom, and open annotation. |
-| `/annotate/:id` | Annotation editor for one analysis record stored in browser localStorage. |
+| `/annotate/:id` | Annotation editor for one browser-local analysis record stored in IndexedDB-backed storage. |
 
-Analysis records are stored locally in the browser. The backend is only required for new segmentation, class lists, similarity/trust calls, and saving validated annotations.
+Analysis records are stored locally in the browser through an IndexedDB-backed storage boundary with legacy localStorage migration. The backend is only required for new segmentation, class lists, similarity/trust calls, and saving validated annotations.
 
 ## User workflow
 

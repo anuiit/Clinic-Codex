@@ -1,0 +1,41 @@
+== final git diff --check ==
+== final git status --short ==
+ M .github/workflows/smoke.yml
+ M backend/requirements-dev.txt
+ M frontend/package-lock.json
+ M frontend/package.json
+ M frontend/src/pages/AnnotationPage.naming.test.tsx
+ M frontend/src/pages/AnnotationPage.tsx
+ M frontend/src/pages/WorkspacePage.tsx
+ M frontend/src/services/api.ts
+ M frontend/src/types/index.ts
+?? .nvmrc
+?? backend/tests/test_api_contracts.py
+?? clinic-codex-roadmap.md
+?? docs/
+?? frontend/src/pages/annotation/annotationViewportTypes.ts
+?? frontend/src/pages/annotation/useAnnotationElementModel.ts
+?? frontend/src/pages/annotation/useAnnotationPreviewCanvas.ts
+?? frontend/src/pages/annotation/useAnnotationRecord.ts
+?? frontend/src/pages/annotation/useAnnotationStageSize.ts
+?? frontend/src/pages/annotation/useAnnotationSubmission.ts
+?? frontend/src/pages/annotation/useAnnotationViewport.ts
+?? frontend/src/pages/workspace/useWorkspaceHistory.ts
+?? frontend/src/pages/workspace/useWorkspaceUpload.ts
+?? frontend/src/pages/workspace/useWorkspaceViewport.ts
+?? frontend/src/services/api.test.ts
+?? scripts/check-file-size.py
+== phase 3a owned tracked diff stat ==
+ frontend/src/services/api.ts | 140 +++++++++++++++++++++++++++++++------------
+ frontend/src/types/index.ts  |  17 +++++-
+ 2 files changed, 115 insertions(+), 42 deletions(-)
+== phase 3a owned untracked files ==
+-rw-r--r-- 1 sina sina 11244 May 22 20:50 backend/tests/test_api_contracts.py
+-rw-r--r-- 1 sina sina  7702 May 22 20:49 docs/API_CONTRACT.md
+-rw-r--r-- 1 sina sina  7065 May 22 20:51 frontend/src/services/api.test.ts
+== package/ci hashes final ==
+f736dad48a929c140b664d53737337f4dc583fd14a4444e8585431aebccd17f5  .github/workflows/smoke.yml
+236735f463c776037477d3efc37ea6f72b4504805584b1fb1968ae20d61ba02f  backend/requirements-dev.txt
+fa67f67fef52cfc2766454b4781a0587bec5dd7ef7c726888a2cb876bef97f09  frontend/package.json
+46ac4632bbbe42da361b6165dc82a3913400859be6ae19f67ad96cca27bd570d  frontend/package-lock.json
+== cached/staged files ==

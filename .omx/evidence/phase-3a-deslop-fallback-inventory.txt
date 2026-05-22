@@ -1,0 +1,11 @@
+== fallback-like scan in phase 3a scope ==
+docs/API_CONTRACT.md:267:- `NETWORK_ERROR` (client-side fallback)
+frontend/src/services/api.ts:120:      const errorData = await res.json().catch(() => null) as Partial<{
+frontend/src/services/api.ts:129:        error_code: errorData?.error_code ?? 'NETWORK_ERROR',
+frontend/src/services/api.ts:138:  } catch {
+frontend/src/services/api.ts:141:      error_code: 'NETWORK_ERROR',
+frontend/src/services/api.test.ts:139:  it("uses NETWORK_ERROR fallback for non-JSON saveAnnotation failures", async () => {
+frontend/src/services/api.test.ts:145:      error_code: "NETWORK_ERROR",
+frontend/src/services/api.test.ts:152:  it("uses NETWORK_ERROR fallback for thrown saveAnnotation network failures", async () => {
+frontend/src/services/api.test.ts:158:      error_code: "NETWORK_ERROR",
+frontend/src/types/index.ts:104:  | 'NETWORK_ERROR';

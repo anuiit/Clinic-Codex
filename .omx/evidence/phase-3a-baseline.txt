@@ -1,0 +1,40 @@
+== timestamp ==
+2026-05-22T18:46:58Z
+== git status --short ==
+ M .github/workflows/smoke.yml
+ M backend/requirements-dev.txt
+ M frontend/package-lock.json
+ M frontend/package.json
+ M frontend/src/pages/AnnotationPage.naming.test.tsx
+ M frontend/src/pages/AnnotationPage.tsx
+ M frontend/src/pages/WorkspacePage.tsx
+?? .nvmrc
+?? clinic-codex-roadmap.md
+?? frontend/src/pages/annotation/annotationViewportTypes.ts
+?? frontend/src/pages/annotation/useAnnotationElementModel.ts
+?? frontend/src/pages/annotation/useAnnotationPreviewCanvas.ts
+?? frontend/src/pages/annotation/useAnnotationRecord.ts
+?? frontend/src/pages/annotation/useAnnotationStageSize.ts
+?? frontend/src/pages/annotation/useAnnotationSubmission.ts
+?? frontend/src/pages/annotation/useAnnotationViewport.ts
+?? frontend/src/pages/workspace/useWorkspaceHistory.ts
+?? frontend/src/pages/workspace/useWorkspaceUpload.ts
+?? frontend/src/pages/workspace/useWorkspaceViewport.ts
+?? scripts/check-file-size.py
+== git diff --stat ==
+ .github/workflows/smoke.yml                       |   61 +-
+ backend/requirements-dev.txt                      |    3 +
+ frontend/package-lock.json                        |    3 +
+ frontend/package.json                             |    3 +
+ frontend/src/pages/AnnotationPage.naming.test.tsx |   21 +
+ frontend/src/pages/AnnotationPage.tsx             | 1171 ++-------------------
+ frontend/src/pages/WorkspacePage.tsx              |  938 +++++------------
+ 7 files changed, 420 insertions(+), 1780 deletions(-)
+== plan artifacts sha256 ==
+3bb17d24ef12faa0e6956706385909d48bc702e1e15e69c985bef4eb23dbf536  .omx/plans/prd-phase-3a-api-contracts-client.md
+a44799088601c6a6544f0fdcf2771df428b3a07fce0c1f5cdc6bc35dbf9f26b3  .omx/plans/test-spec-phase-3a-api-contracts-client.md
+== pre-existing package/ci hashes where present ==
+f736dad48a929c140b664d53737337f4dc583fd14a4444e8585431aebccd17f5  .github/workflows/smoke.yml
+236735f463c776037477d3efc37ea6f72b4504805584b1fb1968ae20d61ba02f  backend/requirements-dev.txt
+fa67f67fef52cfc2766454b4781a0587bec5dd7ef7c726888a2cb876bef97f09  frontend/package.json
+46ac4632bbbe42da361b6165dc82a3913400859be6ae19f67ad96cca27bd570d  frontend/package-lock.json

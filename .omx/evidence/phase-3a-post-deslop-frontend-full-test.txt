@@ -1,0 +1,35 @@
+== post-deslop frontend full test ==
+
+> codex-frontend@0.0.0 test
+> vitest run
+
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/services/storage.test.ts (3 tests) 9ms
+ ✓ src/utils/segmentationBoxes.test.ts (11 tests) 9ms
+ ✓ src/utils/imageStageZoom.test.ts (3 tests) 6ms
+ ✓ src/utils/fuzzyClasses.test.ts (3 tests) 15ms
+ ✓ src/utils/imageCoords.test.ts (5 tests) 13ms
+ ✓ src/services/api.test.ts (11 tests) 1121ms
+   ✓ API client contract > uses the default base URL for GET /classes  1039ms
+ ✓ src/test/App.test.tsx (4 tests) 117ms
+ ✓ src/components/MainImagePanel.test.tsx (7 tests) 395ms
+   ✓ MainImagePanel shared boundary > renders the shared viewport contract without owning page business behavior  340ms
+ ✓ src/pages/Image387Alignment.test.tsx (2 tests) 346ms
+ ✓ src/pages/WorkspacePage.pan.test.tsx (3 tests) 822ms
+   ✓ WorkspacePage image pan behavior > collapses and expands the history sidebar via stable container animation and compact header  430ms
+ ✓ src/pages/AnnotationPage.pan.test.tsx (16 tests) 1363ms
+ ✓ src/pages/WorkspacePage.interactions.test.tsx (10 tests) 3038ms
+   ✓ WorkspacePage interaction coverage > filters history results, selects a matching run, and deletes the active run  678ms
+   ✓ WorkspacePage interaction coverage > toggles overlays and opens focused region details without starting a pan  786ms
+ ✓ src/pages/AnnotationPage.naming.test.tsx (21 tests) 3287ms
+   ✓ AnnotationPage element naming UX > renames from fuzzy suggestions while preserving the bbox  655ms
+   ✓ AnnotationPage element naming UX > creates a missing element name from typed text  359ms
+   ✓ AnnotationPage element naming UX > keeps compact chrome, analyzer toolbar, and list controls in stable regions  350ms
+   ✓ AnnotationPage element naming UX > filters and sorts the compact annotation list without changing bbox data  304ms
+
+ Test Files  13 passed (13)
+      Tests  99 passed (99)
+   Start at  20:59:52
+   Duration  6.47s (transform 3.11s, setup 1.42s, collect 16.22s, tests 10.54s, environment 11.59s, prepare 2.08s)

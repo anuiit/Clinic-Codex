@@ -28,9 +28,9 @@ const RECORD: AnalysisRecord = {
 };
 
 vi.mock('../services/storage', () => ({
-  deleteAnalysis: vi.fn(),
-  getHistory: vi.fn(() => [RECORD]),
-  saveAnalysis: vi.fn(),
+  deleteAnalysis: vi.fn(async () => undefined),
+  getHistory: vi.fn(async () => [RECORD]),
+  saveAnalysis: vi.fn(async () => undefined),
 }));
 
 vi.mock('../services/api', () => ({

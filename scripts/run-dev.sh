@@ -53,7 +53,7 @@ trap cleanup EXIT INT TERM
 
 # --- Launch backend (call python directly, no source activate) ---
 log "starting backend on :$BACKEND_PORT"
-PORT="$BACKEND_PORT" "$PY" backend/examples/flask_api.py &
+PORT="$BACKEND_PORT" "$PY" -m flask --app backend.wsgi run --host 0.0.0.0 --port "$BACKEND_PORT" &
 PIDS+=($!)
 
 # --- Launch frontend ---

@@ -10,7 +10,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("../services/storage", () => ({
   getAnalysisById: vi.fn(),
-  updateElements: vi.fn(() => true),
+  updateElements: vi.fn(async () => true),
 }));
 
 vi.mock("../services/api", () => ({
@@ -39,7 +39,7 @@ function renderPage(
   record: AnalysisRecord = STUB_RECORD,
   initialEntry = "/annotation/test-id",
 ) {
-  vi.mocked(getAnalysisById).mockReturnValue(record);
+  vi.mocked(getAnalysisById).mockResolvedValue(record);
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
@@ -68,7 +68,7 @@ let drawImageMock = vi.fn();
 let clearRectMock = vi.fn();
 
 beforeEach(() => {
-  vi.mocked(getAnalysisById).mockReturnValue(STUB_RECORD);
+  vi.mocked(getAnalysisById).mockResolvedValue(STUB_RECORD);
   vi.mocked(updateElements).mockClear();
   measuredRect = CONTAINER_RECT;
   drawImageMock = vi.fn();

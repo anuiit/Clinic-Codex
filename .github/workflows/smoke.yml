@@ -11,67 +11,68 @@ on:
       - master
 
 jobs:
-  frontend-smoke:
-    name: Frontend Smoke (build)
+  frontend:
+    name: Frontend Lint, Test, and Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test
 
       - name: Build
         working-directory: frontend
         run: npm run build
 
-  frontend-lint:
-    name: Frontend Lint (warn only)
+  backend:
+    name: Backend Fast Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Lint (pre-existing errors allowed)
-        working-directory: frontend
-        run: npm run lint
-        continue-on-error: true
-
-  backend-import:
-    name: Backend Import Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python 3.10
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version-file: backend/.python-version
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
 
-      - name: Install dependencies
+      - name: Install fast-test dependencies
         working-directory: backend
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
-      - name: Import check (no model weights needed)
-        working-directory: backend
-        run: python -c "from codex_model import CodexClassifier; print('import ok')"
+      - name: Run fast pytest suite
+        run: python -m pytest backend/tests scripts/test_export_annotations.py
+
+  file-size-guard:
+    name: File Size Guard (warning only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: backend/.python-version
+
+      - name: Check source file sizes
+        run: python scripts/check-file-size.py

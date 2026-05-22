@@ -1,0 +1,31 @@
+== git diff --check ==
+== phase 3a changed/untracked files ==
+ M .github/workflows/smoke.yml
+ M backend/requirements-dev.txt
+ M frontend/package-lock.json
+ M frontend/package.json
+ M frontend/src/pages/AnnotationPage.naming.test.tsx
+ M frontend/src/pages/AnnotationPage.tsx
+ M frontend/src/pages/WorkspacePage.tsx
+ M frontend/src/services/api.ts
+ M frontend/src/types/index.ts
+?? .nvmrc
+?? backend/tests/test_api_contracts.py
+?? clinic-codex-roadmap.md
+?? docs/
+?? frontend/src/pages/annotation/annotationViewportTypes.ts
+?? frontend/src/pages/annotation/useAnnotationElementModel.ts
+?? frontend/src/pages/annotation/useAnnotationPreviewCanvas.ts
+?? frontend/src/pages/annotation/useAnnotationRecord.ts
+?? frontend/src/pages/annotation/useAnnotationStageSize.ts
+?? frontend/src/pages/annotation/useAnnotationSubmission.ts
+?? frontend/src/pages/annotation/useAnnotationViewport.ts
+?? frontend/src/pages/workspace/useWorkspaceHistory.ts
+?? frontend/src/pages/workspace/useWorkspaceUpload.ts
+?? frontend/src/pages/workspace/useWorkspaceViewport.ts
+?? frontend/src/services/api.test.ts
+?? scripts/check-file-size.py
+== phase 3a owned diff stat ==
+ frontend/src/services/api.ts | 140 +++++++++++++++++++++++++++++++------------
+ frontend/src/types/index.ts  |  17 +++++-
+ 2 files changed, 115 insertions(+), 42 deletions(-)
