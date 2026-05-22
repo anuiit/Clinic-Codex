@@ -7,8 +7,16 @@ import MainImagePanel, {
   AnalyzerToolbarButton,
 } from "./MainImagePanel";
 
+function readSource(filePath: string) {
+  return readFileSync(filePath, "utf8");
+}
+
+function readJson<T>(filePath: string): T {
+  return JSON.parse(readSource(filePath)) as T;
+}
+
 function sourceImports(filePath: string) {
-  const source = readFileSync(filePath, "utf8");
+  const source = readSource(filePath);
   return Array.from(
     source.matchAll(/import(?:\s+type)?(?:[\s\S]*?)from\s+["']([^"']+)["']|import\s+["']([^"']+)["']/g),
     (match) => match[1] ?? match[2],
@@ -84,6 +92,8 @@ describe("MainImagePanel shared boundary", () => {
     );
     expect(screen.getByRole("button", { name: "Zoom in" })).toBeEnabled();
     expect(screen.getByTestId("shared-controls")).toHaveTextContent("125%");
+    expect(screen.getByRole("button", { name: "Draw" }).closest(".main-image-panel__toolbar")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "fixture" }).parentElement).toBe(screen.getByLabelText("overlay").parentElement);
   });
 
   it("keeps image and overlay as siblings inside the shared transform wrapper", () => {
@@ -133,5 +143,26 @@ describe("MainImagePanel shared boundary", () => {
 
     expect(workspaceImports).toContain("../components/MainImagePanel");
     expect(annotationImports).toContain("../components/MainImagePanel");
+  });
+
+  it("keeps the shared component prop surface presentation-only", () => {
+    const source = readSource("src/components/MainImagePanel.tsx");
+
+    expect(source).not.toMatch(/\b(record|analysis|bbox|save|submit|route|navigate|annotationStatus|api|storage)\b/);
+    expect(source).toMatch(/toolbar\??: ReactNode/);
+    expect(source).toMatch(/image: ReactNode/);
+    expect(source).toMatch(/overlay\??: ReactNode/);
+  });
+
+  it("guards the no-new-dependencies contract for the refactor", () => {
+    const packageJson = readJson<{ dependencies: Record<string, string> }>("package.json");
+
+    expect(Object.keys(packageJson.dependencies).sort()).toEqual([
+      "axios",
+      "lucide-react",
+      "react",
+      "react-dom",
+      "react-router-dom",
+    ]);
   });
 });
