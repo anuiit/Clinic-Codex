@@ -35,9 +35,19 @@ export function ElementNameCombobox({
   onCommit,
 }: ElementNameComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState(() =>
-    isUnnamedClass(value) ? "" : value,
-  );
+  const displayValue = isUnnamedClass(value) ? "" : value;
+  const [inputState, setInputState] = useState(() => ({
+    sourceValue: value,
+    inputValue: displayValue,
+  }));
+  const inputValue =
+    inputState.sourceValue === value ? inputState.inputValue : displayValue;
+  if (inputState.sourceValue !== value) {
+    setInputState({ sourceValue: value, inputValue: displayValue });
+  }
+  const setInputValue = (nextValue: string) => {
+    setInputState((current) => ({ ...current, inputValue: nextValue }));
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
   const suggestions = getFuzzyClassSuggestions(
@@ -57,21 +67,23 @@ export function ElementNameCombobox({
     !hasExactClassName(normalizedInput, allCandidateNames);
 
   useEffect(() => {
-    setInputValue(isUnnamedClass(value) ? "" : value);
-  }, [value]);
-
-  useEffect(() => {
     if (autoFocusToken <= 0) return;
     inputRef.current?.focus();
     inputRef.current?.select();
-    setIsOpen(true);
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setIsOpen(true);
+    });
+    return () => {
+      active = false;
+    };
   }, [autoFocusToken]);
 
   const commitName = (name: string) => {
     const normalizedName = normalizeClassName(name);
     if (!normalizedName) return;
     onCommit(normalizedName);
-    setInputValue(normalizedName);
+    setInputState({ sourceValue: normalizedName, inputValue: normalizedName });
     setIsOpen(false);
   };
 
@@ -91,7 +103,7 @@ export function ElementNameCombobox({
     }
     if (event.key === "Escape") {
       setIsOpen(false);
-      setInputValue(isUnnamedClass(value) ? "" : value);
+      setInputValue(displayValue);
       return;
     }
     if (event.key === "Enter") {
