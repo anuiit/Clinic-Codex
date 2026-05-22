@@ -36,6 +36,11 @@ export type MainImagePanelProps = {
   title?: ReactNode;
   eyebrow?: ReactNode;
   badges?: ReactNode;
+  /**
+   * Reserved for non-analyzer metadata actions in the panel header.
+   * Workflow/analyzer controls belong in the shared top-left `toolbar` slot.
+   */
+  headerActions?: ReactNode;
   toolbar?: ReactNode;
   image: ReactNode;
   overlay?: ReactNode;
