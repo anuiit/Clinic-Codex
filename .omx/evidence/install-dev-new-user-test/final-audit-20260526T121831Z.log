@@ -1,0 +1,11 @@
+--- current listeners common/test ports ---
+PASS free 7117
+PASS free 7118
+PASS free 44073
+PASS free 47479
+PASS free 59167
+PASS free 44957
+
+--- temp roots ---
+
+--- relevant lingering procs ---
