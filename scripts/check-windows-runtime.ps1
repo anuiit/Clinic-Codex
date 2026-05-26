@@ -23,10 +23,11 @@ function Write-Classification([string]$status, [string]$reason) {
     Write-Host "WINDOWS_RUNTIME_REASON=$reason"
 }
 
-function Invoke-Captured([scriptblock]$Command) {
-    $output = & $Command 2>&1 | ForEach-Object { "$PSItem" }
-    $exit = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
-    [pscustomobject]@{ ExitCode = $exit; Output = ($output -join "`n") }
+function Invoke-ScriptCaptured([string]$Path, [string[]]$Arguments = @()) {
+    $shell = (Get-Process -Id $PID).Path
+    $command = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $Path) + $Arguments
+    $output = & $shell @command 2>&1 | ForEach-Object { "$PSItem" }
+    [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($output -join "`n") }
 }
 
 function Classify-Failure([string]$phase, [int]$exitCode, [string]$output) {
@@ -52,13 +53,13 @@ if (-not $IsNativeWindows) {
     exit 2
 }
 
-$install = Invoke-Captured { & (Join-Path $ScriptDir 'install.ps1') }
+$install = Invoke-ScriptCaptured (Join-Path $ScriptDir 'install.ps1')
 Write-Host $install.Output
 if ($install.ExitCode -ne 0) {
     exit (Classify-Failure 'install' $install.ExitCode $install.Output)
 }
 
-$smoke = Invoke-Captured { & (Join-Path $ScriptDir 'run-dev.ps1') -Smoke -SmokeTimeoutSeconds $SmokeTimeoutSeconds }
+$smoke = Invoke-ScriptCaptured (Join-Path $ScriptDir 'run-dev.ps1') @('-Smoke', '-SmokeTimeoutSeconds', "$SmokeTimeoutSeconds")
 Write-Host $smoke.Output
 if ($smoke.ExitCode -ne 0) {
     exit (Classify-Failure 'runtime smoke' $smoke.ExitCode $smoke.Output)

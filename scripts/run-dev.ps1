@@ -2,7 +2,10 @@
 .SYNOPSIS
 Clinic Codex dev launcher for native Windows PowerShell - backend on :7117, frontend on :7118.
 #>
-param()
+param(
+    [switch]$Smoke,
+    [int]$SmokeTimeoutSeconds = 30
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -158,8 +161,14 @@ try {
     $processes['frontend'] = $frontendProc
 
     # --- Wait for services ready ---
-    Wait-HttpReady 'backend' "http://127.0.0.1:$BackendPort/classes" $processes
-    Wait-HttpReady 'frontend' "http://127.0.0.1:$FrontendPort/" $processes
+    Wait-HttpReady 'backend' "http://127.0.0.1:$BackendPort/classes" $processes $SmokeTimeoutSeconds
+    Wait-HttpReady 'frontend' "http://127.0.0.1:$FrontendPort/" $processes $SmokeTimeoutSeconds
+
+    if ($Smoke) {
+        Write-Host ""
+        Write-Host "[run-dev] smoke PASS: backend and frontend responded successfully."
+        return
+    }
 
     Write-Host ""
     Write-Host "[run-dev] both services up."

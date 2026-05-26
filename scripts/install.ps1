@@ -184,4 +184,4 @@ if (Test-Path $ProtoDerived) {
     if (-not (Test-Path $ProtoDerived)) { Fail "export_model ran but $ProtoDerived still missing" }
 }
 
-Log 'DONE. Run: bash scripts/run-dev.sh (Linux/macOS) or powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 (Windows)'
+Log 'INSTALL DONE. Runtime smoke NOT run. To validate Windows runtime, run: powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke'
