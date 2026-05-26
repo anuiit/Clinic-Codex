@@ -14,6 +14,13 @@ Set-Location $RepoRoot
 
 function Log([string]$msg)  { Write-Host "`n[install] $msg" }
 function Fail([string]$msg) { Write-Host "[install] ERROR: $msg" -ForegroundColor Red; exit 1 }
+function Join-PathParts([string]$Base, [Parameter(ValueFromRemainingArguments = $true)][string[]]$ChildPath) {
+    $path = $Base
+    foreach ($child in $ChildPath) {
+        $path = Join-Path $path $child
+    }
+    return $path
+}
 
 # ---------------------------------------------------------------------------
 # Stage 0: Pre-flight checks
@@ -57,13 +64,13 @@ if ($freeGB -lt 2) { Fail "Need >=2GB free disk. Have ${freeGB}GB." }
 # ---------------------------------------------------------------------------
 Log 'Stage 1/5: venv at backend/.venv'
 
-$VenvDir = Join-Path $RepoRoot 'backend' '.venv'
+$VenvDir = Join-PathParts $RepoRoot 'backend' '.venv'
 if ($IsWin) {
-    $VenvPy  = Join-Path $VenvDir 'Scripts' 'python.exe'
-    $VenvPip = Join-Path $VenvDir 'Scripts' 'pip.exe'
+    $VenvPy  = Join-PathParts $VenvDir 'Scripts' 'python.exe'
+    $VenvPip = Join-PathParts $VenvDir 'Scripts' 'pip.exe'
 } else {
-    $VenvPy  = Join-Path $VenvDir 'bin' 'python'
-    $VenvPip = Join-Path $VenvDir 'bin' 'pip'
+    $VenvPy  = Join-PathParts $VenvDir 'bin' 'python'
+    $VenvPip = Join-PathParts $VenvDir 'bin' 'pip'
 }
 
 if (-not (Test-Path $VenvPy)) {
@@ -136,7 +143,7 @@ if ($LASTEXITCODE -ne 0) { Fail 'Stage 5 failed - SAM/augmentation' }
 # ---------------------------------------------------------------------------
 Log 'Frontend: npm install (idempotent)'
 
-$nodeModules = Join-Path $RepoRoot 'frontend' 'node_modules'
+$nodeModules = Join-PathParts $RepoRoot 'frontend' 'node_modules'
 $isEmpty     = (-not (Test-Path $nodeModules)) -or ((Get-ChildItem $nodeModules -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
 
 if ($isEmpty) {
@@ -161,11 +168,11 @@ if ($LASTEXITCODE -ne 0) { Fail 'Sanity import failed - see error above' }
 # ---------------------------------------------------------------------------
 Log 'Exporting model prototypes (idempotent)'
 
-$ProtoDerived = Join-Path $RepoRoot 'backend' 'codex_model' 'weights' 'prototypes.pt'
-$ProtoSource  = Join-Path $RepoRoot 'backend' 'prototypes' 'prototypes.pt'
+$ProtoDerived = Join-PathParts $RepoRoot 'backend' 'codex_model' 'weights' 'prototypes.pt'
+$ProtoSource  = Join-PathParts $RepoRoot 'backend' 'prototypes' 'prototypes.pt'
 
 if (Test-Path $ProtoDerived) {
-    Log '  prototypes.pt present — skipping export'
+    Log '  prototypes.pt present - skipping export'
 } elseif (-not (Test-Path $ProtoSource)) {
     Fail "Model artefacts missing: $ProtoSource not found. See backend\README.md."
 } else {
@@ -173,7 +180,7 @@ if (Test-Path $ProtoDerived) {
     & $VenvPy -m codex_pipeline.scripts.export_model
     $exportExit = $LASTEXITCODE
     Pop-Location
-    if ($exportExit -ne 0) { Fail 'export_model failed — see error above' }
+    if ($exportExit -ne 0) { Fail 'export_model failed - see error above' }
     if (-not (Test-Path $ProtoDerived)) { Fail "export_model ran but $ProtoDerived still missing" }
 }
 

@@ -28,6 +28,12 @@ See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining p
 - **Annotation storage**: backend-owned filesystem data under `backend/annotations/<analysis_id>/`.
 - **Training scripts**: `scripts/export_annotations.py`, `scripts/retrain.sh`, and `scripts/retrain.ps1`.
 
+## Requirements
+
+- Python `3.10` or `3.11`.
+- Node.js `>=22.12.0` (matches `frontend/package.json`).
+- Network access during setup for CPU PyTorch wheels, MobileSAM from GitHub, and model artifacts/downloads.
+
 ## Environment variables
 
 Backend:
@@ -47,6 +53,9 @@ Frontend:
 # Start backend + frontend
 bash scripts/run-dev.sh
 
+# Start backend + frontend on alternate ports
+BACKEND_PORT=7217 FRONTEND_PORT=7218 bash scripts/run-dev.sh
+
 # Frontend only
 cd frontend
 npm install
@@ -59,7 +68,12 @@ npm run build
 backend/.venv/bin/python -m pytest backend/tests scripts/test_export_annotations.py
 ```
 
-PowerShell equivalents are available for Windows setup/dev where present (`scripts/install.ps1`, `scripts/run-dev.ps1`, `scripts/retrain.ps1`).
+Script matrix:
+
+- Ubuntu/macOS: `bash scripts/install.sh`, `bash scripts/run-dev.sh`.
+- Native Windows PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1`, `powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1`.
+
+Do not treat `scripts/run-dev.ps1` as the Linux/macOS launcher under `pwsh`; use the bash launcher there. The dev launchers derive frontend API/CORS settings from `BACKEND_PORT` and `FRONTEND_PORT` unless you explicitly override `VITE_API_BASE_URL` or `CORS_ORIGINS`.
 
 ## Key documentation
 

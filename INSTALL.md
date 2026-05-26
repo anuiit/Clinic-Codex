@@ -17,7 +17,9 @@ You'll need three tools installed. They are standard pieces of software used by 
 1. **Git**: Used to manage the project files. [Download here](https://git-scm.com/downloads).
 2. **Python (3.10 or 3.11)**: This is the engine that runs our AI. 
    - **Important**: Please use version **3.10 or 3.11**. Newer versions (like 3.12 or 3.13) are not yet compatible with the AI libraries we use. [Download Python 3.11 here](https://www.python.org/downloads/release/python-3119/).
-3. **Node.js (version 18 or newer)**: This runs the visual part of the tool. [Download here](https://nodejs.org/).
+3. **Node.js (version 22.12.0 or newer)**: This runs the visual part of the tool and matches the app's `frontend/package.json` requirement. [Download here](https://nodejs.org/).
+
+The automated installer downloads large/networked dependencies, including CPU PyTorch wheels, MobileSAM from GitHub, and model files used by the analysis pipeline.
 
 ## Step 2: Automated Installation
 
@@ -37,7 +39,7 @@ You'll need three tools installed. They are standard pieces of software used by 
 2. **Go to the project folder**: Type `cd ` (with a space) and then drag your `clinic-codex` folder into the PowerShell window. Press Enter.
 3. **Run the installer**: Type the following and press Enter:
    ```powershell
-   .\scripts\install.ps1
+   powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
    ```
 
 ## Step 3: Final Configuration Check
@@ -76,9 +78,21 @@ Whenever you want to use Clinic Codex, follow these steps:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
    ```
+   Use `scripts/run-dev.ps1` from native Windows PowerShell. On Mac/Linux, use the bash command above rather than `pwsh`.
 4. Wait for the message saying the servers have started.
 5. Open your web browser (like Chrome or Firefox) and go to:
    `http://localhost:7118`
+
+Advanced users can choose different local ports. On Mac/Linux:
+```bash
+BACKEND_PORT=7217 FRONTEND_PORT=7218 bash scripts/run-dev.sh
+```
+On Windows PowerShell:
+```powershell
+$env:BACKEND_PORT='7217'
+$env:FRONTEND_PORT='7218'
+powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
+```
 
 ### ⚠️ A Note on Speed
 The first time you analyze an image, the tool will automatically download the AI models (about 40MB). This happens only once.
@@ -151,5 +165,5 @@ PORT=7117 backend/.venv/bin/python -m flask --app backend.wsgi run --host 0.0.0.
 ### 8. Start the Web Interface
 In a new window:
 ```bash
-cd frontend && PORT=7118 npm run dev
+cd frontend && VITE_API_BASE_URL=http://localhost:7117 npm run dev -- --host 127.0.0.1 --port 7118 --strictPort
 ```
