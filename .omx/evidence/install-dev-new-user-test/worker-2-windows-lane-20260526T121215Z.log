@@ -1,0 +1,48 @@
+# Worker 2 Windows lane evidence
+timestamp_utc=20260526T121215Z
+source_head=dc0ea43ac5d1b52c13bab8139822a042bfc8b791
+win_root_linux=/mnt/c/Temp/clinic-codex-new-user-win-worker2-runtime-20260526T121215Z
+win_repo_linux=/mnt/c/Temp/clinic-codex-new-user-win-worker2-runtime-20260526T121215Z/clinic-codex
+win_root_native=C:\Temp\clinic-codex-new-user-win-worker2-runtime-20260526T121215Z
+win_repo_native=C:\Temp\clinic-codex-new-user-win-worker2-runtime-20260526T121215Z\clinic-codex
+win_root_canonical_linux=/mnt/c/Temp/clinic-codex-new-user-win-worker2-runtime-20260526T121215Z
+prefix_check=PASS
+marker_check=PASS
+
+## native parser and preflight versions
+PSVersion=5.1.19041.6456
+PARSE PASS: scripts/install.ps1
+PARSE PASS: scripts/run-dev.ps1
+COMMAND: py -3.11 --version
+Python 3.11.4
+STATUS: OK py -3.11 --version
+COMMAND: py -3.10 --version
+No suitable Python runtime found
+Pass --list (-0) to see all detected environments on your machine
+or set environment variable PYLAUNCHER_ALLOW_INSTALL to use winget
+or open the Microsoft Store to the requested version.
+STATUS: OK py -3.10 --version
+COMMAND: python --version
+Python 3.12.10
+STATUS: OK python --version
+COMMAND: node --version
+v22.17.0
+STATUS: OK node --version
+COMMAND: npm --version
+11.6.3
+STATUS: OK npm --version
+
+## install result
+install_exit_code=1
+install_tail: 
+install_tail: [install] Stage 0/5: pre-flight checks
+install_tail: [install] ERROR: Need Python 3.10 or 3.11. Install from python.org (Windows) or via your package manager (Linux/macOS).
+
+## cleanup
+classification=EXPECTED BLOCKER: missing Windows Python 3.10/3.11 prerequisite
+runtime_status=not_attempted_install_failed
+cleanup_target=/mnt/c/Temp/clinic-codex-new-user-win-worker2-runtime-20260526T121215Z
+cleanup_prefix_check=PASS
+cleanup_marker_check=PASS
+cleanup_deleted_linux_view=PASS
+cleanup_deleted_windows_view=PASS
