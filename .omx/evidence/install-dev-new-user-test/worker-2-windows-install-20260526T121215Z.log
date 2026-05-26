@@ -1,0 +1,3 @@
+
+[install] Stage 0/5: pre-flight checks
+[install] ERROR: Need Python 3.10 or 3.11. Install from python.org (Windows) or via your package manager (Linux/macOS).

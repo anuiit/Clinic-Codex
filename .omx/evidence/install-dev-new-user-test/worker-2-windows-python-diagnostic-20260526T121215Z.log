@@ -1,0 +1,8 @@
+Diagnostic: direct py -3.11 checks after temp cleanup
+Python 3.11.4
+py_version_exit=0
+  File "<string>", line 1
+    import sys; print(str(sys.version_info.major)+.+str(sys.version_info.minor))
+                                                  ^
+SyntaxError: invalid syntax
+py_c_exit=1
