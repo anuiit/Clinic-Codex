@@ -1,0 +1,29 @@
+[run-dev] starting backend on :44073
+[run-dev] starting frontend on :47479
+
+> codex-frontend@0.0.0 dev
+> vite --host 127.0.0.1 --port 47479 --strictPort
+
+ * Serving Flask app 'backend.wsgi'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:44073
+ * Running on http://172.17.13.8:44073
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [26/May/2026 14:12:46] "GET /classes HTTP/1.1" 200 -
+
+  VITE v8.0.10  ready in 455 ms
+
+  ➜  Local:   http://127.0.0.1:47479/
+127.0.0.1 - - [26/May/2026 14:12:47] "GET /classes HTTP/1.1" 200 -
+[run-dev] backend ready: http://127.0.0.1:44073/classes
+127.0.0.1 - - [26/May/2026 14:12:49] "GET /classes HTTP/1.1" 200 -
+[run-dev] frontend ready: http://127.0.0.1:47479/
+
+[run-dev] both services up.
+[run-dev]   backend:  http://localhost:44073
+[run-dev]   frontend: http://localhost:47479
+[run-dev] Ctrl-C to stop.
+
+[run-dev] shutting down (pids: 355206 355207)

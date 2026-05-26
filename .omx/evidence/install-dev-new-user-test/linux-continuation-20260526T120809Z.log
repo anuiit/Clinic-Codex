@@ -1,0 +1,195 @@
+
+===== resume provenance =====
+source commit: 142edfc61bd9b6b917b2c5eaa5e65b130a9486e1
+tmp root: /tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1
+repo: /tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo
+
+===== artifact/import recheck =====
+backend venv python exists
+frontend node_modules non-empty
+derived prototypes exists
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/timm/models/registry.py:4: FutureWarning: Importing from timm.models.registry is deprecated, please import via timm.models
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.models", FutureWarning)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_5m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_5m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_11m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_11m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_384 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_384. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_512 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_512. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+all imports OK
+
+===== run-dev smoke first ports 55241/37329 =====
+launcher pid: 327721 log: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-run-dev-first-20260526T120809Z.log
+backend_ok=1 frontend_ok=1
+[FAIL] run-dev first did not log expected frontend URL
+[FAIL] run-dev first did not log expected backend URL
+backend listener stopped on 55241
+frontend listener stopped on 37329
+
+===== install idempotency second run =====
+
+[install] Stage 0/5: pre-flight checks
+
+[install] Using python3.11 (3.11)
+
+[install] Stage 1/5: venv at backend/.venv
+
+[install]   reusing existing venv
+
+[install] Stage 2/5: core utils (numpy, pillow, scipy, pyyaml, tqdm)
+Requirement already satisfied: numpy<2.5,>=1.24 in ./backend/.venv/lib/python3.11/site-packages (2.4.6)
+Requirement already satisfied: pillow>=10.0 in ./backend/.venv/lib/python3.11/site-packages (12.2.0)
+Requirement already satisfied: pyyaml>=6.0 in ./backend/.venv/lib/python3.11/site-packages (6.0.3)
+Requirement already satisfied: scipy>=1.11 in ./backend/.venv/lib/python3.11/site-packages (1.17.1)
+Requirement already satisfied: tqdm>=4.66 in ./backend/.venv/lib/python3.11/site-packages (4.67.3)
+
+[install] Stage 3/5: flask + flask-cors
+Requirement already satisfied: flask<4.0,>=3.0 in ./backend/.venv/lib/python3.11/site-packages (3.1.3)
+Requirement already satisfied: flask-cors>=4.0 in ./backend/.venv/lib/python3.11/site-packages (6.0.2)
+Requirement already satisfied: blinker>=1.9.0 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (1.9.0)
+Requirement already satisfied: click>=8.1.3 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (8.4.1)
+Requirement already satisfied: itsdangerous>=2.2.0 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (2.2.0)
+Requirement already satisfied: jinja2>=3.1.2 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (3.1.6)
+Requirement already satisfied: markupsafe>=2.1.1 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (3.0.3)
+Requirement already satisfied: werkzeug>=3.1.0 in ./backend/.venv/lib/python3.11/site-packages (from flask<4.0,>=3.0) (3.1.8)
+
+[install] Stage 4/5: torch CPU wheels (~200MB download — be patient)
+Looking in indexes: https://pypi.org/simple, https://download.pytorch.org/whl/cpu
+Requirement already satisfied: torch<2.6,>=2.1 in ./backend/.venv/lib/python3.11/site-packages (2.5.1+cpu)
+Requirement already satisfied: torchvision<0.21,>=0.16 in ./backend/.venv/lib/python3.11/site-packages (0.20.1+cpu)
+Requirement already satisfied: filelock in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (3.29.0)
+Requirement already satisfied: typing-extensions>=4.8.0 in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (4.15.0)
+Requirement already satisfied: networkx in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (3.6.1)
+Requirement already satisfied: jinja2 in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (3.1.6)
+Requirement already satisfied: fsspec in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (2026.4.0)
+Requirement already satisfied: sympy==1.13.1 in ./backend/.venv/lib/python3.11/site-packages (from torch<2.6,>=2.1) (1.13.1)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./backend/.venv/lib/python3.11/site-packages (from sympy==1.13.1->torch<2.6,>=2.1) (1.3.0)
+Requirement already satisfied: numpy in ./backend/.venv/lib/python3.11/site-packages (from torchvision<0.21,>=0.16) (2.4.6)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in ./backend/.venv/lib/python3.11/site-packages (from torchvision<0.21,>=0.16) (12.2.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./backend/.venv/lib/python3.11/site-packages (from jinja2->torch<2.6,>=2.1) (3.0.3)
+
+[install] Stage 5/5: segment-anything, mobile-sam, albumentations, timm
+Collecting git+https://github.com/ChaoningZhang/MobileSAM.git
+  Cloning https://github.com/ChaoningZhang/MobileSAM.git to /tmp/pip-req-build-c0xt3miw
+  Running command git clone --filter=blob:none --quiet https://github.com/ChaoningZhang/MobileSAM.git /tmp/pip-req-build-c0xt3miw
+  Resolved https://github.com/ChaoningZhang/MobileSAM.git to commit f706ad9c4eb7f219c00d9050e46328518ffb65d2
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: segment-anything==1.0 in ./backend/.venv/lib/python3.11/site-packages (1.0)
+Requirement already satisfied: albumentations<2.0,>=1.4 in ./backend/.venv/lib/python3.11/site-packages (1.4.24)
+Requirement already satisfied: timm>=0.9 in ./backend/.venv/lib/python3.11/site-packages (1.0.27)
+Requirement already satisfied: numpy>=1.24.4 in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (2.4.6)
+Requirement already satisfied: scipy>=1.10.0 in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (1.17.1)
+Requirement already satisfied: PyYAML in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (6.0.3)
+Requirement already satisfied: pydantic>=2.9.2 in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (2.13.4)
+Requirement already satisfied: albucore==0.0.23 in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (0.0.23)
+Requirement already satisfied: opencv-python-headless>=4.9.0.80 in ./backend/.venv/lib/python3.11/site-packages (from albumentations<2.0,>=1.4) (4.13.0.92)
+Requirement already satisfied: stringzilla>=3.10.4 in ./backend/.venv/lib/python3.11/site-packages (from albucore==0.0.23->albumentations<2.0,>=1.4) (4.6.1)
+Requirement already satisfied: simsimd>=5.9.2 in ./backend/.venv/lib/python3.11/site-packages (from albucore==0.0.23->albumentations<2.0,>=1.4) (6.5.16)
+Requirement already satisfied: torch in ./backend/.venv/lib/python3.11/site-packages (from timm>=0.9) (2.5.1+cpu)
+Requirement already satisfied: torchvision in ./backend/.venv/lib/python3.11/site-packages (from timm>=0.9) (0.20.1+cpu)
+Requirement already satisfied: huggingface_hub in ./backend/.venv/lib/python3.11/site-packages (from timm>=0.9) (1.16.1)
+Requirement already satisfied: safetensors in ./backend/.venv/lib/python3.11/site-packages (from timm>=0.9) (0.7.0)
+Requirement already satisfied: annotated-types>=0.6.0 in ./backend/.venv/lib/python3.11/site-packages (from pydantic>=2.9.2->albumentations<2.0,>=1.4) (0.7.0)
+Requirement already satisfied: pydantic-core==2.46.4 in ./backend/.venv/lib/python3.11/site-packages (from pydantic>=2.9.2->albumentations<2.0,>=1.4) (2.46.4)
+Requirement already satisfied: typing-extensions>=4.14.1 in ./backend/.venv/lib/python3.11/site-packages (from pydantic>=2.9.2->albumentations<2.0,>=1.4) (4.15.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./backend/.venv/lib/python3.11/site-packages (from pydantic>=2.9.2->albumentations<2.0,>=1.4) (0.4.2)
+Requirement already satisfied: filelock>=3.10.0 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (3.29.0)
+Requirement already satisfied: fsspec>=2023.5.0 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (2026.4.0)
+Requirement already satisfied: hf-xet<2.0.0,>=1.4.3 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (1.5.0)
+Requirement already satisfied: httpx<1,>=0.23.0 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (0.28.1)
+Requirement already satisfied: packaging>=20.9 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (26.2)
+Requirement already satisfied: tqdm>=4.42.1 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (4.67.3)
+Requirement already satisfied: typer>=0.20.0 in ./backend/.venv/lib/python3.11/site-packages (from huggingface_hub->timm>=0.9) (0.25.1)
+Requirement already satisfied: anyio in ./backend/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm>=0.9) (4.13.0)
+Requirement already satisfied: certifi in ./backend/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm>=0.9) (2026.5.20)
+Requirement already satisfied: httpcore==1.* in ./backend/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm>=0.9) (1.0.9)
+Requirement already satisfied: idna in ./backend/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm>=0.9) (3.16)
+Requirement already satisfied: h11>=0.16 in ./backend/.venv/lib/python3.11/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->huggingface_hub->timm>=0.9) (0.16.0)
+Requirement already satisfied: click>=8.2.1 in ./backend/.venv/lib/python3.11/site-packages (from typer>=0.20.0->huggingface_hub->timm>=0.9) (8.4.1)
+Requirement already satisfied: shellingham>=1.3.0 in ./backend/.venv/lib/python3.11/site-packages (from typer>=0.20.0->huggingface_hub->timm>=0.9) (1.5.4)
+Requirement already satisfied: rich>=13.8.0 in ./backend/.venv/lib/python3.11/site-packages (from typer>=0.20.0->huggingface_hub->timm>=0.9) (15.0.0)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./backend/.venv/lib/python3.11/site-packages (from typer>=0.20.0->huggingface_hub->timm>=0.9) (0.0.4)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./backend/.venv/lib/python3.11/site-packages (from rich>=13.8.0->typer>=0.20.0->huggingface_hub->timm>=0.9) (4.2.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./backend/.venv/lib/python3.11/site-packages (from rich>=13.8.0->typer>=0.20.0->huggingface_hub->timm>=0.9) (2.20.0)
+Requirement already satisfied: mdurl~=0.1 in ./backend/.venv/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich>=13.8.0->typer>=0.20.0->huggingface_hub->timm>=0.9) (0.1.2)
+Requirement already satisfied: networkx in ./backend/.venv/lib/python3.11/site-packages (from torch->timm>=0.9) (3.6.1)
+Requirement already satisfied: jinja2 in ./backend/.venv/lib/python3.11/site-packages (from torch->timm>=0.9) (3.1.6)
+Requirement already satisfied: sympy==1.13.1 in ./backend/.venv/lib/python3.11/site-packages (from torch->timm>=0.9) (1.13.1)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./backend/.venv/lib/python3.11/site-packages (from sympy==1.13.1->torch->timm>=0.9) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./backend/.venv/lib/python3.11/site-packages (from jinja2->torch->timm>=0.9) (3.0.3)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in ./backend/.venv/lib/python3.11/site-packages (from torchvision->timm>=0.9) (12.2.0)
+
+[install] Frontend: npm install (idempotent)
+
+[install]   frontend/node_modules present — skipping (delete it to force reinstall)
+
+[install] Sanity: importing all critical modules
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/timm/models/registry.py:4: FutureWarning: Importing from timm.models.registry is deprecated, please import via timm.models
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.models", FutureWarning)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_5m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_5m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_11m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_11m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_224 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_224. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_384 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_384. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/mobile_sam/modeling/tiny_vit_sam.py:656: UserWarning: Overwriting tiny_vit_21m_512 in registry with mobile_sam.modeling.tiny_vit_sam.tiny_vit_21m_512. This is because the name being registered conflicts with an existing name. Please check if this is not expected.
+  return register_model(fn_wrapper)
+/tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1/repo/backend/.venv/lib/python3.11/site-packages/albumentations/__init__.py:24: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.24). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+all imports OK
+
+[install] Exporting model prototypes (idempotent)
+
+[install]   prototypes.pt present — skipping export
+
+[install] DONE. Launch with: bash scripts/run-dev.sh (Linux/macOS) or powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 (Windows)
+install second/idempotency run PASS
+
+===== run-dev smoke second ports 36869/32947 =====
+launcher pid: 333212 log: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-run-dev-second-20260526T120809Z.log
+backend_ok=1 frontend_ok=1
+[FAIL] run-dev second did not log expected frontend URL
+[FAIL] run-dev second did not log expected backend URL
+backend listener stopped on 36869
+frontend listener stopped on 32947
+
+===== post-run listener scan =====
+no tested-port listeners remain
+
+===== cleanup =====
+cleanup target: /tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1
+canonical: /tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1
+cleanup verified removed
+
+===== write/copy summary =====
+# Linux lane summary (20260526T120809Z)
+
+Status: FAIL
+Source commit: 142edfc61bd9b6b917b2c5eaa5e65b130a9486e1
+Temp root: /tmp/clinic-codex-new-user-linux-20260526T120809Z-worker1 (cleanup verified: yes)
+Ports: first 55241/37329; second 36869/32947
+Primary install log: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-lane-20260526T120809Z.log
+Continuation log: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-continuation-20260526T120809Z.log
+Run logs: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-run-dev-first-20260526T120809Z.log, /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/linux-run-dev-second-20260526T120809Z.log
+Cleanup log: /home/sina/omxpro/clinic-codex/.omx/evidence/install-dev-new-user-test/cleanup-linux-20260526T120809Z.log
+
+## Failures
+- run-dev first did not log expected frontend URL
+- run-dev first did not log expected backend URL
+- run-dev second did not log expected frontend URL
+- run-dev second did not log expected backend URL
