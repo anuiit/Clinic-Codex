@@ -1,0 +1,50 @@
+
+> codex-frontend@0.0.0 test
+> vitest run
+
+
+ RUN  v3.2.4 /tmp/clinic-codex-team-leader-install-dev-20260526T120408Z/.omx/team/run-approved-install-c2f2f163/worktrees/worker-2/frontend
+
+ ✓ src/services/storageDb.test.ts (11 tests) 69ms
+ ✓ src/services/api.test.ts (14 tests) 317ms
+ ✓ src/services/storage.test.ts (14 tests) 83ms
+ ✓ src/utils/segmentationBoxes.test.ts (11 tests) 12ms
+ ✓ src/utils/fuzzyClasses.test.ts (3 tests) 42ms
+ ✓ src/utils/imageCoords.test.ts (5 tests) 24ms
+ ✓ src/pages/annotation/useAnnotationElementModel.phase5.test.tsx (4 tests) 145ms
+ ✓ src/test/App.test.tsx (4 tests) 202ms
+ ✓ src/components/MainImagePanel.test.tsx (7 tests) 753ms
+   ✓ MainImagePanel shared boundary > renders the shared viewport contract without owning page business behavior  632ms
+ ✓ src/pages/workspace/useWorkspaceViewport.phase4.test.tsx (4 tests) 999ms
+   ✓ useWorkspaceViewport Phase 4 trust lifecycle > passes an abort signal to trust inspection requests  479ms
+ ✓ src/pages/Image387Alignment.test.tsx (2 tests) 785ms
+   ✓ 387_769v.jpg visual geometry regression > keeps AnnotationPage SVG aligned to the 750x1210 fixture while moving a bbox  540ms
+ ✓ src/utils/imageStageZoom.test.ts (3 tests) 15ms
+ ✓ src/pages/WorkspacePage.pan.test.tsx (3 tests) 1731ms
+   ✓ WorkspacePage image pan behavior > collapses and expands the history sidebar via stable container animation and compact header  998ms
+   ✓ WorkspacePage image pan behavior > focuses a single overlay region and returns to the full overlay view  460ms
+ ✓ src/pages/AnnotationPage.pan.test.tsx (16 tests) 2471ms
+   ✓ AnnotationPage pan behavior > keeps image and SVG overlay locked to the same measured stage after resize  572ms
+   ✓ AnnotationPage pan behavior > draw mode creates a draft bbox without changing the stage layout  432ms
+ ✓ src/pages/AnnotationPage.naming.test.tsx (22 tests) 5999ms
+   ✓ AnnotationPage element naming UX > renames from fuzzy suggestions while preserving the bbox  1402ms
+   ✓ AnnotationPage element naming UX > creates a missing element name from typed text  556ms
+   ✓ AnnotationPage element naming UX > commits a typed missing name with Enter  441ms
+   ✓ AnnotationPage element naming UX > uses the compact list for selection while editing in the main inspector  333ms
+   ✓ AnnotationPage element naming UX > keeps compact chrome, analyzer toolbar, and list controls in stable regions  593ms
+   ✓ AnnotationPage element naming UX > filters and sorts the compact annotation list without changing bbox data  515ms
+ ✓ src/pages/WorkspacePage.interactions.test.tsx (11 tests) 6308ms
+   ✓ WorkspacePage interaction coverage > filters history results, selects a matching run, and deletes the active run  1474ms
+   ✓ WorkspacePage interaction coverage > toggles overlays and opens focused region details without starting a pan  1471ms
+   ✓ WorkspacePage interaction coverage > focuses a region from the full row click without rendering a separate details button  389ms
+   ✓ WorkspacePage interaction coverage > hands off the selected workspace region to the annotation editor query param  663ms
+   ✓ WorkspacePage interaction coverage > hands off the whole active workspace record without a selected element query param  332ms
+   ✓ WorkspacePage interaction coverage > toggles workspace canvas bbox labels with an icon-only accessible control  546ms
+   ✓ WorkspacePage interaction coverage > keeps workspace list and detail panels in the narrowed image-dominant scroll layout without duplicate focus lists  521ms
+   ✓ WorkspacePage interaction coverage > opens the upload preview, cancels cleanly, and analyzes the selected image  376ms
+
+ Test Files  16 passed (16)
+      Tests  134 passed (134)
+   Start at  14:08:31
+   Duration  10.12s (transform 3.59s, setup 3.13s, collect 13.52s, tests 19.95s, environment 23.73s, prepare 5.01s)
+

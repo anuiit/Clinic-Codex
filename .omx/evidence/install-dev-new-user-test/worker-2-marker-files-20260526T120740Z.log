@@ -1,0 +1,20 @@
+# worker-2 marker-file guard evidence
+timestamp_utc=20260526T120740Z
+repo=/tmp/clinic-codex-team-leader-install-dev-20260526T120408Z/.omx/team/run-approved-install-c2f2f163/worktrees/worker-2
+head=142edfc61bd9b6b917b2c5eaa5e65b130a9486e1
+marker=.clinic-codex-temp-root
+
+## Linux temp root marker guard
+linux_root=/tmp/clinic-codex-new-user-linux-worker2-20260526T120740Z
+linux_canonical=/tmp/clinic-codex-new-user-linux-worker2-20260526T120740Z
+linux_prefix_check=PASS
+linux_marker_check=PASS
+linux_cleanup_check=PASS
+
+## Windows-accessible temp root marker guard
+win_root_linux=/mnt/c/Temp/clinic-codex-new-user-win-worker2-20260526T120740Z
+win_canonical_linux=/mnt/c/Temp/clinic-codex-new-user-win-worker2-20260526T120740Z
+win_native=C:\Temp\clinic-codex-new-user-win-worker2-20260526T120740Z
+win_prefix_check=PASS
+win_marker_check=PASS
+win_cleanup_check=PASS
