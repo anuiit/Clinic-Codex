@@ -4,6 +4,7 @@ import {
   act,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi, describe, it, expect, beforeEach } from "vitest";
@@ -20,6 +21,7 @@ vi.mock("../services/api", () => ({
 
 import { getAnalysisById, updateElements } from "../services/storage";
 import AnnotationPage from "./AnnotationPage";
+import { RESIZE_HANDLE_HIT_RADIUS } from "./annotation/useBBoxEditing";
 import type { AnalysisRecord } from "../types";
 
 const STUB_RECORD: AnalysisRecord = {
@@ -99,6 +101,11 @@ function getSvgAndWrapper(container: HTMLElement): {
   return { svg, wrapper: svg.parentElement as HTMLElement };
 }
 
+function getAnnotationBoxStatus(idx: number) {
+  const box = screen.getByTestId(`annotation-box-${idx}`);
+  return box.closest("[data-status]")?.getAttribute("data-status");
+}
+
 function dispatchPointer(
   target: Element,
   type: "pointerdown" | "pointermove" | "pointerup",
@@ -136,6 +143,21 @@ describe("AnnotationPage pan behavior", () => {
 
     const { svg } = getSvgAndWrapper(container);
     expect(svg.getAttribute("preserveAspectRatio")).toBe("none");
+  });
+
+  it("renders edit and zoom controls in one bottom-center annotation dock", async () => {
+    renderPage();
+    await act(async () => {});
+
+    const toolbox = screen.getByTestId("annotation-stage-toolbox");
+    expect(toolbox).toHaveClass("main-image-panel__toolbar--bottom-center");
+    expect(screen.queryByTestId("annotation-stage-controls")).not.toBeInTheDocument();
+    expect(within(toolbox).getByTestId("annotation-analyzer-toolbar")).toBeInTheDocument();
+    expect(within(toolbox).getByRole("button", { name: "Draw bbox" })).toBeInTheDocument();
+    expect(within(toolbox).getByRole("button", { name: "Zoom arrière" })).toBeInTheDocument();
+    expect(within(toolbox).getByRole("button", { name: "Ajuster à la vue" })).toBeInTheDocument();
+    expect(within(toolbox).getByRole("button", { name: "Zoom avant" })).toBeInTheDocument();
+    expect(toolbox).toHaveTextContent("100%");
   });
 
   it("keeps image and SVG overlay locked to the same measured stage after resize", async () => {
@@ -286,7 +308,7 @@ describe("AnnotationPage pan behavior", () => {
 
     expect(preventDefaultSpy).toHaveBeenCalled();
     expect(wrapper.style.transform).not.toBe(transformBefore);
-    expect(wrapper.style.transform).toContain("scale(2)");
+    expect(wrapper.style.transform).toContain("scale(1.15)");
   });
 
   it("draw mode creates a draft bbox without changing the stage layout", async () => {
@@ -300,7 +322,7 @@ describe("AnnotationPage pan behavior", () => {
     };
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Mode sélection" }));
+      fireEvent.click(screen.getByRole("button", { name: "Draw bbox" }));
     });
 
     const { svg, wrapper } = getSvgAndWrapper(container);
@@ -337,7 +359,7 @@ describe("AnnotationPage pan behavior", () => {
     expect(wrapper.style.transform).toBe(transformBefore);
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
@@ -348,6 +370,49 @@ describe("AnnotationPage pan behavior", () => {
       [expect.objectContaining({ bbox: [40, 50, 50, 45] })],
       { 0: "draft" },
     );
+  });
+
+  it("draw-created bbox is removed by toolbar undo and leaves undo disabled again", async () => {
+    const { container } = renderPage();
+    await act(async () => {});
+
+    const undoButton = await screen.findByRole("button", { name: "Annuler bbox" });
+    expect(undoButton).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Draw bbox" }));
+    });
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 40,
+        clientY: 50,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 90,
+        clientY: 95,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 90,
+        clientY: 95,
+        pointerId: 1,
+      });
+    });
+
+    expect(await screen.findByTestId("annotation-box-0")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Annuler bbox" })).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Annuler bbox" }));
+    });
+
+    expect(screen.queryByTestId("annotation-box-0")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Annuler bbox" })).toBeDisabled();
   });
 
   it("direct wheel over the annotation stage zooms without modifier keys and prevents page scroll", async () => {
@@ -372,7 +437,7 @@ describe("AnnotationPage pan behavior", () => {
     });
 
     expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(wrapper.style.transform).toContain("scale(1.25)");
+    expect(wrapper.style.transform).toContain("scale(1.0375)");
 
     const zoomOutEvent = new WheelEvent("wheel", {
       bubbles: true,
@@ -410,7 +475,7 @@ describe("AnnotationPage pan behavior", () => {
 
     const buttons = container.querySelectorAll("button");
     const resetBtn = Array.from(buttons).find(
-      (b) => b.title === "Réinitialiser la vue",
+      (b) => b.title === "Ajuster à la vue",
     ) as HTMLElement;
 
     await act(async () => {
@@ -551,6 +616,37 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
+  it("uses flattened sidebar tokens for the selected annotation inspector", async () => {
+    const recordWithElement: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    renderPage(recordWithElement, "/annotate/test-id?element=0");
+
+    const inspector = await screen.findByTestId("selected-element-inspector");
+    expect(inspector).toHaveClass(
+      "annotation-selected-inspector",
+      "rounded-xl",
+    );
+    expect(inspector).not.toHaveClass("sidebar-shell");
+    expect(inspector.querySelector(".sidebar-header")).toBeInTheDocument();
+    expect(inspector.querySelector(".sidebar-body")).toBeInTheDocument();
+  });
+
   it("keeps a click with tiny movement from mutating the bbox", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
@@ -601,7 +697,7 @@ describe("AnnotationPage pan behavior", () => {
     expect(updateElements).not.toHaveBeenCalled();
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
@@ -614,9 +710,68 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
-  it("dragging an existing bbox changes the bbox without panning the image wrapper", async () => {
+  it("first drag on an unselected bbox selects only and does not mark it dirty", async () => {
+    const recordWithValidatedBox: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithValidatedBox);
+    await screen.findByText("atl");
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 170,
+        clientY: 175,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 170,
+        clientY: 175,
+        pointerId: 1,
+      });
+    });
+
+    expect(await screen.findByLabelText("Nommer l’élément 0")).toBeInTheDocument();
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [100, 100, 50, 40] })],
+      { 0: "validated" },
+    );
+  });
+
+  it("second drag on the already-selected bbox changes it without panning the image wrapper", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
+      annotationStatus: { 0: "validated" },
       result: {
         ...STUB_RECORD.result,
         num_elements: 1,
@@ -635,9 +790,25 @@ describe("AnnotationPage pan behavior", () => {
 
     const { container } = renderPage(recordWithElement);
     await screen.findByText("atl");
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
 
     const { svg, wrapper } = getSvgAndWrapper(container);
     const transformBefore = wrapper.style.transform;
+
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+      });
+    });
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
 
     await act(async () => {
       dispatchPointer(svg, "pointerdown", {
@@ -666,9 +837,10 @@ describe("AnnotationPage pan behavior", () => {
     await act(async () => {});
 
     expect(wrapper.style.transform).toBe(transformBefore);
+    expect(getAnnotationBoxStatus(0)).toBe("draft");
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
@@ -730,7 +902,7 @@ describe("AnnotationPage pan behavior", () => {
     });
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
@@ -743,9 +915,186 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
-  it("resizes via the corner handle immediately and saves the resized box", async () => {
+  it("clicking a different bbox while one is selected switches selection only", async () => {
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated", 1: "validated" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: "bet",
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithElements, "/annotate/test-id?element=0");
+    await screen.findByText("atl");
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 250,
+        clientY: 205,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 290,
+        clientY: 240,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 290,
+        clientY: 240,
+        pointerId: 1,
+      });
+    });
+
+    expect(await screen.findByLabelText("Nommer l’élément 1")).toBeInTheDocument();
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
+    expect(getAnnotationBoxStatus(1)).toBe("validated");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ bbox: [100, 100, 50, 40] }),
+        expect.objectContaining({ bbox: [220, 180, 60, 50] }),
+      ],
+      { 0: "validated", 1: "validated" },
+    );
+  });
+
+  it("deletes the selected bbox and shifts annotation status indexes on save", async () => {
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated", 1: "draft" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: "bet",
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    renderPage(recordWithElements, "/annotate/test-id?element=0");
+    await screen.findByText("atl");
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "Supprimer l’élément #0" }));
+    });
+    expect(screen.queryByText("atl")).not.toBeInTheDocument();
+    expect(await screen.findByText("bet")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [220, 180, 60, 50], class_name: "bet" })],
+      { 0: "draft" },
+    );
+  });
+
+  it("restores a deleted bbox and status mapping with Ctrl+Z undo", async () => {
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated", 1: "draft" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: "bet",
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    renderPage(recordWithElements, "/annotate/test-id?element=0");
+    await screen.findByText("atl");
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "Supprimer l’élément #0" }));
+    });
+    expect(screen.queryByText("atl")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "z", code: "KeyZ", ctrlKey: true });
+    });
+
+    expect(await screen.findByText("atl")).toBeInTheDocument();
+    expect(screen.getByText("bet")).toBeInTheDocument();
+    expect(screen.getByTestId("selected-element-inspector")).toHaveTextContent("#0 · atl");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ bbox: [100, 100, 50, 40], class_name: "atl" }),
+        expect.objectContaining({ bbox: [220, 180, 60, 50], class_name: "bet" }),
+      ],
+      { 0: "validated", 1: "draft" },
+    );
+  });
+
+  it("does not resize from an unselected handle on the first pointer interaction", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
+      annotationStatus: { 0: "validated" },
       result: {
         ...STUB_RECORD.result,
         num_elements: 1,
@@ -773,6 +1122,79 @@ describe("AnnotationPage pan behavior", () => {
         pointerId: 1,
         buttons: 1,
       });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 80,
+        clientY: 90,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 80,
+        clientY: 90,
+        pointerId: 1,
+      });
+    });
+
+    expect(await screen.findByLabelText("Nommer l’élément 0")).toBeInTheDocument();
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [expect.objectContaining({ bbox: [100, 100, 50, 40] })],
+      { 0: "validated" },
+    );
+  });
+
+  it("resizes via the selected corner handle on the second pointer interaction", async () => {
+    const recordWithElement: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 1,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    const { container } = renderPage(recordWithElement);
+    await screen.findByText("atl");
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 125,
+        clientY: 125,
+        pointerId: 1,
+      });
+    });
+
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+        buttons: 1,
+      });
     });
     await act(async () => {
       dispatchPointer(svg, "pointermove", {
@@ -789,9 +1211,10 @@ describe("AnnotationPage pan behavior", () => {
         pointerId: 1,
       });
     });
+    expect(getAnnotationBoxStatus(0)).toBe("draft");
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(saveButton);
@@ -801,6 +1224,78 @@ describe("AnnotationPage pan behavior", () => {
       "test-id",
       [expect.objectContaining({ bbox: [80, 90, 70, 50] })],
       { 0: "draft" },
+    );
+  });
+
+  it("keeps resize hit testing selected-only and tighter than the previous broad radius", async () => {
+    const recordWithAdjacentElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      annotationStatus: { 0: "validated", 1: "validated" },
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [158, 100, 50, 40],
+            class_name: "bet",
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    expect(RESIZE_HANDLE_HIT_RADIUS).toBeLessThan(12);
+
+    const { container } = renderPage(recordWithAdjacentElements, "/annotate/test-id?element=0");
+    await screen.findByText("atl");
+
+    const { svg } = getSvgAndWrapper(container);
+    await act(async () => {
+      dispatchPointer(svg, "pointerdown", {
+        clientX: 158,
+        clientY: 100,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointermove", {
+        clientX: 180,
+        clientY: 120,
+        pointerId: 1,
+        buttons: 1,
+      });
+      dispatchPointer(svg, "pointerup", {
+        clientX: 180,
+        clientY: 120,
+        pointerId: 1,
+      });
+    });
+
+    expect(await screen.findByLabelText("Nommer l’élément 1")).toBeInTheDocument();
+    expect(getAnnotationBoxStatus(0)).toBe("validated");
+    expect(getAnnotationBoxStatus(1)).toBe("validated");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    });
+
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ bbox: [100, 100, 50, 40] }),
+        expect.objectContaining({ bbox: [158, 100, 50, 40] }),
+      ],
+      { 0: "validated", 1: "validated" },
     );
   });
 });

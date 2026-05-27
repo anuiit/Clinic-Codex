@@ -66,7 +66,7 @@ def _band(sim):
 @bp.post("/similar")
 def similar():
     data = request.get_json()
-    img, bbox, error = _load_image_and_bbox(data)
+    img, bbox, error = _load_image_and_bbox(data, require_positive_bbox=True)
     if error:
         return error
 
@@ -106,7 +106,7 @@ def similar():
 @bp.post("/trust")
 def trust():
     data = request.get_json()
-    img, bbox, error = _load_image_and_bbox(data)
+    img, bbox, error = _load_image_and_bbox(data, require_positive_bbox=True)
     if error:
         return error
 

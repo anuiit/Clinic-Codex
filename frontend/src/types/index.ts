@@ -114,3 +114,143 @@ export interface SaveAnnotationError {
 export type SaveAnnotationSuccess = SaveAnnotationResponse & { ok: true };
 
 export type SaveAnnotationResult = SaveAnnotationSuccess | SaveAnnotationError;
+
+export type AdminAnnotationReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AdminAnnotationDiagnostic {
+  code: string;
+  message: string;
+  analysis_id?: string;
+  index?: number;
+  key?: string;
+}
+
+export interface AdminAnnotationCounts {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  trainable: number;
+}
+
+export interface AdminAnnotationElement {
+  key: string;
+  analysis_id: string;
+  index: number;
+  class_name: string;
+  bbox: [number, number, number, number] | number[];
+  crop_path: string;
+  crop_url: string;
+  crop_exists: boolean;
+  review_status: AdminAnnotationReviewStatus;
+  trainable: boolean;
+  source_fingerprint: string;
+  stale_decision: boolean;
+}
+
+export interface AdminAnnotationAnalysis {
+  analysis_id: string;
+  uploaded_at?: string;
+  image_path: string;
+  image_url: string;
+  image_exists: boolean;
+  elements: AdminAnnotationElement[];
+}
+
+export interface AdminAnnotationQueue {
+  status: 'ok';
+  schema_version: number;
+  local_only: boolean;
+  warning: string;
+  counts: AdminAnnotationCounts;
+  analyses: AdminAnnotationAnalysis[];
+  diagnostics: AdminAnnotationDiagnostic[];
+}
+
+export interface AdminAnnotationMutationResponse {
+  status: 'ok';
+  local_only: boolean;
+  warning: string;
+  element: AdminAnnotationElement;
+  counts?: AdminAnnotationCounts;
+}
+
+export interface AdminAnnotationModifyPayload {
+  class_name: string;
+  bbox: [number, number, number, number];
+  approve_after_save?: boolean;
+  status?: AdminAnnotationReviewStatus;
+}
+
+export interface AdminTrainingFileInfo {
+  path: string;
+  exists: boolean;
+  size?: number;
+  mtime?: string;
+  sha256?: string | null;
+}
+
+export interface AdminTrainingJob {
+  run_id: string;
+  status: 'running' | 'succeeded' | 'failed' | 'disabled' | 'rejected';
+  local_only?: boolean;
+  dry_run: boolean;
+  device: string;
+  batch_size: number;
+  notes?: string;
+  started_at?: string;
+  finished_at?: string | null;
+  exit_code?: number | null;
+  pid?: number | null;
+  process_identity?: string | null;
+  command?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+  log_path?: string;
+  log_tail?: string[];
+  artifacts?: Record<string, unknown>;
+}
+
+export interface AdminTrainingSummary {
+  status: 'ok';
+  local_only: boolean;
+  warning: string;
+  training_jobs_enabled: boolean;
+  launch_allowed_for_request: boolean;
+  launch_disabled_reasons: string[];
+  data: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    trainable: number;
+    classes: string[];
+    per_class: Record<string, number>;
+    diagnostics: AdminAnnotationDiagnostic[];
+  };
+  parameters: {
+    editable: {
+      dry_run: boolean;
+      device: string[];
+      batch_size: { default: number; min: number; max: number };
+    };
+    script_env_defaults: Record<string, string>;
+    config: Record<string, unknown>;
+  };
+  paths: Record<string, string | boolean | null>;
+  artifacts: Record<string, unknown>;
+  latest_job?: AdminTrainingJob | null;
+}
+
+export interface AdminTrainingJobResponse {
+  status: 'ok';
+  local_only: boolean;
+  job: AdminTrainingJob | null;
+}
+
+export interface AdminTrainingStartPayload {
+  dry_run: boolean;
+  device: string;
+  batch_size: number;
+  notes?: string;
+}

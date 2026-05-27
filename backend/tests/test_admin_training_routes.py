@@ -1,0 +1,566 @@
+# type: ignore
+# pyright: reportMissingImports=false
+"""Tests for guarded local admin training routes."""
+from __future__ import annotations
+
+import base64
+import ctypes
+import io
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+from PIL import Image
+
+from backend.app.config import Settings
+from backend.app.factory import create_app
+from backend.services import training_jobs
+from backend.services.model_registry import ModelRegistry
+
+DISABLED_BY_DEFAULT_REASON = "disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches"
+
+
+def _png_data_url(size=(12, 12)):
+    buf = io.BytesIO()
+    Image.new("RGB", size, color=(230, 230, 230)).save(buf, format="PNG")
+    return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('ascii')}"
+
+
+def _payload(analysis_id: str):
+    return {
+        "analysis_id": analysis_id,
+        "image_data_url": _png_data_url(),
+        "annotations": [{"index": 0, "class_name": "atl", "bbox": [0, 0, 4, 4]}],
+    }
+
+
+def _settings(tmp_path: Path, *, enabled: bool = False):
+    backend_root = tmp_path / "backend"
+    (backend_root / "codex_pipeline" / "config").mkdir(parents=True, exist_ok=True)
+    (backend_root / "codex_pipeline" / "config" / "default.yaml").write_text(
+        "data:\n  image_size: 224\ntraining:\n  num_epochs: 100\nmodel:\n  backbone: dinov2_vits14\nevaluation:\n  num_eval_episodes: 10\ninference:\n  top_k: 3\n",
+        encoding="utf-8",
+    )
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    script = scripts_dir / "retrain.sh"
+    script.write_text("#!/usr/bin/env bash\necho retrain $@\n", encoding="utf-8")
+    script.chmod(0o755)
+    return Settings(backend_root=backend_root, testing=True, enable_admin_training_jobs=enabled)
+
+
+def _client(settings):
+    app = create_app(settings=settings)
+    return app, app.test_client()
+
+
+def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    _app, client = _client(settings)
+    assert client.post("/save-annotation", json=_payload("training-summary-1")).status_code == 200
+    assert client.post("/admin/annotations/training-summary-1/0/review", json={"status": "approved"}).status_code == 200
+
+    resp = client.get("/admin/training/summary")
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["training_jobs_enabled"] is False
+    assert body["launch_allowed_for_request"] is False
+    assert body["launch_disabled_reasons"] == [DISABLED_BY_DEFAULT_REASON]
+    assert body["data"]["trainable"] == 1
+    assert body["data"]["per_class"] == {"atl": 1}
+    assert body["parameters"]["editable"]["device"] == ["auto", "cpu", "mps", "cuda"]
+    assert body["paths"]["model_registry_dir"] == str(settings.model_registry_dir)
+    assert body["paths"]["promote_script"].endswith("scripts/promote_model.py")
+    assert body["artifacts"]["model_registry"]["status"] == "not_initialized"
+    assert body["artifacts"]["model_registry"]["aliases"]["promoted"] is None
+
+
+def test_training_summary_enabled_loopback_allows_launch(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.get(
+        "/admin/training/summary",
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["training_jobs_enabled"] is True
+    assert body["launch_allowed_for_request"] is True
+    assert body["launch_disabled_reasons"] == []
+
+
+def test_training_summary_surfaces_model_registry_candidate_health(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    source = tmp_path / "candidate-source"
+    (source / "weights").mkdir(parents=True)
+    (source / "weights" / "prototypes.pt").write_bytes(b"candidate-prototypes")
+    (source / "weights" / "projection.pt").write_bytes(b"candidate-projection")
+    (source / "config.json").write_text('{"model_version":"candidate"}', encoding="utf-8")
+    registry = ModelRegistry(
+        settings.model_registry_dir,
+        repo_root=tmp_path,
+        runtime_model_dir=settings.backend_root / "codex_model",
+    )
+    registry.create_version_from_artifacts(
+        "20260527T010203Z-test-candidate",
+        artifact_sources={
+            "runtime/weights/prototypes.pt": source / "weights" / "prototypes.pt",
+            "runtime/weights/projection.pt": source / "weights" / "projection.pt",
+            "runtime/config.json": source / "config.json",
+        },
+    )
+    _app, client = _client(settings)
+
+    body = client.get("/admin/training/summary").get_json()
+
+    registry_body = body["artifacts"]["model_registry"]
+    assert registry_body["status"] == "ok"
+    assert registry_body["aliases"]["candidate"] == "20260527T010203Z-test-candidate"
+    assert registry_body["latest_candidate"]["manifest_health"]["status"] == "healthy"
+    assert body["paths"]["candidate_version_dir"].endswith(
+        "backend/model_registry/versions/20260527T010203Z-test-candidate"
+    )
+
+
+def test_training_summary_marks_registry_candidate_unhealthy_on_checksum_drift(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    source = tmp_path / "candidate-source"
+    (source / "weights").mkdir(parents=True)
+    (source / "weights" / "prototypes.pt").write_bytes(b"candidate-prototypes")
+    (source / "weights" / "projection.pt").write_bytes(b"candidate-projection")
+    (source / "config.json").write_text('{"model_version":"candidate"}', encoding="utf-8")
+    registry = ModelRegistry(
+        settings.model_registry_dir,
+        repo_root=tmp_path,
+        runtime_model_dir=settings.backend_root / "codex_model",
+    )
+    registry.create_version_from_artifacts(
+        "20260527T010203Z-test-candidate",
+        artifact_sources={
+            "runtime/weights/prototypes.pt": source / "weights" / "prototypes.pt",
+            "runtime/weights/projection.pt": source / "weights" / "projection.pt",
+            "runtime/config.json": source / "config.json",
+        },
+    )
+    (registry.version_dir("20260527T010203Z-test-candidate") / "checksums.sha256").write_text(
+        "0" * 64 + "  runtime/config.json\n",
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+
+    body = client.get("/admin/training/summary").get_json()
+
+    health = body["artifacts"]["model_registry"]["latest_candidate"]["manifest_health"]
+    assert health["status"] == "unhealthy"
+    assert any("checksums_sha256 mismatch" in error for error in health["errors"])
+
+
+def test_training_summary_surfaces_incomplete_promotion_marker(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    settings.model_registry_dir.mkdir(parents=True)
+    (settings.model_registry_dir / "promotion_in_progress.json").write_text(
+        '{"version_id":"v1","action":"promote"}',
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+
+    body = client.get("/admin/training/summary").get_json()
+
+    registry_body = body["artifacts"]["model_registry"]
+    assert registry_body["status"] == "promotion_in_progress"
+    assert registry_body["promotion_in_progress"]["version_id"] == "v1"
+
+
+def test_training_start_disabled_by_default_returns_403(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    _app, client = _client(settings)
+
+    resp = client.post("/admin/training/jobs", json={"dry_run": True, "device": "cpu", "batch_size": 8})
+
+    assert resp.status_code == 403
+    assert resp.get_json()["error"] == DISABLED_BY_DEFAULT_REASON
+
+
+def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    nonlocal_remote = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True},
+        headers={"Host": "localhost"},
+        environ_overrides={"REMOTE_ADDR": "10.0.0.5"},
+    )
+    nonlocal_host = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True},
+        headers={"Host": "example.com", "Origin": "http://localhost:7118"},
+    )
+    nonlocal_origin = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True},
+        headers={"Host": "localhost", "Origin": "http://evil.example"},
+    )
+
+    assert nonlocal_remote.status_code == 403
+    assert "non_loopback_remote_addr" in nonlocal_remote.get_json()["error"]
+    assert nonlocal_host.status_code == 403
+    assert "nonlocal_host" in nonlocal_host.get_json()["error"]
+    assert nonlocal_origin.status_code == 403
+    assert "nonlocal_origin" in nonlocal_origin.get_json()["error"]
+
+
+@pytest.mark.parametrize(
+    "payload, error",
+    [
+        ({"dry_run": True, "command": "rm -rf /"}, "unknown field"),
+        ({"dry_run": True, "device": "shell"}, "device must be one of"),
+        ({"dry_run": True, "batch_size": 999}, "batch_size must be between"),
+    ],
+)
+def test_training_start_rejects_malicious_or_invalid_payloads(tmp_path, payload, error):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.post("/admin/training/jobs", json=payload, headers={"Host": "localhost"})
+
+    assert resp.status_code == 400
+    assert error in resp.get_json()["error"]
+
+
+def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    settings.admin_training_runs_dir.mkdir(parents=True)
+    (settings.admin_training_runs_dir / ".launch.lock").write_text('{"pid":999999}\n', encoding="utf-8")
+    _app, client = _client(settings)
+
+    resp = client.post("/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"})
+
+    assert resp.status_code == 409
+    assert "launch already in progress" in resp.get_json()["error"]
+
+
+def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    calls = []
+
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, command, cwd, env, stdout, stderr, text):
+            calls.append({"command": command, "cwd": cwd, "env": env, "stderr": stderr, "text": text})
+            stdout.write("mock dry run started\n")
+            stdout.flush()
+
+    monkeypatch.setattr("backend.services.training_jobs.subprocess.Popen", FakePopen)
+
+    resp = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8, "notes": "smoke"},
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+    )
+
+    assert resp.status_code == 202
+    body = resp.get_json()
+    job = body["job"]
+    assert job["status"] == "running"
+    assert job["dry_run"] is True
+    assert job["device"] == "cpu"
+    assert job["batch_size"] == 8
+    assert job["pid"] == 4242
+    assert job["command"] == ["bash", str(settings.admin_training_script_path), "--dry-run"]
+    assert "--allow-runtime-write" not in job["command"]
+    assert job["model_version_id"].startswith("20")
+    assert job["candidate_version_dir"].endswith(job["model_version_id"])
+    assert job["candidate_manifest_path"].endswith(f"{job['model_version_id']}/manifest.json")
+    assert job["env"] == {
+        "BATCH_SIZE": "8",
+        "DEVICE": "cpu",
+        "MODEL_REGISTRY_DIR": str(settings.model_registry_dir),
+        "MODEL_VERSION_ID": job["model_version_id"],
+        "PYTHONUNBUFFERED": "1",
+    }
+    assert calls[0]["env"]["BATCH_SIZE"] == "8"
+    assert calls[0]["env"]["DEVICE"] == "cpu"
+    assert calls[0]["env"]["MODEL_VERSION_ID"] == job["model_version_id"]
+    assert calls[0]["env"]["MODEL_REGISTRY_DIR"] == str(settings.model_registry_dir)
+    assert "--allow-runtime-write" not in calls[0]["command"]
+    assert "command" not in calls[0]["env"]
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+    assert latest["run_id"] == job["run_id"]
+    assert latest["log_tail"] == ["mock dry run started"]
+
+    conflict = client.post("/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"})
+    assert conflict.status_code == 409
+    assert "already running" in conflict.get_json()["error"]
+
+
+def test_training_latest_recovers_stale_running_job_after_backend_restart(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "stale-run"
+    run_dir.mkdir(parents=True)
+    (run_dir / "train.log").write_text("previous process disappeared\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "stale-run",
+                "status": "running",
+                "dry_run": True,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 987654,
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: False)
+    calls = []
+
+    class FakePopen:
+        pid = 4243
+
+        def __init__(self, command, cwd, env, stdout, stderr, text):
+            calls.append({"command": command, "cwd": cwd, "env": env})
+            stdout.write("new dry run started\n")
+            stdout.flush()
+
+    monkeypatch.setattr("backend.services.training_jobs.subprocess.Popen", FakePopen)
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "stale-run"
+    assert latest["status"] == "failed"
+    assert "no longer running" in latest["error"]
+    assert latest["log_tail"] == ["previous process disappeared"]
+
+    resp = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8},
+        headers={"Host": "localhost"},
+    )
+
+    assert resp.status_code == 202
+    assert calls
+
+
+def test_training_latest_recovers_dry_run_without_handle_even_if_pid_was_reused(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "reused-pid-dry-run"
+    run_dir.mkdir(parents=True)
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "reused-pid-dry-run",
+                "status": "running",
+                "dry_run": True,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 222222,
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: True)
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "reused-pid-dry-run"
+    assert latest["status"] == "failed"
+    assert "no longer running" in latest["error"]
+
+
+def test_training_latest_recovers_full_run_when_lock_pid_does_not_match(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "stale-full-run"
+    run_dir.mkdir(parents=True)
+    (settings.backend_root / ".retrain.lock").write_text("111111\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "stale-full-run",
+                "status": "running",
+                "dry_run": False,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 222222,
+                "lock_path": str(settings.backend_root / ".retrain.lock"),
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: True)
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "stale-full-run"
+    assert latest["status"] == "failed"
+    assert "no longer running" in latest["error"]
+
+
+def test_training_latest_recovers_full_run_when_process_identity_does_not_match(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "reused-pid-full-run"
+    run_dir.mkdir(parents=True)
+    (settings.backend_root / ".retrain.lock").write_text("222222\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "reused-pid-full-run",
+                "status": "running",
+                "dry_run": False,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 222222,
+                "process_identity": "linux-proc-start:old-process",
+                "lock_path": str(settings.backend_root / ".retrain.lock"),
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: True)
+    monkeypatch.setattr("backend.services.training_jobs._process_identity", lambda _pid: "linux-proc-start:new-process")
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "reused-pid-full-run"
+    assert latest["status"] == "failed"
+    assert "no longer running" in latest["error"]
+
+
+def test_training_latest_recovers_full_run_when_process_identity_is_unavailable(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "unknown-identity-full-run"
+    run_dir.mkdir(parents=True)
+    (settings.backend_root / ".retrain.lock").write_text("222222\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "unknown-identity-full-run",
+                "status": "running",
+                "dry_run": False,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 222222,
+                "process_identity": None,
+                "lock_path": str(settings.backend_root / ".retrain.lock"),
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: True)
+    monkeypatch.setattr("backend.services.training_jobs._process_identity", lambda _pid: None)
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "unknown-identity-full-run"
+    assert latest["status"] == "failed"
+    assert "no longer running" in latest["error"]
+
+
+def test_training_latest_keeps_full_run_running_when_lock_and_process_identity_match(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    run_dir = settings.admin_training_runs_dir / "active-full-run"
+    run_dir.mkdir(parents=True)
+    (settings.backend_root / ".retrain.lock").write_text("222222\n", encoding="utf-8")
+    (run_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "run_id": "active-full-run",
+                "status": "running",
+                "dry_run": False,
+                "device": "cpu",
+                "batch_size": 8,
+                "started_at": "2026-05-27T08:00:00+00:00",
+                "exit_code": None,
+                "pid": 222222,
+                "process_identity": "linux-proc-start:same-process",
+                "lock_path": str(settings.backend_root / ".retrain.lock"),
+                "log_path": str(run_dir / "train.log"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    _app, client = _client(settings)
+    monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: True)
+    monkeypatch.setattr("backend.services.training_jobs._process_identity", lambda _pid: "linux-proc-start:same-process")
+
+    latest = client.get("/admin/training/jobs/latest").get_json()["job"]
+
+    assert latest["run_id"] == "active-full-run"
+    assert latest["status"] == "running"
+
+
+def test_process_liveness_uses_safe_windows_query(monkeypatch):
+    calls = []
+    monkeypatch.setattr(training_jobs.os, "name", "nt", raising=False)
+    monkeypatch.setattr(
+        training_jobs,
+        "_windows_process_is_alive",
+        lambda pid: calls.append(pid) or False,
+    )
+
+    assert training_jobs._process_is_alive("12345") is False
+    assert calls == [12345]
+
+
+def test_windows_process_helpers_configure_explicit_ctypes_signatures():
+    from ctypes import wintypes
+
+    class FakeFunction:
+        argtypes = None
+        restype = None
+
+        def __call__(self, *_args):
+            return 0
+
+    kernel32 = SimpleNamespace(
+        OpenProcess=FakeFunction(),
+        GetLastError=FakeFunction(),
+        GetExitCodeProcess=FakeFunction(),
+        GetProcessTimes=FakeFunction(),
+        CloseHandle=FakeFunction(),
+    )
+
+    training_jobs._configure_kernel32_process_signatures(kernel32, ctypes, wintypes)
+
+    assert kernel32.OpenProcess.argtypes == (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    assert kernel32.OpenProcess.restype is wintypes.HANDLE
+    assert kernel32.GetExitCodeProcess.argtypes == (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+    assert kernel32.GetExitCodeProcess.restype is wintypes.BOOL
+    assert kernel32.GetProcessTimes.argtypes == (
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+        ctypes.POINTER(wintypes.FILETIME),
+    )
+    assert kernel32.GetProcessTimes.restype is wintypes.BOOL
+    assert kernel32.CloseHandle.argtypes == (wintypes.HANDLE,)
+    assert kernel32.CloseHandle.restype is wintypes.BOOL

@@ -40,10 +40,8 @@ export function AnalyzerToolbarButton({
       {...props}
       type={type}
       className={cx(
-        "analyzer-toolbar__button flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
-        active
-          ? "bg-amber-400 text-stone-950 shadow-lg shadow-amber-950/30"
-          : "text-stone-300 hover:bg-stone-800 hover:text-stone-50",
+        "analyzer-toolbar__button inline-flex min-h-9 min-w-9 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+        active ? "analyzer-toolbar__button--active" : "analyzer-toolbar__button--idle",
         className,
       )}
     >

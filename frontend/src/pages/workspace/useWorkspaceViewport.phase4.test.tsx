@@ -108,6 +108,8 @@ describe('useWorkspaceViewport Phase 4 trust lifecycle', () => {
     await user.click(screen.getByRole('button', { name: 'focus second' }));
 
     expect(firstSignal?.aborted).toBe(true);
+    expect(screen.getByTestId('trust')).toHaveTextContent('none');
+    expect(screen.getByTestId('loading')).toHaveTextContent('loading');
     expect(mockedGetTrust).toHaveBeenLastCalledWith(
       'data:image/png;base64,phase4',
       [5, 6, 7, 8],

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import io
-
 import numpy as np
 from flask import Blueprint, current_app, jsonify, request
-from PIL import Image
 
 from backend.app.errors import ApiError
+from backend.app.services.image_service import InvalidImageError, decode_uploaded_image, invalid_image_payload
 
 bp = Blueprint("segment", __name__)
 
@@ -15,12 +13,19 @@ def _services():
     return current_app.extensions["clinic_services"]
 
 
+def _invalid_image_response():
+    return jsonify(invalid_image_payload()), 400
+
+
 @bp.post("/segment")
 def segment():
     if "image" not in request.files:
         return jsonify({"error": "No 'image' file in request"}), 400
 
-    img = np.array(Image.open(io.BytesIO(request.files["image"].read())).convert("RGB"))
+    try:
+        img = np.array(decode_uploaded_image(request.files["image"]))
+    except InvalidImageError:
+        return _invalid_image_response()
     h, w = img.shape[:2]
 
     valid_proposals = []

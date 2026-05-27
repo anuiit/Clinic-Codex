@@ -1,51 +1,59 @@
 import { ArrowLeft, Loader2, Save, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { appText } from "../i18n/text";
+import { ThemeToggle, type ThemeMode } from "../components/ThemeToggle";
 
 type AnnotationLabels = typeof appText.annotation;
 
 type AnnotationPageChromeProps = {
   labels: AnnotationLabels;
+  imageName?: string | null;
   saving: boolean;
   sending: boolean;
   onSubmitNamed: () => void;
   onSave: () => void;
   onSendSubmittedForReview: () => void;
+  themeMode: ThemeMode;
+  onToggleTheme: () => void;
 };
 
 export function AnnotationPageChrome({
   labels,
+  imageName,
   saving,
   sending,
   onSubmitNamed,
   onSave,
   onSendSubmittedForReview,
+  themeMode,
+  onToggleTheme,
 }: AnnotationPageChromeProps) {
   return (
     <div data-testid="annotation-page-chrome">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
+      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-3 py-2">
         <div className="flex min-w-0 items-center gap-4">
           <Link
             to="/"
-            className="flex items-center gap-2 rounded-full border border-stone-700/70 bg-stone-950/70 px-3 py-1.5 text-sm font-medium text-stone-300 transition-colors hover:border-amber-500/50 hover:text-stone-50"
+            className="ui-action-ghost flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
           >
             <ArrowLeft size={18} /> {labels.back}
           </Link>
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-              Clinic Codex
-            </div>
-            <h1 className="truncate text-lg font-black tracking-tight text-stone-50">
+            <div className="ui-text-eyebrow">
               {labels.title}
+            </div>
+            <h1 className="ui-title-md truncate text-lg tracking-tight" title={imageName ?? labels.title}>
+              {imageName ?? labels.title}
             </h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
           <button
             type="button"
             onClick={onSubmitNamed}
-            className="rounded-lg border border-emerald-700/60 px-3 py-1.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/10"
+            className="annotation-action-button annotation-action-button--ghost"
           >
             {labels.submitNamed}
           </button>
@@ -53,7 +61,7 @@ export function AnnotationPageChrome({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
+            className="annotation-action-button annotation-action-button--primary px-4"
           >
             {saving ? (
               <Loader2 size={18} className="animate-spin" />
@@ -66,7 +74,7 @@ export function AnnotationPageChrome({
             type="button"
             onClick={onSendSubmittedForReview}
             disabled={sending}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+            className="annotation-action-button annotation-action-button--success px-4"
           >
             {sending ? (
               <Loader2 size={18} className="animate-spin" />
@@ -80,7 +88,7 @@ export function AnnotationPageChrome({
 
       <div
         data-testid="annotation-admin-notice"
-        className="shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20"
+        className="ui-alert ui-alert--accent shrink-0 px-3 py-1.5 text-xs"
       >
         {labels.adminApprovalNotice}
       </div>

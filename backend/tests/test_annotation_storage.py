@@ -172,6 +172,29 @@ def test_resave_same_analysis_id_overwrites(tmp_path):
     assert not (ann_dir / "elements" / "1.png").exists()
 
 
+def test_save_annotation_rounds_float_bbox_before_crop_and_metadata(tmp_path):
+    base_dir = tmp_path / "annotations"
+    base_dir.mkdir()
+    analysis_id = "float-bbox-test"
+
+    save_annotation(
+        analysis_id,
+        _make_image(),
+        [{"index": 0, "class_name": "atl", "bbox": [1.2, 2.6, 3.4, 4.6]}],
+        base_dir=base_dir,
+        elements_dir=tmp_path / "training_data" / "Elements",
+    )
+
+    ann_dir = base_dir / analysis_id
+    meta = json.loads((ann_dir / "metadata.json").read_text())
+    assert meta["annotations"][0]["bbox"] == [1, 3, 3, 5]
+
+    from PIL import Image
+
+    with Image.open(ann_dir / "elements" / "0.png") as crop:
+        assert crop.size == (3, 5)
+
+
 def test_decode_image_data_url_uses_strict_base64_validation():
     valid_prefix = base64.b64encode(b"not an image").decode("ascii")
     invalid = valid_prefix[:-2] + "$$"

@@ -80,6 +80,13 @@ backend/annotations/
 backend/training_data/
 !backend/training_data/.gitkeep
 backend/precomputed/
+backend/model_registry/index.json
+backend/model_registry/versions/*
+!backend/model_registry/versions/.gitkeep
+backend/model_registry/snapshots/*
+!backend/model_registry/snapshots/.gitkeep
+backend/model_registry/.locks/
+backend/model_registry/promotion_in_progress.json
 
 # Test artifacts
 frontend/test-results/

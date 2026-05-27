@@ -83,6 +83,8 @@ Whenever you want to use Clinic Codex, follow these steps:
 5. Open your web browser (like Chrome or Firefox) and go to:
    `http://localhost:7118`
 
+The normal annotation loop is: upload/analyze, open an analysis for annotation, validate named boxes, send them for local admin review, then open `http://localhost:7118/admin/annotations`. The admin page has Review, Dataset, and Training tabs. Only approved items in the Dataset view are eligible for retraining, and the backend must be restarted after a real retrain.
+
 Advanced users can choose different local ports. On Mac/Linux:
 ```bash
 BACKEND_PORT=7217 FRONTEND_PORT=7218 bash scripts/run-dev.sh
@@ -93,6 +95,8 @@ $env:BACKEND_PORT='7217'
 $env:FRONTEND_PORT='7218'
 powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
 ```
+
+Advanced local users can enable the Training tab launch button by setting `ENABLE_ADMIN_TRAINING_JOBS=1` before starting the backend. Leave it disabled unless you are running on your own machine; it is a local convenience wrapper, not a production admin security system.
 
 ### ⚠️ A Note on Speed
 The first time you analyze an image, the tool will automatically download the AI models (about 40MB). This happens only once.
@@ -134,7 +138,7 @@ python3.11 -m venv backend/.venv
 
 ### 2. Install Core Tools
 ```bash
-backend/.venv/bin/pip install --no-cache-dir --prefer-binary numpy pillow pyyaml scipy tqdm
+backend/.venv/bin/pip install --no-cache-dir --prefer-binary numpy pillow pyyaml scipy pandas tqdm
 ```
 
 ### 3. Install Web Framework

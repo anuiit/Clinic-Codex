@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from "react";
 import type { AnalysisRecord, AnnotationStatus, DetectedElement } from "../../types";
 import type { BBox, BBoxHandle } from "../../utils/segmentationBoxes";
 
-export type StageSize = { width: number; height: number };
 
 export type BboxHistoryEntry =
   | { type: "create"; idx: number; focusedIdx: number | null }

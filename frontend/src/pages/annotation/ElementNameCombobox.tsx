@@ -42,11 +42,8 @@ export function ElementNameCombobox({
   }));
   const inputValue =
     inputState.sourceValue === value ? inputState.inputValue : displayValue;
-  if (inputState.sourceValue !== value) {
-    setInputState({ sourceValue: value, inputValue: displayValue });
-  }
   const setInputValue = (nextValue: string) => {
-    setInputState((current) => ({ ...current, inputValue: nextValue }));
+    setInputState({ sourceValue: value, inputValue: nextValue });
   };
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
@@ -114,9 +111,12 @@ export function ElementNameCombobox({
   };
 
   return (
-    <div className="relative" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="annotation-name-combobox relative"
+      onClick={(event) => event.stopPropagation()}
+    >
       <label
-        className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500"
+        className="ui-text-eyebrow mb-1 block"
         htmlFor={`element-name-${index}`}
       >
         {labels.renameElement}
@@ -141,15 +141,18 @@ export function ElementNameCombobox({
         }}
         onKeyDown={handleKeyDown}
         placeholder={labels.elementNamePlaceholder}
-        className="w-full rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none transition-colors placeholder:text-stone-600 focus:border-amber-500"
+        className="ui-input w-full px-3 py-2"
       />
       {isOpen && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-stone-700 bg-stone-950 shadow-xl">
-          <div className="border-b border-stone-800 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-stone-500">
+        <div
+          className="annotation-name-combobox__menu ui-panel absolute mt-1 max-h-56 w-full overflow-y-auto rounded-lg shadow-xl"
+          data-testid="element-name-suggestions"
+        >
+          <div className="ui-divider ui-text-eyebrow border-b px-3 py-1.5">
             {labels.suggestions}
           </div>
           {suggestions.length === 0 && !canCreate && (
-            <div className="px-3 py-2 text-sm text-stone-500">
+            <div className="ui-text-body-sm px-3 py-2">
               {labels.noSuggestion}
             </div>
           )}
@@ -159,10 +162,10 @@ export function ElementNameCombobox({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => commitName(suggestion.name)}
-              className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${suggestionIdx === highlightedIdx ? "bg-amber-500/15 text-amber-100" : "text-stone-100 hover:bg-stone-800"}`}
+              className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${suggestionIdx === highlightedIdx ? "ui-row--active text-[var(--text-main)]" : "text-[var(--text-main)] hover:bg-[var(--row-hover)]"}`}
             >
               <span>{suggestion.name}</span>
-              <span className="text-[10px] uppercase tracking-[0.18em] text-stone-500">
+              <span className="ui-text-meta uppercase tracking-[0.18em]">
                 {suggestion.source}
               </span>
             </button>
@@ -172,7 +175,7 @@ export function ElementNameCombobox({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => commitName(normalizedInput)}
-              className="w-full border-t border-stone-800 px-3 py-2 text-left text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/10"
+              className="ui-divider w-full border-t px-3 py-2 text-left text-sm font-medium text-status-ready transition-colors hover:bg-status-ready-soft"
             >
               {labels.createElementName} « {normalizedInput} »
             </button>

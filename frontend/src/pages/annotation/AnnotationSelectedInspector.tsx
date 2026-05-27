@@ -38,15 +38,15 @@ export function AnnotationSelectedInspector({
 }: AnnotationSelectedInspectorProps) {
   return (
     <section
-      className="annotation-selected-inspector mb-3 flex shrink-0 flex-col gap-3 overflow-hidden rounded-2xl p-3"
+      className="annotation-selected-inspector relative mb-3 flex shrink-0 flex-col overflow-visible rounded-xl p-0"
       data-testid="selected-element-inspector"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="sidebar-header flex items-start justify-between gap-3 px-3 py-2">
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
+          <div className="ui-text-eyebrow">
             Inspecteur
           </div>
-          <h2 className="mt-1 truncate text-xl font-black text-stone-50">
+          <h2 className="ui-title-md mt-1 truncate text-xl normal-case tracking-tight">
             {focusedElement && focusedIdx !== null
               ? `#${focusedIdx} · ${focusedDisplayName}`
               : "Sélectionnez un élément"}
@@ -54,18 +54,18 @@ export function AnnotationSelectedInspector({
         </div>
         {focusedElement && focusedIdx !== null && (
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${focusedElement.rejected ? "bg-red-500/15 text-red-300" : focusedIsSubmitted ? "bg-emerald-500/15 text-emerald-300" : "bg-stone-800 text-stone-400"}`}
+            className={`annotation-status-chip shrink-0 px-2 py-1 ${focusedElement.rejected ? "annotation-status-chip--rejected" : focusedIsSubmitted ? "annotation-status-chip--validated" : "annotation-status-chip--draft"}`}
           >
             {focusedIsSubmitted ? labels.submitted : labels.draft}
           </span>
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="annotation-selected-inspector__body sidebar-body min-h-0 overflow-visible p-3">
         {focusedElement && focusedIdx !== null ? (
           <div className="flex h-full min-h-0 flex-col gap-3">
             <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
-              <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border border-stone-700/35">
+              <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border">
                 <canvas
                   ref={previewCanvasRef}
                   width={200}
@@ -75,15 +75,15 @@ export function AnnotationSelectedInspector({
               </div>
               <div className="min-w-0 space-y-3">
                 <div>
-                  <div className="mb-1 flex items-center justify-between text-xs font-semibold text-stone-400">
+                  <div className="ui-text-meta mb-1 flex items-center justify-between font-semibold">
                     <span>Confiance</span>
-                    <span className="tabular-nums text-stone-200">
+                    <span className="tabular-nums text-[var(--text-body)]">
                       {focusedConfidencePercent}%
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-stone-800">
+                  <div className="ui-progress-track h-2">
                     <div
-                      className={`h-full rounded-full ${focusedElement.rejected ? "bg-red-400" : focusedIsSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
+                      className={`ui-progress-value ${focusedElement.rejected ? "ui-progress-value--danger" : focusedIsSubmitted ? "ui-progress-value--ready" : "ui-progress-value--accent"}`}
                       style={{
                         width: `${Math.max(0, Math.min(100, focusedConfidencePercent))}%`,
                       }}
@@ -94,12 +94,12 @@ export function AnnotationSelectedInspector({
                   {(["x", "y", "w", "h"] as const).map((label, coordIdx) => (
                     <div
                       key={label}
-                      className="rounded-xl border border-stone-700/60 bg-stone-950/50 px-3 py-2"
+                      className="ui-section px-3 py-2"
                     >
-                      <div className="uppercase tracking-[0.18em] text-stone-500">
+                      <div className="ui-text-eyebrow">
                         {label}
                       </div>
-                      <div className="mt-1 font-semibold tabular-nums text-stone-100">
+                      <div className="mt-1 font-semibold tabular-nums text-[var(--text-main)]">
                         {Math.round(focusedElement.bbox[coordIdx])}
                       </div>
                     </div>
@@ -127,17 +127,17 @@ export function AnnotationSelectedInspector({
               <button
                 type="button"
                 onClick={() =>
-                  onSetElementValidation(focusedIdx, !focusedIsSubmitted)
+                onSetElementValidation(focusedIdx, !focusedIsSubmitted)
                 }
                 disabled={isUnnamedClass(focusedElement.class_name)}
-                className={`shrink-0 rounded-xl px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${focusedIsSubmitted ? "border border-stone-700 bg-stone-900 text-stone-200 hover:bg-stone-800" : "bg-emerald-500 text-stone-950 hover:bg-emerald-400"}`}
+                className={`annotation-action-button shrink-0 ${focusedIsSubmitted ? "annotation-action-button--ghost" : "annotation-action-button--success"}`}
               >
                 {focusedIsSubmitted ? labels.markDraft : labels.markSubmitted}
               </button>
               <button
                 type="button"
                 onClick={() => onRemoveElement(focusedIdx)}
-                className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-sm font-bold text-red-300 transition-colors hover:bg-red-500/10"
+                className="annotation-action-button annotation-action-button--danger shrink-0 px-3 py-2"
               >
                 <span className="sr-only">
                   Supprimer l’élément #{focusedIdx}
@@ -147,7 +147,7 @@ export function AnnotationSelectedInspector({
             </div>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-stone-700/60 bg-stone-950/20 px-6 text-center text-sm text-stone-500">
+          <div className="ui-empty-state flex h-full items-center justify-center px-6 text-center">
             {labels.selectElementCrop}
           </div>
         )}

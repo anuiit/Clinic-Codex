@@ -91,6 +91,11 @@ def get_device(device_str):
 def main():
     parser = argparse.ArgumentParser(description="Pre-compute DINOv2 features")
     parser.add_argument("--config", default="codex_pipeline/config/default.yaml")
+    parser.add_argument(
+        "--metadata-csv",
+        default=None,
+        help="Explicit metadata CSV path. Overrides paths.metadata_csv from config.",
+    )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--output-dir", default="./precomputed")
@@ -103,7 +108,8 @@ def main():
     print(f"Device: {device}")
 
     # Load metadata
-    metadata = load_metadata(cfg["paths"]["metadata_csv"])
+    metadata_csv = args.metadata_csv or cfg["paths"]["metadata_csv"]
+    metadata = load_metadata(metadata_csv)
     metadata = filter_classes(metadata, min_images=cfg["data"]["min_images_per_class"])
     print(f"Images: {len(metadata)} across {metadata['class_label'].nunique()} classes")
 

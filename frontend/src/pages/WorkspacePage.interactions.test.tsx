@@ -99,6 +99,8 @@ const TRUST_RESULT: TrustResult = {
 };
 
 let historyRecords: AnalysisRecord[] = [];
+let drawImageMock = vi.fn();
+let clearRectMock = vi.fn();
 
 vi.mock('../services/storage', () => ({
   deleteAnalysis: vi.fn(async (id: string) => {
@@ -175,16 +177,30 @@ async function waitForWorkspaceHistory() {
 }
 
 function stubCanvas() {
+  drawImageMock = vi.fn();
+  clearRectMock = vi.fn();
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
-    clearRect: vi.fn(),
-    drawImage: vi.fn(),
+    clearRect: clearRectMock,
+    drawImage: drawImageMock,
   })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+}
+
+function drawImageSourceRects() {
+  return drawImageMock.mock.calls.map((call) => call.slice(1, 5));
 }
 
 describe('WorkspacePage interaction coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     stubCanvas();
+    Object.defineProperty(HTMLImageElement.prototype, 'complete', {
+      configurable: true,
+      get: () => true,
+    });
+    Object.defineProperty(HTMLImageElement.prototype, 'naturalWidth', {
+      configurable: true,
+      get: () => 800,
+    });
     vi.stubGlobal('crypto', { randomUUID: () => 'new-analysis-id' });
   });
 
@@ -220,15 +236,120 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.click(screen.getByRole('button', { name: 'tout' }));
     expect(container.querySelector('svg.absolute')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'tout' })).toHaveClass(
+      'analyzer-toolbar__button',
+      'rounded-xl',
+    );
+    expect(screen.getByRole('button', { name: 'tout' }).parentElement).not.toHaveClass('border');
 
     await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-focused-selected-card')).toHaveClass('ui-card-selected');
     expect(screen.getByText('Aperçu du segment')).toBeInTheDocument();
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10, expect.objectContaining({ signal: expect.any(AbortSignal) })));
 
     await user.click(screen.getByRole('button', { name: /Retour aux régions/ }));
     expect(screen.getByText('Éléments détectés')).toBeInTheDocument();
+  });
+
+
+  it('clears the focused workspace region with the explicit deselect tool', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByTestId('workspace-overlay');
+    expect(screen.getByRole('button', { name: 'Désélectionner' })).toBeDisabled();
+
+    await user.click(await screen.findByRole('button', { name: /annotated aleph région 0/i }));
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    const deselect = screen.getByRole('button', { name: 'Désélectionner' });
+    expect(deselect).toBeEnabled();
+
+    await user.click(deselect);
+
+    expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();
+    expect(await screen.findByText('Éléments détectés')).toBeInTheDocument();
+  });
+
+  it('draws workspace list and focused-detail crop canvases from attached refs', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByTestId('workspace-list-crop-canvas-0')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(drawImageSourceRects()).toEqual(
+        expect.arrayContaining([
+          [100, 120, 50, 40],
+          [260, 200, 35, 60],
+        ]),
+      ),
+    );
+
+    drawImageMock.mockClear();
+    await user.click(screen.getByRole('button', { name: /lamed région 1/i }));
+
+    const detailCanvas = await screen.findByTestId('workspace-detail-crop-canvas') as HTMLCanvasElement;
+    await waitFor(() =>
+      expect(drawImageMock).toHaveBeenCalledWith(
+        expect.any(HTMLImageElement),
+        260,
+        200,
+        35,
+        60,
+        0,
+        0,
+        detailCanvas.width,
+        detailCanvas.height,
+      ),
+    );
+
+    drawImageMock.mockClear();
+    await user.click(screen.getByRole('button', { name: /Retour aux régions/ }));
+
+    expect(await screen.findByTestId('workspace-list-crop-canvas-0')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(drawImageSourceRects()).toEqual(
+        expect.arrayContaining([
+          [100, 120, 50, 40],
+          [260, 200, 35, 60],
+        ]),
+      ),
+    );
+  });
+
+  it('redraws crop previews for a newly selected record without stale previous-record draws', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('annotated aleph');
+    await user.click(screen.getByTitle('Déplier l’historique'));
+    const betaRun = await screen.findByText('beta.png');
+    drawImageMock.mockClear();
+    await user.click(betaRun);
+
+    await waitFor(() =>
+      expect(drawImageSourceRects()).toEqual(
+        expect.arrayContaining([[30, 40, 24, 24]]),
+      ),
+    );
+    expect(drawImageSourceRects().at(-1)).toEqual([30, 40, 24, 24]);
+  });
+
+  it('renders selected workspace identity before delayed trust recalculation resolves', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getTrust).mockReturnValueOnce(new Promise<TrustResult>(() => undefined));
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /lamed région 1/i }));
+
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    expect(screen.getAllByText('lamed').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('workspace-trust-summary')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('workspace-trust-loading')).toBeInTheDocument();
+    expect(screen.queryByText('31.0%')).not.toBeInTheDocument();
+    expect(screen.getByText('Résumé de confiance')).toBeInTheDocument();
+    expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [260, 200, 35, 60], 'lamed', 10, expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
   it('focuses a region from the full row click without rendering a separate details button', async () => {
@@ -264,6 +385,20 @@ describe('WorkspacePage interaction coverage', () => {
     expect(await screen.findByText('annotation handoff /annotate/alpha-run')).toBeInTheDocument();
   });
 
+  it('moves workspace analysis action and summary metadata into the image header', async () => {
+    renderPage();
+
+    const header = await screen.findByTestId('workspace-image-header');
+    expect(within(header).getByRole('button', { name: 'Annoter l’analyse' })).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('800×600');
+    expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('Annotés / rejetés 1/2 · 1');
+    expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('Classes');
+
+    const panel = screen.getByTestId('workspace-detected-panel');
+    expect(within(panel).queryByRole('button', { name: 'Annoter l’analyse' })).not.toBeInTheDocument();
+    expect(within(panel).queryByText('Dimensions')).not.toBeInTheDocument();
+  });
+
   it('toggles workspace canvas bbox labels with an icon-only accessible control', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
@@ -293,6 +428,61 @@ describe('WorkspacePage interaction coverage', () => {
     expect(namedOverlay).not.toHaveTextContent('#1 · lamed');
   });
 
+  it('uses a flatter history sidebar while preserving search and delete affordances', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await waitForWorkspaceHistory();
+
+    await user.click(screen.getByTitle('Déplier l’historique'));
+    const sidebar = screen.getByTestId('workspace-history-sidebar');
+    const header = screen.getByTestId('workspace-history-header');
+
+    expect(sidebar).not.toHaveClass('border', 'border-stone-800');
+    expect(header).not.toHaveClass('border-b', 'border-stone-800');
+    expect(screen.getByPlaceholderText('Filtrer par glyphe ou classe')).toHaveClass('ui-input');
+    expect(screen.getByLabelText('Supprimer alpha.png')).toBeInTheDocument();
+
+    const activeRow = within(screen.getByTestId('workspace-history-list'))
+      .getByText('alpha.png')
+      .closest('[role="button"]') as HTMLElement;
+    expect(activeRow).toHaveClass('selection-card--active');
+    expect(activeRow).not.toHaveClass('border', 'shadow-[0_0_0_1px_rgba(245,158,11,0.25)]');
+  });
+
+  it('mirrors hover state between the workspace overlay and detected list', async () => {
+    const { container } = renderPage();
+
+    const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
+    stubSvgRect(overlay, 800, 600);
+    const firstRow = await screen.findByRole('button', { name: /annotated aleph région 0/i });
+    const firstRegion = () => container.querySelector('[data-box-id="0"]') as SVGGElement;
+
+    expect(firstRegion()).not.toHaveAttribute('data-hovered');
+
+    await act(async () => {
+      dispatchPointer(overlay, 'pointermove', { clientX: 125, clientY: 140, pointerId: 1, buttons: 0 });
+    });
+
+    expect(firstRow).toHaveClass('selection-card--active');
+    expect(firstRegion()).toHaveAttribute('data-hovered', 'true');
+
+    await act(async () => {
+      fireEvent.pointerLeave(overlay);
+    });
+    expect(firstRegion()).not.toHaveAttribute('data-hovered');
+
+    await act(async () => {
+      fireEvent.mouseEnter(firstRow);
+    });
+    expect(firstRow).toHaveClass('selection-card--active');
+    expect(firstRegion()).toHaveAttribute('data-hovered', 'true');
+
+    await act(async () => {
+      fireEvent.mouseLeave(firstRow);
+    });
+    expect(firstRegion()).not.toHaveAttribute('data-hovered');
+  });
+
   it('keeps workspace list and detail panels in the narrowed image-dominant scroll layout without duplicate focus lists', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -305,6 +495,26 @@ describe('WorkspacePage interaction coverage', () => {
 
     const stage = screen.getByTestId('workspace-stage');
     expect(stage).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');
+
+    const stageToolbar = within(stage).getByTestId('workspace-analyzer-toolbar');
+    expect(stage.querySelector('.main-image-panel__controls')).not.toBeInTheDocument();
+    expect(stage.querySelector('.main-image-panel__toolbar')).toHaveClass(
+      'main-image-panel__toolbar--bottom-center',
+    );
+    expect(
+      within(stageToolbar).getAllByRole('button').map((button) =>
+        button.getAttribute('aria-label') ?? button.textContent?.trim(),
+      ),
+    ).toEqual([
+      'tout',
+      'focus',
+      'masqué',
+      'Afficher les noms des libellés',
+      'Désélectionner',
+      'Zoom arrière',
+      'Ajuster à la vue',
+      'Zoom avant',
+    ]);
 
     const sidebar = screen.getByTestId('workspace-detected-panel');
     expect(sidebar).toBeInTheDocument();
@@ -326,7 +536,7 @@ describe('WorkspacePage interaction coverage', () => {
     const { container } = renderPage();
 
     const image = (await screen.findAllByAltText('alpha.png')).find((candidate) =>
-      candidate.className.includes('object-contain'),
+      candidate.className.includes('object-fill'),
     ) as HTMLImageElement;
     const wrapper = image.parentElement as HTMLElement;
     const viewport = wrapper.parentElement as HTMLElement;
@@ -405,7 +615,7 @@ describe('WorkspacePage interaction coverage', () => {
     const file = new File(['glyph pixels'], 'glyph.png', { type: 'image/png' });
 
     await user.upload(fileInput, file);
-    await user.click(screen.getAllByRole('button', { name: 'Analyser' }).at(-1) as HTMLElement);
+    await user.click((await screen.findAllByRole('button', { name: 'Analyser' })).at(-1) as HTMLElement);
 
     await waitFor(() => expect(segmentGlyph).toHaveBeenCalledWith(file));
     expect(await screen.findByText('IndexedDB quota exceeded')).toBeInTheDocument();
@@ -429,7 +639,7 @@ describe('WorkspacePage interaction coverage', () => {
 
     await user.upload(fileInput, file);
     expect(await screen.findByText('Image prête à analyser')).toBeInTheDocument();
-    await user.click(screen.getAllByRole('button', { name: 'Analyser' }).at(-1) as HTMLElement);
+    await user.click((await screen.findAllByRole('button', { name: 'Analyser' })).at(-1) as HTMLElement);
 
     await waitFor(() => expect(segmentGlyph).toHaveBeenCalledWith(file));
     expect(saveAnalysis).toHaveBeenCalledWith(expect.objectContaining({

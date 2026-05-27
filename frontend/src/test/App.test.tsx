@@ -1,13 +1,44 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
+type RouteThemeProps = {
+  themeMode?: 'dark' | 'light'
+  onToggleTheme?: () => void
+}
+
 vi.mock('../pages/WorkspacePage', () => ({
-  default: () => <div data-testid="workspace-page">Workspace route</div>,
+  default: ({ themeMode = 'dark', onToggleTheme = () => undefined }: RouteThemeProps) => (
+    <div>
+      <div data-testid="workspace-page">Workspace route</div>
+      <button type="button" onClick={onToggleTheme} aria-label="toggle workspace theme">
+        {themeMode}
+      </button>
+    </div>
+  ),
 }))
 
 vi.mock('../pages/AnnotationPage', () => ({
-  default: () => <div data-testid="annotation-page">Annotation route</div>,
+  default: ({ themeMode = 'dark', onToggleTheme = () => undefined }: RouteThemeProps) => (
+    <div>
+      <div data-testid="annotation-page">Annotation route</div>
+      <button type="button" onClick={onToggleTheme} aria-label="toggle annotation theme">
+        {themeMode}
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock('../pages/AdminAnnotationsPage', () => ({
+  default: ({ themeMode = 'dark', onToggleTheme = () => undefined }: RouteThemeProps) => (
+    <div>
+      <div data-testid="admin-annotations-page">Admin annotation route</div>
+      <button type="button" onClick={onToggleTheme} aria-label="toggle admin theme">
+        {themeMode}
+      </button>
+    </div>
+  ),
 }))
 
 function renderAt(path: string) {
@@ -17,6 +48,8 @@ function renderAt(path: string) {
 
 afterEach(() => {
   window.history.pushState({}, '', '/')
+  window.localStorage.clear()
+  delete document.documentElement.dataset.theme
 })
 
 describe('App route contracts', () => {
@@ -34,6 +67,21 @@ describe('App route contracts', () => {
     expect(screen.queryByTestId('workspace-page')).not.toBeInTheDocument()
   })
 
+  it('wires the local admin annotation route with shared theme props', async () => {
+    const user = userEvent.setup()
+    const { container } = renderAt('/admin/annotations')
+
+    expect(screen.getByTestId('admin-annotations-page')).toBeInTheDocument()
+    expect(screen.queryByTestId('workspace-page')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /retrain/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'toggle admin theme' })).toHaveTextContent('dark')
+
+    await user.click(screen.getByRole('button', { name: 'toggle admin theme' }))
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+    expect(container.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+  })
+
   it('redirects the legacy dashboard route to the workspace without merging pages', async () => {
     renderAt('/dashboard')
 
@@ -49,5 +97,29 @@ describe('App route contracts', () => {
       expect(window.location.search).toBe('?analysis=alpha%20run')
     })
     expect(screen.getByTestId('workspace-page')).toBeInTheDocument()
+  })
+
+  it('applies and persists the shared dark/light theme from app state', async () => {
+    const user = userEvent.setup()
+    const { container } = renderAt('/')
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+    expect(container.querySelector('.app-shell')).toHaveAttribute('data-theme', 'dark')
+
+    await user.click(screen.getByRole('button', { name: 'toggle workspace theme' }))
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+    expect(window.localStorage.getItem('clinic-codex-theme')).toBe('light')
+    expect(container.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+  })
+
+  it('hydrates the shared theme from localStorage', async () => {
+    window.localStorage.setItem('clinic-codex-theme', 'light')
+
+    const { container } = renderAt('/annotate/alpha-run')
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+    expect(container.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+    expect(screen.getByRole('button', { name: 'toggle annotation theme' })).toHaveTextContent('light')
   })
 })

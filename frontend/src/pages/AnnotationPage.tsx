@@ -1,19 +1,51 @@
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
-import { MainImagePanel } from "../components/MainImagePanel";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { ImageBBoxStage } from "../components/ImageBBoxStage";
+import type { ThemeMode } from "../components/ThemeToggle";
 import { appText } from "../i18n/text";
 import { AnnotationAnalyzerToolbar } from "./AnnotationAnalyzerToolbar";
 import { AnnotationElementList } from "./AnnotationElementList";
 import { AnnotationPageChrome } from "./AnnotationPageChrome";
-import { AnnotationOverlay } from "./annotation/AnnotationOverlay";
 import { AnnotationSelectedInspector } from "./annotation/AnnotationSelectedInspector";
 import { AnnotationToast } from "./annotation/AnnotationToast";
+import { formatBboxLabel } from "./annotation/annotationUtils";
+import { RESIZE_HANDLE_VISUAL_SIZE } from "./annotation/useBBoxEditing";
 import { useAnnotationElementModel } from "./annotation/useAnnotationElementModel";
 import { useAnnotationRecord } from "./annotation/useAnnotationRecord";
 import { useAnnotationSubmission } from "./annotation/useAnnotationSubmission";
 import { useAnnotationViewport } from "./annotation/useAnnotationViewport";
 
-export default function AnnotationPage() {
+const RESIZE_HANDLE_OFFSET = RESIZE_HANDLE_VISUAL_SIZE / 2;
+
+function resizeHandle(
+  key: string,
+  x: number,
+  y: number,
+  className: "cursor-nwse-resize" | "cursor-nesw-resize",
+) {
+  return (
+    <rect
+      key={key}
+      x={x - RESIZE_HANDLE_OFFSET}
+      y={y - RESIZE_HANDLE_OFFSET}
+      width={RESIZE_HANDLE_VISUAL_SIZE}
+      height={RESIZE_HANDLE_VISUAL_SIZE}
+      rx={3}
+      strokeWidth={1.5}
+      className={`annotation-resize-handle ${className}`}
+    />
+  );
+}
+
+type AnnotationPageProps = {
+  themeMode?: ThemeMode;
+  onToggleTheme?: () => void;
+};
+
+export default function AnnotationPage({
+  themeMode = "dark",
+  onToggleTheme = () => undefined,
+}: AnnotationPageProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -48,11 +80,13 @@ export default function AnnotationPage() {
     bboxHistory,
     tempBbox,
     showLabelNames,
-    resolvedStageSize,
+    transformSize,
     setDrawMode,
     setShowLabelNames,
     updateStageSize,
-    applyZoom,
+    zoomIn,
+    zoomOut,
+    resetAnnotationView,
     handleStageWheel,
     handleSvgPointerDown,
     handleSvgPointerMove,
@@ -85,11 +119,11 @@ export default function AnnotationPage() {
 
   if (!annotation.record && !annotation.loading) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <h2 className="text-2xl font-bold text-stone-100 mb-4">{t.notFound}</h2>
+      <div className="ui-empty-state mx-auto max-w-2xl px-6 py-12 text-center">
+        <h2 className="ui-title-md mb-4 text-2xl">{t.notFound}</h2>
         <Link
           to="/"
-          className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-2"
+          className="ui-action-ghost inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
         >
           <ArrowLeft size={18} /> {t.backToHistory}
         </Link>
@@ -99,47 +133,119 @@ export default function AnnotationPage() {
 
   if (annotation.loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-amber-500" size={32} />
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="animate-spin text-[var(--accent)]" size={32} />
       </div>
     );
   }
 
   return (
-    <div className="annotation-app flex h-full w-full flex-col gap-1 overflow-hidden p-1">
+    <div className="annotation-app flex h-full min-h-0 w-full flex-col gap-3 overflow-hidden rounded-2xl p-1">
       <AnnotationPageChrome
         labels={t}
+        imageName={annotation.record?.imageName}
         saving={submission.saving}
         sending={submission.sending}
         onSubmitNamed={model.submitNamedElements}
         onSave={submission.handleSave}
         onSendSubmittedForReview={submission.handleSendSubmittedForReview}
+        themeMode={themeMode}
+        onToggleTheme={onToggleTheme}
       />
 
-      <div className="flex min-h-0 flex-1 gap-1.5">
-        <MainImagePanel
+      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]">
+        <ImageBBoxStage
           tone="annotation"
-          className="flex-1"
-          testIds={{ controls: "annotation-stage-controls" }}
+          mode="edit"
+          className="min-h-0"
+          imageDataUrl={annotation.record!.imageDataUrl}
+          imageName={annotation.record!.imageName}
+          imageSize={annotation.record!.result.image_size}
+          boxes={annotation.elements.map((element, idx) => ({
+            id: idx,
+            bbox: element.bbox,
+            label: element.class_name,
+            confidence: element.confidence,
+            rejected: element.rejected,
+            status: annotation.annotationStatus[idx] ?? "draft",
+          }))}
+          selectedId={annotation.focusedIdx}
+          showLabelNames={showLabelNames}
+          viewport={{ zoom, panOffset, isPanning }}
+          transformSize={transformSize}
+          imageFit="fill"
+          displayBBoxById={
+            dragState && dragState.type !== "draw" && tempBbox
+              ? { [dragState.idx]: tempBbox }
+              : undefined
+          }
+          boxStateById={Object.fromEntries(
+            annotation.elements.map((_, idx) => [
+              idx,
+              {
+                focused: idx === annotation.focusedIdx,
+                imageHovered: idx === annotation.hoveredIdx,
+                listHovered: idx === annotation.listHoveredIdx,
+                submitted: annotation.annotationStatus[idx] === "validated",
+              },
+            ]),
+          )}
+          renderLabel={(box) =>
+            formatBboxLabel(
+              Number(box.id),
+              box.label ?? "",
+              showLabelNames,
+              t.unnamedElement,
+            )
+          }
+          renderBoxExtras={(box, _state, bbox) => {
+            const idx = Number(box.id);
+            if (idx !== annotation.focusedIdx || drawMode) {
+              return null;
+            }
+
+            const [x, y, width, height] = bbox;
+            return (
+              <>
+                {resizeHandle("tl", x, y, "cursor-nwse-resize")}
+                {resizeHandle("tr", x + width, y, "cursor-nesw-resize")}
+                {resizeHandle("bl", x, y + height, "cursor-nesw-resize")}
+                {resizeHandle(
+                  "br",
+                  x + width,
+                  y + height,
+                  "cursor-nwse-resize",
+                )}
+              </>
+            );
+          }}
+          overlayChildren={
+            drawMode && dragState?.type === "draw" && tempBbox ? (
+              <rect
+                x={tempBbox[0]}
+                y={tempBbox[1]}
+                width={tempBbox[2]}
+                height={tempBbox[3]}
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                vectorEffect="non-scaling-stroke"
+                className="annotation-draw-preview"
+              />
+            ) : null
+          }
+          boxTestIdPrefix="annotation-box"
+          testIds={{
+            toolbar: "annotation-stage-toolbox",
+            stage: "annotation-stage-frame",
+            transform: "annotation-stage",
+            overlay: "annotation-overlay",
+          }}
           stageRef={containerRef}
           stageProps={{
             "data-testid": "annotation-stage-frame",
             onWheel: handleStageWheel,
           }}
-          transformProps={{ "data-testid": "annotation-stage" }}
-          transformStyle={{
-            width: resolvedStageSize
-              ? `${resolvedStageSize.width}px`
-              : undefined,
-            height: resolvedStageSize
-              ? `${resolvedStageSize.height}px`
-              : undefined,
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
-            transformOrigin: "center center",
-            transition: isPanning ? "none" : "transform 0.1s ease",
-            willChange: "transform",
-          }}
-          transformClassName="annotation-stage shrink-0 overflow-hidden rounded-lg"
+          transformClassName="annotation-stage"
           toolbar={
             <AnnotationAnalyzerToolbar
               drawMode={drawMode}
@@ -151,66 +257,26 @@ export default function AnnotationPage() {
               onToggleLabelNames={() =>
                 setShowLabelNames((current) => !current)
               }
+              onZoomOut={zoomOut}
+              onFitToView={resetAnnotationView}
+              onZoomIn={zoomIn}
+              zoomLabel={`${Math.round(zoom * 100)}%`}
             />
           }
-          controls={[
-            {
-              id: "zoom-in",
-              label: t.zoomIn,
-              title: t.zoomIn,
-              onClick: () => applyZoom(zoom + 0.25),
-              icon: <ZoomIn size={16} />,
-            },
-            {
-              id: "reset-view",
-              label: t.resetView,
-              title: t.resetView,
-              onClick: () => {
-                applyZoom(1);
-              },
-              icon: <Maximize2 size={16} />,
-            },
-            {
-              id: "zoom-out",
-              label: t.zoomOut,
-              title: t.zoomOut,
-              onClick: () => applyZoom(zoom - 0.25),
-              icon: <ZoomOut size={16} />,
-            },
-          ]}
-          zoomLabel={`${Math.round(zoom * 100)}%`}
-          image={
-            <img
-              ref={imageRef}
-              src={annotation.record!.imageDataUrl}
-              alt={annotation.record!.imageName}
-              draggable={false}
-              onLoad={updateStageSize}
-              className="block h-full w-full object-fill pointer-events-none"
-            />
-          }
-          overlay={
-            <AnnotationOverlay
-              imageSize={annotation.record!.result.image_size}
-              elements={annotation.elements}
-              annotationStatus={annotation.annotationStatus}
-              focusedIdx={annotation.focusedIdx}
-              hoveredIdx={annotation.hoveredIdx}
-              listHoveredIdx={annotation.listHoveredIdx}
-              drawMode={drawMode}
-              dragState={dragState}
-              tempBbox={tempBbox}
-              showLabelNames={showLabelNames}
-              unnamedLabel={t.unnamedElement}
-              onPointerDown={handleSvgPointerDown}
-              onPointerMove={handleSvgPointerMove}
-              onPointerUp={handleSvgPointerUp}
-            />
-          }
+          toolbarPlacement="bottom-center"
+          imageProps={{
+            ref: imageRef,
+            onLoad: updateStageSize,
+          }}
+          svgProps={{
+            onPointerDown: handleSvgPointerDown,
+            onPointerMove: handleSvgPointerMove,
+            onPointerUp: handleSvgPointerUp,
+          }}
         />
 
         <aside
-          className="annotation-rail annotation-inspector flex shrink-0 flex-col rounded-2xl p-4"
+          className="annotation-rail annotation-inspector flex min-h-0 flex-col overflow-hidden rounded-2xl p-4"
           aria-label="Inspecteur d’annotation"
         >
           <AnnotationSelectedInspector

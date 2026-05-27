@@ -11,6 +11,7 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Sequence
 
 from PIL import Image
 
@@ -77,6 +78,18 @@ def clamp_bbox(
     return (x, y, w, h)
 
 
+def normalize_bbox_to_int_pixels(bbox: Sequence[int | float]) -> tuple[int, int, int, int]:
+    """Normalize frontend bbox values to integer pixels before crop/save.
+
+    Phase 0 intentionally uses Python's documented ``round()`` behavior for
+    every coordinate and dimension, including banker-rounding ties.
+    """
+    if len(bbox) != 4:
+        raise ValueError("bbox must be [x, y, w, h]")
+    x, y, w, h = bbox
+    return (int(round(x)), int(round(y)), int(round(w)), int(round(h)))
+
+
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -110,7 +123,8 @@ def save_annotation(
             bbox_raw = ann["bbox"]
 
             cls = sanitize_class_name(raw_class)
-            x, y, w, h = clamp_bbox(tuple(bbox_raw), img_w, img_h)
+            normalized_bbox = normalize_bbox_to_int_pixels(bbox_raw)
+            x, y, w, h = clamp_bbox(normalized_bbox, img_w, img_h)
             crop = image.crop((x, y, x + w, y + h))
             crop_filename = f"{idx}.png"
             crop.save(tmp_dir / "elements" / crop_filename, format="PNG")
@@ -144,7 +158,7 @@ def save_annotation(
         if e.errno == errno.ENOSPC:
             raise AnnotationDiskFullError(str(e)) from e
         raise
-    except:
+    except BaseException:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         raise
 

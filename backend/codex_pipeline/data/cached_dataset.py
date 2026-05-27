@@ -157,6 +157,21 @@ class CachedEpisodicSampler(Sampler):
             and c not in self.valid_classes
         ]
 
+        if not self.valid_classes and not self.thin_classes:
+            raise ValueError(
+                "No classes have enough examples for episodic sampling "
+                f"(k_shot={k_shot}, q_queries={q_queries}). "
+                f"Class counts: {self.class_counts_summary()}"
+            )
+
+    def class_counts_summary(self) -> str:
+        if not self.dataset.classes:
+            return "none"
+        return ", ".join(
+            f"{c}={len(self.dataset.class_to_indices[c])}"
+            for c in self.dataset.classes
+        )
+
     def __iter__(self):
         for _ in range(self.episodes_per_epoch):
             if len(self.valid_classes) >= self.n_way:

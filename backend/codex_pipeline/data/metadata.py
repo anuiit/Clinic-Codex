@@ -111,8 +111,32 @@ def build_metadata(
 
 
 def load_metadata(csv_path: str) -> pd.DataFrame:
-    """Load metadata CSV."""
-    return pd.read_csv(csv_path)
+    """
+    Load metadata CSV.
+
+    Relative ``image_path`` values are resolved against the directory that
+    contains the metadata CSV. This matches ``build_metadata``'s default
+    behavior, where paths are written relative to the Elements parent
+    directory, and makes callers independent of their current working
+    directory.
+    """
+    csv_path_obj = Path(csv_path).resolve()
+    df = pd.read_csv(csv_path_obj)
+
+    if "image_path" in df.columns:
+        base_dir = csv_path_obj.parent
+
+        def resolve_image_path(value):
+            if pd.isna(value):
+                return value
+            path = Path(str(value))
+            if path.is_absolute():
+                return str(path)
+            return str((base_dir / path).resolve())
+
+        df["image_path"] = df["image_path"].map(resolve_image_path)
+
+    return df
 
 
 def get_class_stats(df: pd.DataFrame) -> pd.DataFrame:

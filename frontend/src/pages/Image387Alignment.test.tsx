@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { render, fireEvent, act, screen } from '@testing-library/react';
+import { render, fireEvent, act, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AnalysisRecord } from '../types';
@@ -65,6 +65,67 @@ const FIXTURE_RECT = {
   toJSON: () => {},
 } as DOMRect;
 
+const PADDED_STAGE_RECT = {
+  left: 0,
+  top: 0,
+  width: 395,
+  height: 625,
+  right: 395,
+  bottom: 625,
+  x: 0,
+  y: 0,
+  toJSON: () => {},
+} as DOMRect;
+
+function applyPaddedStageRect(stage: HTMLElement) {
+  stage.style.paddingLeft = '5px';
+  stage.style.paddingRight = '5px';
+  stage.style.paddingTop = '5px';
+  stage.style.paddingBottom = '5px';
+  stage.style.borderLeftWidth = '5px';
+  stage.style.borderRightWidth = '5px';
+  stage.style.borderTopWidth = '5px';
+  stage.style.borderBottomWidth = '5px';
+  stage.getBoundingClientRect = vi.fn(() => PADDED_STAGE_RECT);
+}
+
+async function measureWorkspaceTransform() {
+  const view = renderWorkspacePage();
+  const images = await screen.findAllByAltText('387_769v.jpg');
+  const image = images.find((candidate) => candidate.className.includes('object-fill')) as HTMLImageElement;
+  const wrapper = image.parentElement as HTMLElement;
+  const stage = await screen.findByTestId('workspace-stage');
+  applyPaddedStageRect(stage);
+
+  await act(async () => {
+    fireEvent.load(image);
+    window.dispatchEvent(new Event('resize'));
+  });
+  await waitFor(() => expect(wrapper.style.width).toBe('375px'));
+
+  const measured = { width: wrapper.style.width, height: wrapper.style.height };
+  view.unmount();
+  return measured;
+}
+
+async function measureAnnotationTransform() {
+  const view = renderAnnotationPage();
+  const image = await screen.findByAltText('387_769v.jpg') as HTMLImageElement;
+  const wrapper = image.parentElement as HTMLElement;
+  const stage = await screen.findByTestId('annotation-stage-frame');
+  applyPaddedStageRect(stage);
+
+  await act(async () => {
+    fireEvent.load(image);
+    window.dispatchEvent(new Event('resize'));
+  });
+  await waitFor(() => expect(wrapper.style.width).toBe('375px'));
+
+  const measured = { width: wrapper.style.width, height: wrapper.style.height };
+  view.unmount();
+  return measured;
+}
+
 function dispatchPointer(
   target: Element,
   type: 'pointerdown' | 'pointermove' | 'pointerup',
@@ -114,54 +175,35 @@ describe('387_769v.jpg visual geometry regression', () => {
     })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
   });
 
-  it('keeps AnnotationPage SVG aligned to the 750x1210 fixture while moving a bbox', async () => {
-    const { container } = renderAnnotationPage();
-    await screen.findByText('atl');
 
-    const image = screen.getByAltText('387_769v.jpg') as HTMLImageElement;
+
+  it('computes identical measured transform dimensions for Workspace and Annotation padded stage rects', async () => {
+    const workspaceMeasured = await measureWorkspaceTransform();
+    const annotationMeasured = await measureAnnotationTransform();
+
+    expect(workspaceMeasured).toEqual({ width: '375px', height: '605px' });
+    expect(annotationMeasured).toEqual(workspaceMeasured);
+  });
+
+  it('keeps AnnotationPage image and SVG overlay in one measured wrapper for the 387 fixture', async () => {
+    const { container } = renderAnnotationPage();
+    const image = await screen.findByAltText('387_769v.jpg') as HTMLImageElement;
     const svg = container.querySelector('svg.absolute') as SVGSVGElement;
     const wrapper = svg.parentElement as HTMLElement;
-
-    image.getBoundingClientRect = vi.fn(() => FIXTURE_RECT);
-    svg.getBoundingClientRect = vi.fn(() => FIXTURE_RECT);
-    svg.setPointerCapture = vi.fn();
-    svg.releasePointerCapture = vi.fn();
-    svg.hasPointerCapture = vi.fn(() => true);
 
     expect(imageDataUrl).toMatch(/^data:image\/jpeg;base64,/);
     expect(svg.getAttribute('viewBox')).toBe('0 0 750 1210');
     expect(svg.getAttribute('preserveAspectRatio')).toBe('none');
-    expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
-
-    await act(async () => {
-      dispatchPointer(svg, 'pointerdown', { clientX: 100, clientY: 190, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointermove', { clientX: 120, clientY: 220, pointerId: 1, buttons: 1 });
-    });
-    await act(async () => {
-      dispatchPointer(svg, 'pointerup', { clientX: 120, clientY: 220, pointerId: 1 });
-    });
-
-    const saveButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Enregistrer les modifications'),
-    ) as HTMLElement;
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
-
-    const [, savedElements, savedStatus] = vi.mocked(updateElements).mock.calls[0];
-    expect(savedElements[0].bbox[0]).toBeCloseTo(160);
-    expect(savedElements[0].bbox[1]).toBeCloseTo(300);
-    expect(savedElements[0].bbox.slice(2)).toEqual([150, 180]);
-    expect(savedStatus).toEqual({ 0: 'draft' });
+    expect(image).toHaveClass('object-fill');
+    expect(wrapper.contains(image)).toBe(true);
+    expect(wrapper.contains(svg)).toBe(true);
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
   });
 
   it('keeps WorkspacePage image and overlay in one transformed wrapper for the 387 fixture', async () => {
     const { container } = renderWorkspacePage();
     const images = await screen.findAllByAltText('387_769v.jpg');
-    const image = images.find((candidate) => candidate.className.includes('object-contain')) as HTMLImageElement;
+    const image = images.find((candidate) => candidate.className.includes('object-fill')) as HTMLImageElement;
     const wrapper = image.parentElement as HTMLElement;
     const viewport = wrapper.parentElement as HTMLElement;
     const overlay = container.querySelector('svg.absolute') as SVGSVGElement;
@@ -179,7 +221,7 @@ describe('387_769v.jpg visual geometry regression', () => {
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
 
     await act(async () => {
-      fireEvent.wheel(viewport, { deltaY: -100 });
+      fireEvent.click(screen.getByRole('button', { name: 'Zoom avant' }));
     });
     await act(async () => {
       dispatchPointer(viewport, 'pointerdown', { clientX: 100, clientY: 100, pointerId: 1, buttons: 1 });
@@ -191,6 +233,6 @@ describe('387_769v.jpg visual geometry regression', () => {
       dispatchPointer(viewport, 'pointerup', { clientX: 130, clientY: 155, pointerId: 1 });
     });
 
-    expect(wrapper.style.transform).toBe('translate(30px, 55px) scale(1.15)');
+    expect(wrapper.style.transform).toBe('translate(30px, 55px) scale(1.25)');
   });
 });

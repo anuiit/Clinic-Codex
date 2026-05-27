@@ -114,3 +114,20 @@ def test_routes_reject_non_numeric_bbox_values(client, route):
     assert resp.get_json() == {
         "error": {"code": "INVALID_BBOX", "message": "bbox values must be numeric"}
     }
+
+
+@pytest.mark.parametrize("route", ["/similar", "/trust"])
+@pytest.mark.parametrize(
+    "bbox",
+    [
+        [0, 0, 0, 10],
+        [0, 0, 10, 0],
+        [0, 0, -5, 10],
+        [0, 0, 10, -5],
+    ],
+)
+def test_crop_routes_reject_non_positive_bbox_dimensions(client, route, bbox):
+    resp = client.post(route, json={"image_base64": _png_base64(size=(12, 12)), "bbox": bbox})
+
+    assert resp.status_code == 400
+    assert resp.get_json()["error"]["code"] == "INVALID_BBOX"

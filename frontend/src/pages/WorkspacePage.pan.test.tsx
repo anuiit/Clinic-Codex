@@ -66,6 +66,20 @@ function dispatchPointer(
 
 describe('WorkspacePage image pan behavior', () => {
   beforeEach(() => {
+    const defaultRect = {
+      left: 0,
+      top: 0,
+      width: 800,
+      height: 600,
+      right: 800,
+      bottom: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    };
+    Element.prototype.getBoundingClientRect = vi.fn(() => defaultRect);
+    HTMLElement.prototype.getBoundingClientRect = vi.fn(() => defaultRect);
+    SVGElement.prototype.getBoundingClientRect = vi.fn(() => defaultRect);
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
       clearRect: vi.fn(),
       drawImage: vi.fn(),
@@ -75,15 +89,20 @@ describe('WorkspacePage image pan behavior', () => {
   it('pans the image and overlay wrapper together after wheel zoom', async () => {
     const { container } = renderPage();
     const images = await screen.findAllByAltText('workspace-test.png');
-    const image = images.find((candidate) => candidate.className.includes('object-contain')) as HTMLImageElement;
+    const image = images.find((candidate) => candidate.className.includes('object-fill')) as HTMLImageElement;
     const wrapper = image.parentElement as HTMLElement;
     const viewport = wrapper.parentElement as HTMLElement;
     expect(viewport).toHaveClass('image-stage-frame', 'image-stage-scrollbar', 'image-stage-grid');
+    expect(viewport).toHaveClass('image-bbox-stage__stage');
+    expect(wrapper).toHaveClass('image-bbox-stage__transform');
+    expect(image).toHaveClass('image-bbox-stage__image');
+    expect(image).toHaveAttribute('draggable', 'false');
 
     viewport.setPointerCapture = vi.fn();
     viewport.releasePointerCapture = vi.fn();
     viewport.hasPointerCapture = vi.fn(() => true);
 
+    await act(async () => {});
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
 
     const wheelEvent = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100 });
@@ -110,12 +129,40 @@ describe('WorkspacePage image pan behavior', () => {
     expect(overlay.getAttribute('preserveAspectRatio')).toBe('none');
   });
 
+  it('drives Workspace page zoom buttons and fit reset through the shared viewport', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const images = await screen.findAllByAltText('workspace-test.png');
+    const image = images.find((candidate) => candidate.className.includes('object-fill')) as HTMLImageElement;
+    const wrapper = image.parentElement as HTMLElement;
+    const viewport = wrapper.parentElement as HTMLElement;
+    viewport.setPointerCapture = vi.fn();
+    viewport.releasePointerCapture = vi.fn();
+    viewport.hasPointerCapture = vi.fn(() => true);
+
+    expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
+
+    await user.click(screen.getByRole('button', { name: 'Zoom avant' }));
+    expect(wrapper.style.transform).toContain('scale(1.25)');
+
+    await user.click(screen.getByRole('button', { name: 'Zoom arrière' }));
+    expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
+
+    await user.click(screen.getByRole('button', { name: 'Zoom avant' }));
+    expect(wrapper.style.transform).toContain('scale(1.25)');
+
+    await user.click(screen.getByRole('button', { name: 'Ajuster à la vue' }));
+    expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');
+  });
+
   it('collapses and expands the history sidebar via stable container animation and compact header', async () => {
     const user = userEvent.setup();
     renderPage();
 
     const sidebar = screen.getByTestId('workspace-history-sidebar');
-    expect(sidebar).toHaveClass('transition-[padding,border-color,background-color]');
+    expect(sidebar).toHaveClass('transition-[padding,background-color]');
+    expect(sidebar).not.toHaveClass('border', 'border-stone-800');
     expect(sidebar).not.toHaveClass('transition-all');
 
     const expandButton = await screen.findByTitle('Déplier l’historique');
@@ -137,6 +184,13 @@ describe('WorkspacePage image pan behavior', () => {
   it('focuses a single overlay region and returns to the full overlay view', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
+    const images = await screen.findAllByAltText('workspace-test.png');
+    const image = images.find((candidate) => candidate.className.includes('object-fill')) as HTMLImageElement;
+    const wrapper = image.parentElement as HTMLElement;
+    const viewport = wrapper.parentElement as HTMLElement;
+    viewport.setPointerCapture = vi.fn();
+    viewport.releasePointerCapture = vi.fn();
+    viewport.hasPointerCapture = vi.fn(() => true);
 
     const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
     overlay.getBoundingClientRect = vi.fn().mockReturnValue({
@@ -153,12 +207,81 @@ describe('WorkspacePage image pan behavior', () => {
     expect(container.querySelector('[data-overlay-region="true"]')).toBeTruthy();
 
     await act(async () => {
+      fireEvent.wheel(viewport, { deltaY: -100 });
+    });
+    const transformBeforeOverlayClick = wrapper.style.transform;
+    expect(transformBeforeOverlayClick).toContain('scale(1.15)');
+
+    await act(async () => {
       dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
     });
+    await act(async () => {
+      dispatchPointer(viewport, 'pointermove', { clientX: 165, clientY: 170, pointerId: 1, buttons: 1 });
+    });
+    expect(wrapper.style.transform).toBe(transformBeforeOverlayClick);
+    expect(viewport.setPointerCapture).not.toHaveBeenCalled();
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
     expect(screen.queryByText('Région 0')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Retour aux régions' }));
     expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();
   });
+
+  it('clears selected workspace region on a zoomed empty click without treating pan start as drag', async () => {
+    const { container } = renderPage();
+    const image = (await screen.findAllByAltText('workspace-test.png')).find((candidate) =>
+      candidate.className.includes('object-fill'),
+    ) as HTMLImageElement;
+    const wrapper = image.parentElement as HTMLElement;
+    const viewport = wrapper.parentElement as HTMLElement;
+    viewport.setPointerCapture = vi.fn();
+    viewport.releasePointerCapture = vi.fn();
+    viewport.hasPointerCapture = vi.fn(() => true);
+    const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
+
+    await act(async () => {
+      fireEvent.wheel(viewport, { deltaY: -100 });
+      dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
+    });
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+    const selectedTransform = wrapper.style.transform;
+
+    await act(async () => {
+      dispatchPointer(overlay, 'pointerdown', { clientX: 700, clientY: 520, pointerId: 2, buttons: 1 });
+      dispatchPointer(viewport, 'pointerup', { clientX: 700, clientY: 520, pointerId: 2 });
+    });
+
+    expect(screen.queryByText('Retour aux régions')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-overlay-region="true"]')).toBeTruthy();
+    expect(wrapper.style.transform).toBe(selectedTransform);
+  });
+
+  it('preserves selected workspace region during a zoomed empty-space drag while panning', async () => {
+    renderPage();
+    const image = (await screen.findAllByAltText('workspace-test.png')).find((candidate) =>
+      candidate.className.includes('object-fill'),
+    ) as HTMLImageElement;
+    const wrapper = image.parentElement as HTMLElement;
+    const viewport = wrapper.parentElement as HTMLElement;
+    viewport.setPointerCapture = vi.fn();
+    viewport.releasePointerCapture = vi.fn();
+    viewport.hasPointerCapture = vi.fn(() => true);
+    const overlay = await screen.findByTestId('workspace-overlay') as unknown as SVGSVGElement;
+
+    await act(async () => {
+      fireEvent.wheel(viewport, { deltaY: -100 });
+      dispatchPointer(overlay, 'pointerdown', { clientX: 125, clientY: 120, pointerId: 1, buttons: 1 });
+    });
+    expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
+
+    await act(async () => {
+      dispatchPointer(overlay, 'pointerdown', { clientX: 700, clientY: 520, pointerId: 2, buttons: 1 });
+      dispatchPointer(viewport, 'pointermove', { clientX: 730, clientY: 550, pointerId: 2, buttons: 1 });
+      dispatchPointer(viewport, 'pointerup', { clientX: 730, clientY: 550, pointerId: 2 });
+    });
+
+    expect(screen.getByText('Retour aux régions')).toBeInTheDocument();
+    expect(wrapper.style.transform).toBe('translate(30px, 30px) scale(1.15)');
+  });
+
 });

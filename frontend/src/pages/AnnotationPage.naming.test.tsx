@@ -122,7 +122,7 @@ describe("AnnotationPage element naming UX", () => {
     await user.click(await screen.findByText("aleph"));
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -145,7 +145,7 @@ describe("AnnotationPage element naming UX", () => {
     await screen.findByText("atl");
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -170,7 +170,7 @@ describe("AnnotationPage element naming UX", () => {
     await user.click(await screen.findByText("Créer « nouveau glyphe »"));
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -196,7 +196,7 @@ describe("AnnotationPage element naming UX", () => {
     await user.type(input, "signe rare{Enter}");
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -242,10 +242,10 @@ describe("AnnotationPage element naming UX", () => {
       annotationStatus: { 0: "draft", 1: "draft", 2: "draft" },
     });
 
-    await user.click(await screen.findByText("Soumettre les éléments nommés"));
+    await user.click(await screen.findByText("Marquer les éléments nommés comme prêts"));
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -272,10 +272,10 @@ describe("AnnotationPage element naming UX", () => {
       },
     });
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(
-      await screen.findByText(/Nommez les éléments soumis/),
+      await screen.findByText(/Nommez les éléments prêts/),
     ).toBeInTheDocument();
     expect(saveAnnotation).not.toHaveBeenCalled();
   });
@@ -290,10 +290,10 @@ describe("AnnotationPage element naming UX", () => {
       },
     });
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(
-      await screen.findByText(/Nommez les éléments soumis/),
+      await screen.findByText(/Nommez les éléments prêts/),
     ).toBeInTheDocument();
     expect(saveAnnotation).not.toHaveBeenCalled();
   });
@@ -302,10 +302,10 @@ describe("AnnotationPage element naming UX", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(
-      await screen.findByText(/Soumettez au moins un élément nommé/),
+      await screen.findByText(/Marquez au moins un élément nommé/),
     ).toBeInTheDocument();
     expect(saveAnnotation).not.toHaveBeenCalled();
   });
@@ -332,7 +332,7 @@ describe("AnnotationPage element naming UX", () => {
       annotationStatus: { 0: "validated", 1: "draft" },
     });
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -361,7 +361,7 @@ describe("AnnotationPage element naming UX", () => {
       annotationStatus: { 0: "validated" },
     });
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(
       await screen.findByText("Erreur interne du serveur (id=trace-123)"),
@@ -390,7 +390,7 @@ describe("AnnotationPage element naming UX", () => {
       annotationStatus: { 0: "validated", 1: "draft" },
     });
 
-    await user.click(await screen.findByText("Envoyer les soumis"));
+    await user.click(await screen.findByText("Envoyer pour revue"));
 
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -406,10 +406,10 @@ describe("AnnotationPage element naming UX", () => {
       ...BASE_RECORD,
       result: { ...BASE_RECORD.result, num_elements: 0, elements: [] },
     });
-    await screen.findByText("Mode sélection");
+    await screen.findByText("Draw bbox");
 
     const drawButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Mode sélection"),
+      (button) => button.textContent?.includes("Draw bbox"),
     ) as HTMLElement;
     await act(async () => {
       fireEvent.click(drawButton);
@@ -506,19 +506,19 @@ describe("AnnotationPage element naming UX", () => {
     expect(within(chrome).getByRole("link", { name: "Retour" })).toBeInTheDocument();
     expect(
       within(chrome).getByRole("button", {
-        name: "Soumettre les éléments nommés",
+        name: "Marquer les éléments nommés comme prêts",
       }),
     ).toBeInTheDocument();
     expect(
       within(chrome).getByRole("button", {
-        name: "Enregistrer les modifications",
+        name: "Enregistrer",
       }),
     ).toBeInTheDocument();
     expect(
-      within(chrome).getByRole("button", { name: "Envoyer les soumis" }),
+      within(chrome).getByRole("button", { name: "Envoyer pour revue" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("annotation-admin-notice")).toHaveTextContent(
-      "Ces annotations sont soumises",
+      "Les éléments prêts peuvent être envoyés pour revue",
     );
     expect(
       within(chrome).queryByRole("searchbox", { name: /filtrer/i }),
@@ -527,28 +527,28 @@ describe("AnnotationPage element naming UX", () => {
     const compactList = screen.getByLabelText("Liste compacte des éléments");
     const toolbar = container.querySelector(".main-image-panel__toolbar");
     expect(toolbar).toBeInTheDocument();
-    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Mode sélection" })).toBeInTheDocument();
-    expect(within(toolbar as HTMLElement).getByRole("button", { name: "Annuler bbox" })).toBeInTheDocument();
+    expect(toolbar).toHaveClass("main-image-panel__toolbar--bottom-center");
+    const toolbarButtons = within(toolbar as HTMLElement).getAllByRole("button");
     expect(
-      within(toolbar as HTMLElement).getByRole("button", {
-        name: "Afficher les noms des libellés",
-      }),
-    ).toBeInTheDocument();
+      toolbarButtons.map(
+        (button) => button.getAttribute("aria-label") ?? button.textContent?.trim(),
+      ),
+    ).toEqual([
+      "Draw bbox",
+      "Annuler bbox",
+      "Labels",
+      "Zoom arrière",
+      "Ajuster à la vue",
+      "Zoom avant",
+    ]);
+    expect(toolbarButtons[1]).toHaveAttribute(
+      "title",
+      "Annuler la dernière modification de boîte",
+    );
+    expect(toolbarButtons[2]).toHaveAttribute("aria-pressed", "false");
     expect(toolbar).toContainElement(screen.getByTestId("annotation-analyzer-toolbar"));
-
-    const stageControls = screen.getByTestId("annotation-stage-controls");
-    expect(
-      within(stageControls).getByRole("button", { name: "Zoom avant" }),
-    ).toBeInTheDocument();
-    expect(
-      within(stageControls).getByRole("button", {
-        name: "Réinitialiser la vue",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(stageControls).getByRole("button", { name: "Zoom arrière" }),
-    ).toBeInTheDocument();
-    expect(within(stageControls).getByText("100%")).toBeInTheDocument();
+    expect(screen.queryByTestId("annotation-stage-controls")).not.toBeInTheDocument();
+    expect(within(toolbar as HTMLElement).getByText("100%")).toBeInTheDocument();
 
     expect(
       within(compactList).getByRole("searchbox", { name: /filtrer/i }),
@@ -626,11 +626,11 @@ describe("AnnotationPage element naming UX", () => {
     await screen.findByText("atl");
 
     expect(container.querySelector(".annotation-topbar")).not.toHaveTextContent(
-      /Soumis\s*:/i,
+      /Prêt pour revue\s*:/i,
     );
     const compactList = screen.getByLabelText("Liste compacte des éléments");
     expect(compactList).toHaveTextContent(
-      /(?:Soumis\s*)?1\s*\/\s*2(?:\s*Soumis)?/i,
+      /(?:Prêt pour revue\s*)?1\s*\/\s*2(?:\s*Prêt pour revue)?/i,
     );
   });
 
@@ -659,7 +659,7 @@ describe("AnnotationPage element naming UX", () => {
     await screen.findByText("glyphe-0");
 
     const compactList = screen.getByLabelText("Liste compacte des éléments");
-    expect(screen.getByLabelText("Soumis 38/38")).toBeInTheDocument();
+    expect(screen.getByLabelText("Prêt pour revue 38/38")).toBeInTheDocument();
     expect(compactList).not.toHaveTextContent(/Éléments\s*38\s*\/\s*38/i);
   });
 
@@ -692,7 +692,7 @@ describe("AnnotationPage element naming UX", () => {
 
     for (const labelText of ["Filtrer", "Statut", "Tri"]) {
       const label = within(controls).getByText(labelText).closest("label");
-      expect(label).toHaveClass("text-xs");
+      expect(label).toHaveClass("ui-text-eyebrow");
       expect(label).not.toHaveClass("text-[10px]");
     }
   });
@@ -708,11 +708,41 @@ describe("AnnotationPage element naming UX", () => {
       screen.getByLabelText("Nommer l’élément 0"),
     );
     expect(
-      within(actionRow).getByRole("button", { name: "Soumettre" }),
+      within(actionRow).getByRole("button", { name: "Marquer comme prêt" }),
     ).toBeInTheDocument();
     expect(
       within(actionRow).getByRole("button", { name: "Supprimer l’élément #0" }),
     ).toBeInTheDocument();
+  });
+
+  it("layers element name suggestions above the inspector and compact list chrome", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByText("atl"));
+    const input = await screen.findByLabelText("Nommer l’élément 0");
+    await user.clear(input);
+    await user.type(input, "al");
+
+    const inspector = screen.getByTestId("selected-element-inspector");
+    expect(inspector).toHaveClass(
+      "annotation-selected-inspector",
+      "relative",
+      "overflow-visible",
+    );
+    expect(inspector).not.toHaveClass("overflow-hidden");
+    expect(inspector.querySelector(".sidebar-body")).toHaveClass(
+      "annotation-selected-inspector__body",
+      "overflow-visible",
+    );
+
+    const combobox = input.closest(".annotation-name-combobox");
+    expect(combobox).toBeInTheDocument();
+    const suggestionList = await screen.findByTestId("element-name-suggestions");
+    expect(combobox).toContainElement(suggestionList);
+    expect(suggestionList).toHaveClass("annotation-name-combobox__menu");
+    expect(suggestionList).not.toHaveClass("z-20");
+    expect(suggestionList).toHaveTextContent("aleph");
   });
 
   it("filters and sorts the compact annotation list without changing bbox data", async () => {
@@ -768,7 +798,7 @@ describe("AnnotationPage element naming UX", () => {
     expect(rows[0]).toHaveAccessibleName(/#1 beta/i);
 
     const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Enregistrer les modifications"),
+      (button) => button.textContent?.includes("Enregistrer"),
     ) as HTMLElement;
     await user.click(saveButton);
 
@@ -818,11 +848,12 @@ describe("AnnotationPage element naming UX", () => {
     expect(overlay).toHaveTextContent("#1");
     expect(overlay).not.toHaveTextContent("#1 · beta");
 
-    await user.click(
-      screen.getByRole("button", {
-        name: /(?:afficher|masquer).*(?:noms|libellés)/i,
-      }),
-    );
+    const labelsToggle = screen.getByRole("button", { name: "Labels" });
+    expect(labelsToggle).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(labelsToggle);
+
+    expect(labelsToggle).toHaveAttribute("aria-pressed", "true");
 
     expect(overlay).toHaveTextContent("atl");
     expect(overlay).toHaveTextContent("beta");

@@ -1,64 +1,177 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
 } from "react";
+import {
+  useBBoxOverlayHitTest,
+  useBBoxSelection,
+  useImageStageViewport,
+} from "../../components/ImageBBoxStage";
 import { getTrust } from "../../services/api";
 import type { AnalysisRecord, TrustResult } from "../../types";
-import { clientToImage } from "../../utils/imageCoords";
-import {
-  nextZoomFromWheel,
-  shouldConsumeStageWheel,
-} from "../../utils/imageStageZoom";
-import { hitTestBBoxes } from "../../utils/segmentationBoxes";
 import type { WorkspaceHoverSource, WorkspaceOverlayMode } from "./workspaceViewUtils";
-
-const WORKSPACE_WHEEL_ZOOM_SENSITIVITY = 0.0015;
 
 type OverlayMode = WorkspaceOverlayMode;
 type HoverSource = WorkspaceHoverSource;
+export type WorkspaceTrustState = {
+  recordId: string | null;
+  focusedIdx: number | null;
+  status: "idle" | "loading" | "ready" | "error";
+  data: TrustResult | null;
+};
 
 export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [hoverSource, setHoverSource] = useState<HoverSource>(null);
-  const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
+  const {
+    hoveredId: hoveredIdx,
+    hoverSource,
+    focusedId: focusedIdx,
+    setHoveredId: setHoveredIdx,
+    setHoverSource,
+    setFocusedId: setFocusedIdx,
+    clearSelection,
+  } = useBBoxSelection<number, HoverSource>();
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("all");
   const [showLabelNames, setShowLabelNames] = useState(false);
-  const [trustData, setTrustData] = useState<TrustResult | null>(null);
-  const [contextLoading, setContextLoading] = useState(false);
+  const [trustState, setTrustState] = useState<WorkspaceTrustState>({
+    recordId: null,
+    focusedIdx: null,
+    status: "idle",
+    data: null,
+  });
+  const stageViewport = useImageStageViewport({
+    imageSize: currentRecord?.result.image_size,
+    disabled: !currentRecord,
+    resetKey: currentRecord?.id ?? null,
+  });
+  const updateStageSize = stageViewport.updateStageSize;
+  const overlayHitBoxes = useMemo(
+    () =>
+      currentRecord?.result.elements.map((element, idx) => ({
+        id: idx,
+        bbox: element.bbox,
+      })) ?? [],
+    [currentRecord?.result.elements],
+  );
+  const getWorkspaceOverlayHit = useBBoxOverlayHitTest({
+    imageSize: currentRecord?.result.image_size,
+    boxes: overlayHitBoxes,
+    selectedId: focusedIdx,
+    overlayMode,
+  });
 
   const imageRef = useRef<HTMLImageElement>(null);
-  const workspacePanStartRef = useRef<{
-    clientX: number;
-    clientY: number;
-    offset: { x: number; y: number };
-  } | null>(null);
   const cropCanvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
-  const detailCanvasRef = useRef<HTMLCanvasElement>(null);
+  const detailCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cropDrawFrameRef = useRef<number | null>(null);
+  const latestRecordRef = useRef(currentRecord);
+  const latestFocusedIdxRef = useRef(focusedIdx);
   const trustRequestIdRef = useRef(0);
+  const pendingEmptyClickRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    canceled: boolean;
+  } | null>(null);
+  const resetWorkspaceView = stageViewport.resetView;
 
-  const resetWorkspaceView = useCallback(() => {
-    setZoom(1);
-    setPanOffset({ x: 0, y: 0 });
-    setIsPanning(false);
-    workspacePanStartRef.current = null;
+  useLayoutEffect(() => {
+    latestRecordRef.current = currentRecord;
+    latestFocusedIdxRef.current = focusedIdx;
+  });
+
+  const cancelScheduledCropDraw = useCallback(() => {
+    if (cropDrawFrameRef.current !== null) {
+      cancelAnimationFrame(cropDrawFrameRef.current);
+      cropDrawFrameRef.current = null;
+    }
   }, []);
 
+  const scheduleCropDraw = useCallback(() => {
+    cancelScheduledCropDraw();
+    const scheduledRecordId = latestRecordRef.current?.id ?? null;
+
+    cropDrawFrameRef.current = requestAnimationFrame(() => {
+      cropDrawFrameRef.current = null;
+
+      const record = latestRecordRef.current;
+      if (!record || record.id !== scheduledRecordId) {
+        return;
+      }
+
+      const image = imageRef.current;
+      if (!image || !image.complete || image.naturalWidth <= 0) {
+        return;
+      }
+
+      const drawCrop = (
+        canvas: HTMLCanvasElement | null,
+        element: AnalysisRecord["result"]["elements"][number] | undefined,
+      ) => {
+        if (!canvas || !element) {
+          return;
+        }
+
+        const cropCtx = canvas.getContext("2d");
+        if (!cropCtx) {
+          return;
+        }
+
+        const [x, y, w, h] = element.bbox;
+        cropCtx.clearRect(0, 0, canvas.width, canvas.height);
+        cropCtx.drawImage(image, x, y, w, h, 0, 0, canvas.width, canvas.height);
+      };
+
+      record.result.elements.forEach((element, idx) => {
+        drawCrop(cropCanvasRefs.current[idx] ?? null, element);
+      });
+
+      const focusedElement =
+        latestFocusedIdxRef.current === null
+          ? undefined
+          : record.result.elements[latestFocusedIdxRef.current];
+      drawCrop(detailCanvasRef.current, focusedElement);
+    });
+  }, [cancelScheduledCropDraw]);
+
+  const setCropCanvasRef = useCallback(
+    (idx: number, canvas: HTMLCanvasElement | null) => {
+      cropCanvasRefs.current[idx] = canvas;
+      scheduleCropDraw();
+    },
+    [scheduleCropDraw],
+  );
+
+  const setDetailCanvasRef = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      detailCanvasRef.current = canvas;
+      scheduleCropDraw();
+    },
+    [scheduleCropDraw],
+  );
+
+  const clearWorkspaceSelection = useCallback(() => {
+    clearSelection();
+    pendingEmptyClickRef.current = null;
+  }, [clearSelection]);
+
   const resetInspectionState = useCallback(() => {
+    cancelScheduledCropDraw();
     cropCanvasRefs.current = [];
-    setHoveredIdx(null);
-    setHoverSource(null);
-    setFocusedIdx(null);
+    detailCanvasRef.current = null;
+    clearWorkspaceSelection();
     resetWorkspaceView();
     setOverlayMode("all");
-  }, [resetWorkspaceView]);
+  }, [
+    cancelScheduledCropDraw,
+    clearWorkspaceSelection,
+    resetWorkspaceView,
+  ]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset image inspection state when the active record changes
@@ -66,62 +179,41 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
   }, [currentRecord?.id, resetInspectionState]);
 
   useEffect(() => {
+    scheduleCropDraw();
+  }, [currentRecord, focusedIdx, scheduleCropDraw]);
+
+  useEffect(() => {
     if (!currentRecord || !imageRef.current) {
       return;
     }
 
     const image = imageRef.current;
-
-    const drawCrop = (
-      canvas: HTMLCanvasElement | null,
-      element: AnalysisRecord["result"]["elements"][number],
-    ) => {
-      if (!canvas) {
-        return;
-      }
-
-      const cropCtx = canvas.getContext("2d");
-      if (!cropCtx) {
-        return;
-      }
-
-      const [x, y, w, h] = element.bbox;
-      cropCtx.clearRect(0, 0, canvas.width, canvas.height);
-      cropCtx.drawImage(image, x, y, w, h, 0, 0, canvas.width, canvas.height);
-    };
-
-    const drawAllCanvases = () => {
-      currentRecord.result.elements.forEach((element, idx) => {
-        drawCrop(cropCanvasRefs.current[idx], element);
-      });
-
-      if (focusedIdx !== null) {
-        const focusedElement = currentRecord.result.elements[focusedIdx];
-        if (focusedElement) {
-          drawCrop(detailCanvasRef.current, focusedElement);
-        }
-      }
-    };
-
-    if (image.complete) {
-      drawAllCanvases();
-    }
-
-    image.addEventListener("load", drawAllCanvases);
-    window.addEventListener("resize", drawAllCanvases);
+    image.addEventListener("load", scheduleCropDraw);
+    window.addEventListener("resize", scheduleCropDraw);
 
     return () => {
-      image.removeEventListener("load", drawAllCanvases);
-      window.removeEventListener("resize", drawAllCanvases);
+      image.removeEventListener("load", scheduleCropDraw);
+      window.removeEventListener("resize", scheduleCropDraw);
     };
-  }, [currentRecord, focusedIdx]);
+  }, [currentRecord, scheduleCropDraw]);
+
+  useEffect(() => cancelScheduledCropDraw, [cancelScheduledCropDraw]);
+
+  const handleWorkspaceImageLoad = useCallback(() => {
+    updateStageSize();
+    scheduleCropDraw();
+  }, [scheduleCropDraw, updateStageSize]);
 
   useEffect(() => {
     if (focusedIdx === null || !currentRecord) {
       trustRequestIdRef.current += 1;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset trust inspection state when no element is focused
-      setContextLoading(false);
-      setTrustData(null);
+      setTrustState({
+        recordId: currentRecord?.id ?? null,
+        focusedIdx: null,
+        status: "idle",
+        data: null,
+      });
       return;
     }
 
@@ -131,7 +223,12 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
     const requestId = trustRequestIdRef.current + 1;
     trustRequestIdRef.current = requestId;
 
-    setContextLoading(true);
+    setTrustState({
+      recordId: currentRecord.id,
+      focusedIdx,
+      status: "loading",
+      data: null,
+    });
 
     const isActiveRequest = () =>
       trustRequestIdRef.current === requestId && !controller.signal.aborted;
@@ -141,19 +238,24 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
     })
       .then((trust) => {
         if (isActiveRequest()) {
-          setTrustData(trust);
+          setTrustState({
+            recordId: currentRecord.id,
+            focusedIdx,
+            status: "ready",
+            data: trust,
+          });
         }
       })
       .catch(() => {
         if (isActiveRequest()) {
-          setTrustData(null);
+          setTrustState({
+            recordId: currentRecord.id,
+            focusedIdx,
+            status: "error",
+            data: null,
+          });
         }
       })
-      .finally(() => {
-        if (isActiveRequest()) {
-          setContextLoading(false);
-        }
-      });
 
     return () => {
       controller.abort();
@@ -161,7 +263,7 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
   }, [focusedIdx, currentRecord]);
 
   const startWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (zoom <= 1 || event.button !== 0) {
+    if (event.button !== 0) {
       return;
     }
 
@@ -170,94 +272,47 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
       target instanceof Element &&
       target.closest('[data-overlay-region="true"]')
     ) {
+      pendingEmptyClickRef.current = null;
       return;
     }
 
-    setIsPanning(true);
-    workspacePanStartRef.current = {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      offset: { ...panOffset },
+    pendingEmptyClickRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      canceled: false,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+
+    if (stageViewport.zoom > 1) {
+      stageViewport.beginPan(event);
+    }
   };
 
   const moveWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!workspacePanStartRef.current) {
-      return;
+    const pending = pendingEmptyClickRef.current;
+    if (pending && pending.pointerId === event.pointerId) {
+      const moved = Math.hypot(
+        event.clientX - pending.startX,
+        event.clientY - pending.startY,
+      );
+      if (moved >= 5) {
+        pending.canceled = true;
+      }
     }
 
-    setPanOffset({
-      x:
-        workspacePanStartRef.current.offset.x +
-        event.clientX -
-        workspacePanStartRef.current.clientX,
-      y:
-        workspacePanStartRef.current.offset.y +
-        event.clientY -
-        workspacePanStartRef.current.clientY,
-    });
+    stageViewport.movePan(event);
   };
 
   const stopWorkspacePan = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!workspacePanStartRef.current && !isPanning) {
-      return;
-    }
+    stageViewport.endPan(event);
 
-    setIsPanning(false);
-    workspacePanStartRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const handleWorkspaceStageWheel = (
-    event: ReactWheelEvent<HTMLDivElement>,
-  ) => {
-    const { deltaY } = event;
-    if (!shouldConsumeStageWheel(deltaY)) return;
-
-    event.preventDefault();
-    setZoom((currentZoom) => {
-      const nextZoom = nextZoomFromWheel(
-        currentZoom,
-        deltaY,
-        undefined,
-        WORKSPACE_WHEEL_ZOOM_SENSITIVITY,
-      );
-      if (nextZoom <= 1) {
-        setPanOffset({ x: 0, y: 0 });
+    const pending = pendingEmptyClickRef.current;
+    if (pending && pending.pointerId === event.pointerId) {
+      pendingEmptyClickRef.current = null;
+      if (!pending.canceled) {
+        clearSelection();
       }
-      return nextZoom;
-    });
-  };
-
-  const getWorkspaceOverlayHit = (
-    svg: SVGSVGElement,
-    clientX: number,
-    clientY: number,
-  ): number | null => {
-    if (!currentRecord) {
-      return null;
     }
-
-    const [imgW, imgH] = currentRecord.result.image_size;
-    const point = clientToImage(svg, clientX, clientY, {
-      width: imgW,
-      height: imgH,
-    });
-    const visibleElements = currentRecord.result.elements
-      .map((element, idx) => ({ idx, bbox: element.bbox }))
-      .filter(
-        ({ idx }) =>
-          overlayMode === "all" || focusedIdx === null || focusedIdx === idx,
-      );
-    const hitIdx = hitTestBBoxes(
-      point,
-      visibleElements.map(({ bbox }) => bbox),
-    );
-
-    return hitIdx === null ? null : visibleElements[hitIdx].idx;
   };
 
   const handleWorkspaceOverlayPointerDown = (
@@ -267,11 +322,12 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
       return;
     }
 
-    const hitIdx = getWorkspaceOverlayHit(
+    const hitId = getWorkspaceOverlayHit(
       event.currentTarget,
       event.clientX,
       event.clientY,
     );
+    const hitIdx = typeof hitId === "number" ? hitId : null;
     if (hitIdx === null) {
       return;
     }
@@ -279,21 +335,22 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
     event.stopPropagation();
     setFocusedIdx(hitIdx);
     setHoveredIdx(hitIdx);
-    setHoverSource(hitIdx === null ? null : "image");
+    setHoverSource("image");
   };
 
   const handleWorkspaceOverlayPointerMove = (
     event: ReactPointerEvent<SVGSVGElement>,
   ) => {
-    const hitIdx = getWorkspaceOverlayHit(
+    const hitId = getWorkspaceOverlayHit(
       event.currentTarget,
       event.clientX,
       event.clientY,
     );
+    const hitIdx = typeof hitId === "number" ? hitId : null;
     setHoveredIdx(hitIdx);
     setHoverSource(hitIdx === null ? null : "image");
     event.currentTarget.style.cursor =
-      hitIdx === null ? (zoom > 1 ? "grab" : "default") : "pointer";
+      hitIdx === null ? (stageViewport.zoom > 1 ? "grab" : "default") : "pointer";
   };
 
   const handleWorkspaceDetectedListKeyDown = (
@@ -320,33 +377,47 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
       setFocusedIdx(null);
     }
   };
+  const trustMatchesFocusedElement =
+    trustState.recordId === (currentRecord?.id ?? null) &&
+    trustState.focusedIdx === focusedIdx;
+  const trustData =
+    trustMatchesFocusedElement && trustState.status === "ready"
+      ? trustState.data
+      : null;
+  const contextLoading =
+    trustMatchesFocusedElement && trustState.status === "loading";
 
   return {
     imageRef,
-    cropCanvasRefs,
-    detailCanvasRef,
+    setCropCanvasRef,
+    setDetailCanvasRef,
+    containerRef: stageViewport.containerRef,
+    transformSize: stageViewport.transformSize,
     hoveredIdx,
     hoverSource,
     focusedIdx,
-    zoom,
-    panOffset,
-    isPanning,
+    zoom: stageViewport.zoom,
+    panOffset: stageViewport.panOffset,
+    isPanning: stageViewport.isPanning,
     overlayMode,
     showLabelNames,
+    trustState,
     trustData,
     contextLoading,
     setHoveredIdx,
     setHoverSource,
     setFocusedIdx,
-    setZoom,
-    setPanOffset,
     setOverlayMode,
     setShowLabelNames,
+    handleWorkspaceImageLoad,
+    zoomIn: stageViewport.zoomIn,
+    zoomOut: stageViewport.zoomOut,
     resetWorkspaceView,
+    clearWorkspaceSelection,
     startWorkspacePan,
     moveWorkspacePan,
     stopWorkspacePan,
-    handleWorkspaceStageWheel,
+    handleWorkspaceStageWheel: stageViewport.handleStageWheel,
     handleWorkspaceOverlayPointerDown,
     handleWorkspaceOverlayPointerMove,
     handleWorkspaceDetectedListKeyDown,

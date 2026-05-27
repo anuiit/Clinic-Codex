@@ -23,6 +23,10 @@ class Settings:
     enable_legacy_endpoints: bool = True
     testing: bool = False
     mobile_sam_checkpoint: str = ""
+    enable_admin_training_jobs: bool = False
+    admin_training_log_tail_lines: int = 80
+    admin_training_max_batch_size: int = 256
+    admin_training_allowed_devices: tuple[str, ...] = ("auto", "cpu", "mps", "cuda")
 
     @property
     def class_config_path(self) -> Path:
@@ -50,6 +54,18 @@ class Settings:
     def data_dir(self) -> Path:
         return self.backend_root / "data"
 
+    @property
+    def admin_training_runs_dir(self) -> Path:
+        return self.backend_root / "training_runs"
+
+    @property
+    def model_registry_dir(self) -> Path:
+        return self.backend_root / "model_registry"
+
+    @property
+    def admin_training_script_path(self) -> Path:
+        return self.backend_root.parent / "scripts" / "retrain.sh"
+
     @classmethod
     def from_env(cls) -> "Settings":
         raw_origins = os.environ.get("CORS_ORIGINS", "http://localhost:7118")
@@ -61,5 +77,6 @@ class Settings:
             model_dir=os.environ.get("MODEL_DIR", ""),
             mobile_sam_checkpoint=os.environ.get("MOBILE_SAM_CHECKPOINT", ""),
             enable_legacy_endpoints=_truthy(os.environ.get("ENABLE_LEGACY_ENDPOINTS"), True),
+            enable_admin_training_jobs=_truthy(os.environ.get("ENABLE_ADMIN_TRAINING_JOBS"), False),
             testing=_truthy(os.environ.get("FLASK_TESTING"), False),
         )

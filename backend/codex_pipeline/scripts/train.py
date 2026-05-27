@@ -60,6 +60,49 @@ def get_device(device_cfg: str) -> torch.device:
     return torch.device(device_cfg)
 
 
+def format_class_counts(dataset, class_names) -> str:
+    """Return a compact class=count summary for diagnostics."""
+    if not dataset.classes:
+        return "none"
+
+    parts = []
+    for class_label in dataset.classes:
+        name = class_names.get(class_label, str(class_label))
+        parts.append(f"{name}={len(dataset.class_to_indices[class_label])}")
+    return ", ".join(parts)
+
+
+def require_episode_support(dataset, split_name: str, k_shot: int, q_queries: int, class_names) -> None:
+    """
+    Fail early with an actionable message when a split cannot form episodes.
+
+    CachedEpisodicSampler can sample query examples with replacement for very
+    small classes, but each participating class still needs at least k_shot
+    examples for the support set.
+    """
+    support_classes = [
+        class_label
+        for class_label in dataset.classes
+        if len(dataset.class_to_indices[class_label]) >= k_shot
+    ]
+    if support_classes:
+        return
+
+    counts = format_class_counts(dataset, class_names)
+    raise SystemExit(
+        "\nERROR: Not enough approved training data for episodic classifier training.\n"
+        f"Split '{split_name}' has no class with at least k_shot={k_shot} examples.\n"
+        f"Class counts in this split: {counts}\n\n"
+        "Current settings require enough examples to create support/query episodes:\n"
+        f"  k_shot={k_shot}, q_queries={q_queries}\n"
+        "  validation split is created per class before training\n\n"
+        "Approve more examples for at least one class, or lower the few-shot "
+        "settings in backend/codex_pipeline/config/default.yaml for a smoke "
+        "test run. Classes with fewer than data.min_images_per_class examples "
+        "are filtered before embedding precompute."
+    )
+
+
 def train_one_epoch(model, dataloader, criterion, optimizer, device, n_way, k_shot, q_queries):
     model.train()
     total_loss = 0.0
@@ -124,6 +167,11 @@ def main():
     parser = argparse.ArgumentParser(description="Train projection head on cached features")
     parser.add_argument("--config", default="codex_pipeline/config/default.yaml")
     parser.add_argument("--features", default="./precomputed/features_aug.pt")
+    parser.add_argument(
+        "--checkpoint-dir",
+        default=None,
+        help="Explicit checkpoint output directory. Overrides paths.checkpoint_dir from config.",
+    )
     parser.add_argument("--resume", default=None)
     parser.add_argument("--noise-std", type=float, default=0.02,
                         help="Gaussian noise std for feature augmentation (0=off)")
@@ -165,6 +213,9 @@ def main():
     n_way = train_cfg["n_way"]
     k_shot = train_cfg["k_shot"]
     q_queries = train_cfg["q_queries"]
+
+    require_episode_support(train_dataset, "train", k_shot, q_queries, class_names)
+    require_episode_support(val_dataset, "val", k_shot, q_queries, class_names)
 
     train_sampler = CachedEpisodicSampler(
         train_dataset, n_way, k_shot, q_queries, train_cfg["episodes_per_epoch"],
@@ -223,7 +274,7 @@ def main():
         best_val_acc = ckpt.get("best_val_acc", 0.0)
 
     # --- Logging ---
-    ckpt_dir = Path(paths_cfg["checkpoint_dir"])
+    ckpt_dir = Path(args.checkpoint_dir or paths_cfg["checkpoint_dir"])
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     # --- Training loop ---

@@ -96,9 +96,14 @@ if (-not (Test-Path $ProtoDerived)) {
     if (-not (Test-Path $ProtoSource)) {
         Fail "Model artefacts missing: backend\prototypes\prototypes.pt not found. See backend\README.md."
     }
-    Log "prototypes.pt missing - running export_model"
+    Log "prototypes.pt missing - running bootstrap export_model with explicit runtime-write opt-in"
     Push-Location (Join-Path $RepoRoot 'backend')
-    & $VenvPy -m codex_pipeline.scripts.export_model
+    & $VenvPy -m codex_pipeline.scripts.export_model `
+        --allow-runtime-write `
+        --prototypes prototypes/prototypes.pt `
+        --weights-dir codex_model/weights `
+        --config-template codex_model/config.json `
+        --config-out codex_model/config.json
     $exportExit = $LASTEXITCODE
     Pop-Location
     if ($exportExit -ne 0) { Fail "export_model failed - see error above" }

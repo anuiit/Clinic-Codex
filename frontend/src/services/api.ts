@@ -9,6 +9,13 @@ import type {
   SaveAnnotationResponse,
   SaveAnnotationResult,
   SaveAnnotationErrorCode,
+  AdminAnnotationModifyPayload,
+  AdminAnnotationQueue,
+  AdminAnnotationMutationResponse,
+  AdminAnnotationReviewStatus,
+  AdminTrainingJobResponse,
+  AdminTrainingStartPayload,
+  AdminTrainingSummary,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:7117';
@@ -19,6 +26,13 @@ export interface ApiRequestOptions {
 
 function apiUrl(path: string): string {
   return `${BASE_URL}${path}`;
+}
+
+export function adminAnnotationMediaUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  return apiUrl(path);
 }
 
 function requestConfig(options?: ApiRequestOptions): AxiosRequestConfig | undefined {
@@ -142,4 +156,55 @@ export async function saveAnnotation(
       message: 'Network error while saving annotation',
     };
   }
+}
+
+export async function getAdminAnnotationQueue(
+  options?: ApiRequestOptions,
+): Promise<AdminAnnotationQueue> {
+  return getData<AdminAnnotationQueue>('/admin/annotations', options);
+}
+
+export async function setAdminAnnotationReviewStatus(
+  analysisId: string,
+  index: number,
+  status: AdminAnnotationReviewStatus,
+  options?: ApiRequestOptions,
+): Promise<AdminAnnotationMutationResponse> {
+  return postData<AdminAnnotationMutationResponse>(
+    `/admin/annotations/${encodeURIComponent(analysisId)}/${index}/review`,
+    { status },
+    options,
+  );
+}
+
+export async function modifyAdminAnnotationElement(
+  analysisId: string,
+  index: number,
+  payload: AdminAnnotationModifyPayload,
+  options?: ApiRequestOptions,
+): Promise<AdminAnnotationMutationResponse> {
+  return postData<AdminAnnotationMutationResponse>(
+    `/admin/annotations/${encodeURIComponent(analysisId)}/${index}/modify`,
+    payload,
+    options,
+  );
+}
+
+export async function getAdminTrainingSummary(
+  options?: ApiRequestOptions,
+): Promise<AdminTrainingSummary> {
+  return getData<AdminTrainingSummary>('/admin/training/summary', options);
+}
+
+export async function getLatestAdminTrainingJob(
+  options?: ApiRequestOptions,
+): Promise<AdminTrainingJobResponse> {
+  return getData<AdminTrainingJobResponse>('/admin/training/jobs/latest', options);
+}
+
+export async function startAdminTrainingJob(
+  payload: AdminTrainingStartPayload,
+  options?: ApiRequestOptions,
+): Promise<AdminTrainingJobResponse> {
+  return postData<AdminTrainingJobResponse>('/admin/training/jobs', payload, options);
 }

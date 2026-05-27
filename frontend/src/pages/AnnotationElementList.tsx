@@ -58,16 +58,16 @@ export function AnnotationElementList({
       data-testid="annotation-element-list"
     >
       <div
-        className="annotation-list-controls mb-3 flex flex-wrap items-end gap-2 xl:flex-nowrap"
+        className="annotation-list-controls ui-section mb-3 flex flex-wrap items-end gap-2 p-3 xl:flex-nowrap"
         data-testid="annotation-list-controls"
       >
         <div
-          className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+          className="annotation-status-chip annotation-status-chip--validated shrink-0 px-2 py-1.5"
           aria-label={`${labels.submitted} ${submittedCount}/${elementsCount}`}
         >
           {labels.submitted} {submittedCount}/{elementsCount}
         </div>
-        <label className="min-w-[128px] flex-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+        <label className="ui-text-eyebrow min-w-[128px] flex-1">
           Filtrer
           <input
             type="search"
@@ -75,32 +75,32 @@ export function AnnotationElementList({
             value={listQuery}
             onChange={(event) => onListQueryChange(event.target.value)}
             placeholder="Nom ou numéro"
-            className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none placeholder:text-stone-600 focus:border-amber-500"
+            className="ui-input mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
           />
         </label>
-        <label className="min-w-[112px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+        <label className="ui-text-eyebrow min-w-[112px]">
           Statut
           <select
             value={statusFilter}
             onChange={(event) =>
               onStatusFilterChange(event.target.value as AnnotationStatusFilter)
             }
-            className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+            className="ui-select mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
           >
             <option value="all">Tous</option>
             <option value="draft">Brouillons</option>
-            <option value="submitted">Soumis</option>
+            <option value="submitted">Prêts pour revue</option>
             <option value="rejected">Rejetés</option>
           </select>
         </label>
-        <label className="min-w-[122px] text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+        <label className="ui-text-eyebrow min-w-[122px]">
           Tri
           <select
             value={sortMode}
             onChange={(event) =>
               onSortModeChange(event.target.value as AnnotationSortMode)
             }
-            className="mt-1 w-full rounded-lg border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs normal-case tracking-normal text-stone-100 outline-none focus:border-amber-500"
+            className="ui-select mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
           >
             <option value="original">Original</option>
             <option value="confidence-asc">Confiance ↑</option>
@@ -118,6 +118,11 @@ export function AnnotationElementList({
             : el.class_name;
           const isSubmitted = annotationStatus[idx] === "validated";
           const confidencePercent = Math.round(el.confidence * 100);
+          const progressTone = el.rejected
+            ? "ui-progress-value--danger"
+            : isSubmitted
+              ? "ui-progress-value--ready"
+              : "ui-progress-value--accent";
 
           return (
             <button
@@ -139,37 +144,37 @@ export function AnnotationElementList({
                   current === idx ? null : current,
                 )
               }
-              className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all ${isFocused ? "annotation-card-selected" : ""}`}
+              className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-colors ${isFocused ? "annotation-card-selected" : ""}`}
             >
               <span className="flex min-w-0 items-center gap-3">
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black ${isSubmitted ? "bg-emerald-400 text-stone-950" : isFocused ? "bg-amber-400 text-stone-950" : "bg-stone-800 text-stone-300"}`}
+                  className={`annotation-index-badge ${isSubmitted ? "annotation-index-badge--validated" : isFocused ? "annotation-index-badge--focused" : "annotation-index-badge--draft"}`}
                 >
                   #{idx}
                 </span>
                 <span className="min-w-0">
                   <span
-                    className={`block truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? "text-amber-300" : "text-stone-100"}`}
+                    className={`block truncate text-sm font-bold ${isUnnamedClass(el.class_name) ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}
                   >
                     {actualDisplayName}
                   </span>
                   <span className="mt-1 flex items-center gap-2">
-                    <span className="h-1.5 w-20 overflow-hidden rounded-full bg-stone-800">
+                    <span className="ui-progress-track inline-block h-1.5 w-20">
                       <span
-                        className={`block h-full rounded-full ${el.rejected ? "bg-red-400" : isSubmitted ? "bg-emerald-400" : "bg-amber-400"}`}
+                        className={`ui-progress-value ${progressTone} block`}
                         style={{
                           width: `${Math.max(0, Math.min(100, confidencePercent))}%`,
                         }}
                       />
                     </span>
-                    <span className="text-[10px] font-semibold tabular-nums text-stone-500">
+                    <span className="ui-text-meta font-semibold tabular-nums">
                       {confidencePercent}%
                     </span>
                   </span>
                 </span>
               </span>
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${el.rejected ? "bg-red-500/15 text-red-300" : isSubmitted ? "bg-emerald-500/15 text-emerald-300" : "bg-stone-800 text-stone-400"}`}
+                className={`annotation-status-chip shrink-0 ${el.rejected ? "annotation-status-chip--rejected" : isSubmitted ? "annotation-status-chip--validated" : "annotation-status-chip--draft"}`}
               >
                 {isSubmitted ? labels.submitted : labels.draft}
               </span>

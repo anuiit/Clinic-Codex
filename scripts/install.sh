@@ -49,9 +49,9 @@ PY="backend/.venv/bin/python"
 "$PIP" install --quiet --upgrade pip 2>/dev/null || log "  pip upgrade skipped (network or permission)"
 
 # --- Stage 2: core utils (small, fast, low risk) ---
-log "Stage 2/5: core utils (numpy, pillow, scipy, pyyaml, tqdm)"
+log "Stage 2/5: core utils (numpy, pillow, scipy, pandas, pyyaml, tqdm)"
 "$PIP" install --no-cache-dir --prefer-binary \
-  "numpy>=1.24,<2.5" "pillow>=10.0" "pyyaml>=6.0" "scipy>=1.11" "tqdm>=4.66" \
+  "numpy>=1.24,<2.5" "pillow>=10.0" "pyyaml>=6.0" "scipy>=1.11" "pandas>=2.0" "tqdm>=4.66" \
   || fail "Stage 2 failed — core utils"
 
 # --- Stage 3: web (flask) ---
@@ -90,7 +90,7 @@ fi
 
 # --- Final import sanity ---
 log "Sanity: importing all critical modules"
-"$PY" -c "import flask, torch, torchvision, mobile_sam, segment_anything, albumentations, timm; print('all imports OK')" \
+"$PY" -c "import flask, torch, torchvision, pandas, mobile_sam, segment_anything, albumentations, timm; print('all imports OK')" \
   || fail "Sanity import failed — see error above"
 
 
@@ -104,7 +104,12 @@ elif [ ! -f "$PROTO_SOURCE" ]; then
   fail "Model artefacts missing: $PROTO_SOURCE not found. See backend/README.md."
 else
   PY_ABS="$(cd "$(dirname "$PY")" && pwd)/$(basename "$PY")"
-  (cd backend && "$PY_ABS" -m codex_pipeline.scripts.export_model) \
+  (cd backend && "$PY_ABS" -m codex_pipeline.scripts.export_model \
+    --allow-runtime-write \
+    --prototypes prototypes/prototypes.pt \
+    --weights-dir codex_model/weights \
+    --config-template codex_model/config.json \
+    --config-out codex_model/config.json) \
     || fail "export_model failed — see error above"
   [ -f "$PROTO_DERIVED" ] || fail "export_model ran but $PROTO_DERIVED still missing"
 fi

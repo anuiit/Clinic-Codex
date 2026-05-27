@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Warning-only source file size guard for the maintainability roadmap.
+"""Source file size guard for the maintainability roadmap.
 
-Phase 0 intentionally exits 0 even when warnings are emitted. Later roadmap
-phases can make this check blocking after oversized files have been refactored.
+Phase 3 makes frontend source files blocking at the existing 500-line threshold
+after the ImageBBoxStage migration brought scoped files under the limit. Backend
+route/server checks remain warning-only so unrelated backend work is not blocked
+by this frontend migration phase.
 """
 from __future__ import annotations
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-WARNING_ONLY = True
-
 CHECKS = [
-    (ROOT / "frontend" / "src", {".ts", ".tsx"}, 500, "frontend source"),
-    (ROOT / "backend" / "examples" / "flask_api.py", {".py"}, 250, "backend route/server"),
-    (ROOT / "backend" / "app" / "routes", {".py"}, 250, "backend route/server"),
+    (ROOT / "frontend" / "src", {".ts", ".tsx"}, 500, "frontend source", False),
+    (ROOT / "backend" / "examples" / "flask_api.py", {".py"}, 250, "backend route/server", True),
+    (ROOT / "backend" / "app" / "routes", {".py"}, 250, "backend route/server", True),
 ]
 
 
@@ -28,7 +28,8 @@ def line_count(path: Path) -> int:
 
 def main() -> int:
     warnings: list[str] = []
-    for base, suffixes, threshold, label in CHECKS:
+    failures: list[str] = []
+    for base, suffixes, threshold, label, warning_only in CHECKS:
         if not base.exists():
             continue
 
@@ -40,19 +41,33 @@ def main() -> int:
                 continue
             count = line_count(path)
             if count > threshold:
-                warnings.append(
+                message = (
                     f"{path.relative_to(ROOT)} has {count} lines "
-                    f"(>{threshold} {label} Phase 0 warning threshold)"
+                    f"(>{threshold} {label} Phase 3 threshold)"
                 )
+                if warning_only:
+                    warnings.append(message)
+                else:
+                    failures.append(message)
+
+    if failures:
+        print("File-size guard: FAIL")
+        for failure in failures:
+            print(f"ERROR: {failure}")
 
     if warnings:
-        print("File-size guard: WARNING-ONLY in Phase 0")
+        print("File-size guard: warnings")
         for warning in warnings:
             print(f"WARNING: {warning}")
-    else:
-        print("File-size guard: no files exceed Phase 0 warning thresholds")
 
-    print("File-size guard result: pass (warning-only; exits 0 in Phase 0)")
+    if failures:
+        print("File-size guard result: fail (frontend source threshold is blocking)")
+        return 1
+
+    if not warnings:
+        print("File-size guard: no files exceed Phase 3 thresholds")
+
+    print("File-size guard result: pass")
     return 0
 
 

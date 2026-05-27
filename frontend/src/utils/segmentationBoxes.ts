@@ -196,9 +196,9 @@ export function getBoxVisualState({ focused, hovered, listHovered, submitted, re
   if (submitted) {
     return {
       tone: 'submitted',
-      strokeColor: '#34d399',
-      fillColor: 'rgba(16, 185, 129, 0.15)',
-      labelColor: '#052e16',
+      strokeColor: '#818cf8',
+      fillColor: 'rgba(99, 102, 241, 0.16)',
+      labelColor: '#1e1b4b',
       strokeWidth: 2,
     };
   }

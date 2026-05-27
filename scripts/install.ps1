@@ -85,13 +85,14 @@ try { & $VenvPip install --quiet --upgrade pip 2>&1 | Out-Null } catch { Log '  
 # ---------------------------------------------------------------------------
 # Stage 2: core utils
 # ---------------------------------------------------------------------------
-Log 'Stage 2/5: core utils (numpy, pillow, scipy, pyyaml, tqdm)'
+Log 'Stage 2/5: core utils (numpy, pillow, scipy, pandas, pyyaml, tqdm)'
 
 $pkgsCore = @(
     'numpy>=1.24,<2.5',
     'pillow>=10.0',
     'pyyaml>=6.0',
     'scipy>=1.11',
+    'pandas>=2.0',
     'tqdm>=4.66'
 )
 & $VenvPip install --no-cache-dir --prefer-binary @pkgsCore
@@ -160,7 +161,7 @@ if ($isEmpty) {
 # ---------------------------------------------------------------------------
 Log 'Sanity: importing all critical modules'
 
-& $VenvPy -c 'import flask, torch, torchvision, mobile_sam, segment_anything, albumentations, timm; print("all imports OK")'
+& $VenvPy -c 'import flask, torch, torchvision, pandas, mobile_sam, segment_anything, albumentations, timm; print("all imports OK")'
 if ($LASTEXITCODE -ne 0) { Fail 'Sanity import failed - see error above' }
 
 # ---------------------------------------------------------------------------
@@ -177,7 +178,12 @@ if (Test-Path $ProtoDerived) {
     Fail "Model artefacts missing: $ProtoSource not found. See backend\README.md."
 } else {
     Push-Location (Join-Path $RepoRoot 'backend')
-    & $VenvPy -m codex_pipeline.scripts.export_model
+    & $VenvPy -m codex_pipeline.scripts.export_model `
+        --allow-runtime-write `
+        --prototypes prototypes/prototypes.pt `
+        --weights-dir codex_model/weights `
+        --config-template codex_model/config.json `
+        --config-out codex_model/config.json
     $exportExit = $LASTEXITCODE
     Pop-Location
     if ($exportExit -ne 0) { Fail 'export_model failed - see error above' }

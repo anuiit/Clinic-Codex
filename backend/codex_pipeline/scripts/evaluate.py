@@ -138,6 +138,12 @@ def main():
     parser.add_argument("--checkpoint", type=str, default="./checkpoints/best.pt")
     parser.add_argument("--features", type=str, default="./precomputed/features_aug.pt")
     parser.add_argument("--export-prototypes", action="store_true")
+    parser.add_argument(
+        "--prototype-dir",
+        type=str,
+        default=None,
+        help="Explicit prototype export directory. Overrides paths.prototype_dir from checkpoint config.",
+    )
     parser.add_argument("--num-episodes", type=int, default=500)
     args = parser.parse_args()
 
@@ -229,7 +235,7 @@ def main():
 
     # --- Export prototypes ---
     if args.export_prototypes:
-        proto_dir = Path(paths_cfg["prototype_dir"])
+        proto_dir = Path(args.prototype_dir or paths_cfg["prototype_dir"])
         proto_dir.mkdir(parents=True, exist_ok=True)
 
         # Also compute per-class count and variance for metadata

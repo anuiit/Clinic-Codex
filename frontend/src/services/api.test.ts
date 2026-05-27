@@ -255,6 +255,88 @@ describe("API client contract", () => {
       expect.objectContaining({ signal: controller.signal }),
     );
   });
+
+  it("loads the local admin annotation queue", async () => {
+    const queue = {
+      status: "ok",
+      schema_version: 1,
+      local_only: true,
+      warning: "local only",
+      counts: { total: 1, pending: 1, approved: 0, rejected: 0, trainable: 0 },
+      analyses: [],
+      diagnostics: [],
+    };
+    const controller = new AbortController();
+    axiosMock.get.mockResolvedValueOnce({ data: queue });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.getAdminAnnotationQueue({ signal: controller.signal })).resolves.toEqual(queue);
+
+    expect(axiosMock.get).toHaveBeenCalledWith(
+      "http://api.test/admin/annotations",
+      { signal: controller.signal },
+    );
+  });
+
+  it("posts element-level local admin review decisions", async () => {
+    const mutation = { status: "ok", local_only: true, warning: "local only", element: { key: "analysis 1:0" } };
+    axiosMock.post.mockResolvedValueOnce({ data: mutation });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.setAdminAnnotationReviewStatus("analysis 1", 0, "approved")).resolves.toEqual(mutation);
+
+    expect(axiosMock.post).toHaveBeenCalledWith(
+      "http://api.test/admin/annotations/analysis%201/0/review",
+      { status: "approved" },
+    );
+  });
+
+  it("posts element-level local admin modify payloads", async () => {
+    const mutation = { status: "ok", local_only: true, warning: "local only", element: { key: "analysis 1:0" } };
+    axiosMock.post.mockResolvedValueOnce({ data: mutation });
+    const api = await loadApi("http://api.test");
+    const payload = { class_name: "new-atl", bbox: [1, 2, 3, 4] as [number, number, number, number], approve_after_save: true };
+
+    await expect(api.modifyAdminAnnotationElement("analysis 1", 0, payload)).resolves.toEqual(mutation);
+
+    expect(axiosMock.post).toHaveBeenCalledWith(
+      "http://api.test/admin/annotations/analysis%201/0/modify",
+      payload,
+    );
+  });
+
+  it("loads local admin training summary and latest job", async () => {
+    const summary = { status: "ok", training_jobs_enabled: false };
+    const latest = { status: "ok", local_only: true, job: null };
+    axiosMock.get.mockResolvedValueOnce({ data: summary }).mockResolvedValueOnce({ data: latest });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.getAdminTrainingSummary()).resolves.toEqual(summary);
+    await expect(api.getLatestAdminTrainingJob()).resolves.toEqual(latest);
+
+    expect(axiosMock.get).toHaveBeenNthCalledWith(1, "http://api.test/admin/training/summary");
+    expect(axiosMock.get).toHaveBeenNthCalledWith(2, "http://api.test/admin/training/jobs/latest");
+  });
+
+  it("posts guarded local admin training jobs", async () => {
+    const response = { status: "ok", local_only: true, job: { run_id: "r1", status: "running" } };
+    const payload = { dry_run: true, device: "cpu", batch_size: 8, notes: "smoke" };
+    axiosMock.post.mockResolvedValueOnce({ data: response });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.startAdminTrainingJob(payload)).resolves.toEqual(response);
+
+    expect(axiosMock.post).toHaveBeenCalledWith("http://api.test/admin/training/jobs", payload);
+  });
+
+  it("builds backend media URLs for local admin images", async () => {
+    const api = await loadApi("http://api.test");
+
+    expect(api.adminAnnotationMediaUrl("/admin/annotations/a1/image")).toBe(
+      "http://api.test/admin/annotations/a1/image",
+    );
+    expect(api.adminAnnotationMediaUrl("https://cdn.example/crop.png")).toBe("https://cdn.example/crop.png");
+  });
 });
 
 function jsonResponse(body: unknown, status = 200): Response {

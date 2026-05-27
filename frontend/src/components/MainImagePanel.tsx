@@ -12,6 +12,7 @@ export type MainImagePanelTone = "workspace" | "annotation";
 export type MainImagePanelTestIds = {
   root?: string;
   header?: string;
+  toolbar?: string;
   stage?: string;
   transform?: string;
   controls?: string;
@@ -32,20 +33,26 @@ type DivPropsWithTestId = HTMLAttributes<HTMLDivElement> & {
   "data-testid"?: string;
 };
 
+export type MainImagePanelToolbarPlacement = "top-left" | "bottom-center";
+export type MainImagePanelControlsPlacement = "bottom-right" | "bottom-center";
+
 export type MainImagePanelProps = {
   tone?: MainImagePanelTone;
   title?: ReactNode;
   eyebrow?: ReactNode;
   badges?: ReactNode;
+  headerMeta?: ReactNode;
   /**
    * Reserved for non-analyzer metadata actions in the panel header.
-   * Workflow/analyzer controls belong in the shared top-left `toolbar` slot.
+   * Workflow/analyzer controls belong in the shared floating `toolbar` slot.
    */
   headerActions?: ReactNode;
   toolbar?: ReactNode;
+  toolbarPlacement?: MainImagePanelToolbarPlacement;
   image: ReactNode;
   overlay?: ReactNode;
   controls?: MainImagePanelControl[];
+  controlsPlacement?: MainImagePanelControlsPlacement;
   zoomLabel?: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -69,10 +76,14 @@ export function MainImagePanel({
   title,
   eyebrow,
   badges,
+  headerMeta,
+  headerActions,
   toolbar,
+  toolbarPlacement = "top-left",
   image,
   overlay,
   controls,
+  controlsPlacement = "bottom-right",
   zoomLabel,
   footer,
   className,
@@ -97,7 +108,15 @@ export function MainImagePanel({
     "data-testid": transformTestId,
     ...transformRest
   } = transformProps ?? {};
-  const hasHeader = Boolean(eyebrow || title || badges);
+  const hasHeader = Boolean(eyebrow || title || badges || headerMeta || headerActions);
+  const toolbarPlacementClass =
+    toolbarPlacement === "bottom-center"
+      ? "bottom-4 left-1/2 -translate-x-1/2"
+      : "left-4 top-4";
+  const controlsPlacementClass =
+    controlsPlacement === "bottom-center"
+      ? "bottom-4 left-1/2 -translate-x-1/2"
+      : "bottom-4 right-4";
 
   return (
     <section
@@ -118,19 +137,33 @@ export function MainImagePanel({
           )}
           data-testid={testIds?.header}
         >
-          <div className="min-w-0">
+          <div className="main-image-panel__header-main min-w-0">
             {eyebrow && (
-              <div className="main-image-panel__eyebrow truncate text-[10px] font-semibold uppercase tracking-[0.28em]">
+              <div className="main-image-panel__eyebrow truncate text-xs font-semibold uppercase tracking-[0.28em]">
                 {eyebrow}
               </div>
             )}
-            {title && (
-              <div className="main-image-panel__title flex min-w-0 items-center gap-3">
-                {title}
-                {badges}
+            {(title || badges || headerMeta) && (
+              <div className="main-image-panel__title-row flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
+                {title && (
+                  <div className="main-image-panel__title flex min-w-0 items-center gap-3">
+                    {title}
+                    {badges}
+                  </div>
+                )}
+                {headerMeta && (
+                  <div className="main-image-panel__header-meta min-w-0">
+                    {headerMeta}
+                  </div>
+                )}
               </div>
             )}
           </div>
+          {headerActions && (
+            <div className="main-image-panel__header-actions flex shrink-0 items-center justify-end gap-2">
+              {headerActions}
+            </div>
+          )}
         </div>
       )}
 
@@ -147,7 +180,14 @@ export function MainImagePanel({
         data-testid={testIds?.stage ?? stageTestId}
       >
         {toolbar && (
-          <div className="main-image-panel__toolbar absolute left-4 top-4 z-10">
+          <div
+            className={cx(
+              "main-image-panel__toolbar absolute z-10",
+              `main-image-panel__toolbar--${toolbarPlacement}`,
+              toolbarPlacementClass,
+            )}
+            data-testid={testIds?.toolbar}
+          >
             {toolbar}
           </div>
         )}
@@ -170,7 +210,11 @@ export function MainImagePanel({
 
         {(controls?.length || zoomLabel) && (
           <div
-            className="main-image-panel__controls absolute bottom-4 right-4 z-10 flex items-center gap-1 rounded-2xl p-1"
+            className={cx(
+              "main-image-panel__controls absolute z-10 flex items-center gap-1 rounded-2xl p-1",
+              `main-image-panel__controls--${controlsPlacement}`,
+              controlsPlacementClass,
+            )}
             data-testid={testIds?.controls}
           >
             {controls?.map((control) => (
@@ -183,7 +227,7 @@ export function MainImagePanel({
                 aria-pressed={control.pressed}
                 title={control.title ?? control.label}
                 className={cx(
-                  "main-image-panel__control rounded-xl p-2 text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-stone-300",
+                  "main-image-panel__control rounded-xl p-2 text-[var(--text-soft)] transition-colors hover:bg-[var(--control-bg-hover)] hover:text-[var(--text-main)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--text-soft)]",
                   control.className,
                 )}
               >
@@ -191,7 +235,7 @@ export function MainImagePanel({
               </button>
             ))}
             {zoomLabel && (
-              <span className="main-image-panel__zoom-label px-2 text-xs font-semibold tabular-nums text-stone-400">
+              <span className="main-image-panel__zoom-label ui-text-meta px-2 font-semibold tabular-nums">
                 {zoomLabel}
               </span>
             )}

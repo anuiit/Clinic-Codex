@@ -105,7 +105,7 @@ describe("MainImagePanel shared boundary", () => {
     );
     expect(screen.getByRole("button", { name: "Draw" })).toHaveClass(
       "analyzer-toolbar__button",
-      "bg-amber-400",
+      "analyzer-toolbar__button--active",
     );
     expect(screen.getByRole("button", { name: "Zoom in" })).toBeEnabled();
     expect(screen.getByTestId("shared-controls")).toHaveTextContent("125%");
@@ -135,6 +135,45 @@ describe("MainImagePanel shared boundary", () => {
       screen.getByRole("img", { name: "fixture" }),
     );
     expect(transform.children[1]).toBe(screen.getByLabelText("overlay"));
+  });
+
+  it("renders header metadata/actions and opt-in bottom-center dock placements", () => {
+    render(
+      <MainImagePanel
+        title={<h1>alpha.png</h1>}
+        headerMeta={<span>800×600 · Classes aleph 1</span>}
+        headerActions={<button type="button">Annoter l’analyse</button>}
+        toolbar={<AnalyzerToolbar aria-label="Combined toolbox">tools</AnalyzerToolbar>}
+        toolbarPlacement="bottom-center"
+        image={<img alt="fixture" src="data:image/png;base64,abc" />}
+        controls={[
+          {
+            id: "fit",
+            icon: <span aria-hidden="true">fit</span>,
+            label: "Fit",
+            onClick: vi.fn(),
+          },
+        ]}
+        controlsPlacement="bottom-center"
+        zoomLabel="100%"
+        testIds={{
+          header: "panel-header",
+          toolbar: "panel-toolbar",
+          controls: "panel-controls",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("panel-header")).toHaveTextContent("800×600");
+    expect(screen.getByRole("button", { name: "Annoter l’analyse" })).toBeInTheDocument();
+    expect(screen.getByTestId("panel-toolbar")).toHaveClass(
+      "main-image-panel__toolbar--bottom-center",
+      "left-1/2",
+    );
+    expect(screen.getByTestId("panel-controls")).toHaveClass(
+      "main-image-panel__controls--bottom-center",
+      "left-1/2",
+    );
   });
 
   it("documents the neutral analyzer chrome CSS contract", () => {
@@ -178,8 +217,8 @@ describe("MainImagePanel shared boundary", () => {
     const workspaceImports = sourceImports("src/pages/WorkspacePage.tsx");
     const annotationImports = sourceImports("src/pages/AnnotationPage.tsx");
 
-    expect(workspaceImports).toContain("../components/MainImagePanel");
-    expect(annotationImports).toContain("../components/MainImagePanel");
+    expect(workspaceImports).toContain("../components/ImageBBoxStage");
+    expect(annotationImports).toContain("../components/ImageBBoxStage");
   });
 
   it("keeps the shared component prop surface presentation-only", () => {

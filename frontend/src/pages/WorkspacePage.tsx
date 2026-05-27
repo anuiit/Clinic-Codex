@@ -1,26 +1,37 @@
 import { useNavigate } from "react-router-dom";
-import { Maximize2, ZoomIn, ZoomOut } from "lucide-react";
+import { Edit3 } from "lucide-react";
 import { appText } from "../i18n/text";
-import MainImagePanel from "../components/MainImagePanel";
+import { ImageBBoxStage } from "../components/ImageBBoxStage";
 import WorkspaceHistoryPanel from "../components/WorkspaceHistoryPanel";
+import type { ThemeMode } from "../components/ThemeToggle";
 import WorkspaceDetectedPanel from "./workspace/WorkspaceDetectedPanel";
 import WorkspaceEmptyState from "./workspace/WorkspaceEmptyState";
 import WorkspaceHeader from "./workspace/WorkspaceHeader";
-import WorkspaceOverlay from "./workspace/WorkspaceOverlay";
 import WorkspaceOverlayToolbar from "./workspace/WorkspaceOverlayToolbar";
 import WorkspaceUploadModal from "./workspace/WorkspaceUploadModal";
 import { useWorkspaceHistory } from "./workspace/useWorkspaceHistory";
 import { useWorkspaceUpload } from "./workspace/useWorkspaceUpload";
 import { useWorkspaceViewport } from "./workspace/useWorkspaceViewport";
+import { formatWorkspaceBboxLabel } from "./workspace/workspaceViewUtils";
 
-export default function WorkspacePage() {
+type WorkspacePageProps = {
+  themeMode?: ThemeMode;
+  onToggleTheme?: () => void;
+};
+
+export default function WorkspacePage({
+  themeMode = "dark",
+  onToggleTheme = () => undefined,
+}: WorkspacePageProps = {}) {
   const navigate = useNavigate();
   const t = appText.workspace;
   const history = useWorkspaceHistory();
   const {
     imageRef,
-    cropCanvasRefs,
-    detailCanvasRef,
+    setCropCanvasRef,
+    setDetailCanvasRef,
+    containerRef,
+    transformSize,
     hoveredIdx,
     hoverSource,
     focusedIdx,
@@ -29,16 +40,19 @@ export default function WorkspacePage() {
     isPanning,
     overlayMode,
     showLabelNames,
+    trustState,
     trustData,
     contextLoading,
     setHoveredIdx,
     setHoverSource,
     setFocusedIdx,
-    setZoom,
-    setPanOffset,
     setOverlayMode,
     setShowLabelNames,
+    handleWorkspaceImageLoad,
+    zoomIn,
+    zoomOut,
     resetWorkspaceView,
+    clearWorkspaceSelection,
     startWorkspacePan,
     moveWorkspacePan,
     stopWorkspacePan,
@@ -63,10 +77,41 @@ export default function WorkspacePage() {
         : `/annotate/${history.currentRecord.id}`,
     );
   };
+  const workspaceHeaderMeta =
+    history.currentRecord && history.stats ? (
+      <div
+        className="ui-text-meta flex min-w-0 flex-wrap items-center gap-1.5"
+        data-testid="workspace-image-header-meta"
+      >
+        <span className="truncate" title={history.currentRecord.imageName}>
+          {history.currentRecord.imageName}
+        </span>
+        <span aria-hidden="true" className="text-[var(--divider)]">
+          ·
+        </span>
+        <span>{history.stats.imageSizeLabel}</span>
+        <span aria-hidden="true" className="text-[var(--divider)]">
+          ·
+        </span>
+        <span>
+          Annotés / rejetés {history.stats.annotatedCount}/{history.stats.total} ·{" "}
+          {history.stats.rejectedCount}
+        </span>
+        <span aria-hidden="true" className="text-[var(--divider)]">
+          ·
+        </span>
+        <span
+          className="min-w-0 truncate"
+          title={history.stats.topClasses.join(", ")}
+        >
+          Classes {history.stats.topClasses.join(", ") || history.stats.topClass}
+        </span>
+      </div>
+    ) : null;
 
   return (
     <div
-      className={`workspace-page flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl transition-colors ${upload.dragging ? "ring-2 ring-amber-400/60 ring-offset-2 ring-offset-stone-950" : ""}`}
+      className={`workspace-page flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl transition-colors ${upload.dragging ? "ring-2 ring-[color:var(--border-strong)] ring-offset-2 ring-offset-[var(--app-bg)]" : ""}`}
       onDragEnter={(event) => {
         event.preventDefault();
         upload.setDragging(true);
@@ -102,6 +147,8 @@ export default function WorkspacePage() {
         }}
         onFileSelected={upload.handleFile}
         onAnalyze={upload.analyze}
+        themeMode={themeMode}
+        onToggleTheme={onToggleTheme}
       />
 
       {upload.preview && upload.file && (
@@ -155,20 +202,73 @@ export default function WorkspacePage() {
               className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]"
               data-testid="workspace-content-grid"
             >
-              <MainImagePanel
+              <ImageBBoxStage
                 tone="workspace"
+                mode="inspect"
                 className="h-full"
+                imageDataUrl={history.currentRecord.imageDataUrl}
+                imageName={history.currentRecord.imageName}
+                imageSize={history.currentRecord.result.image_size}
+                boxes={history.currentRecord.result.elements.map((element, idx) => ({
+                  id: idx,
+                  bbox: element.bbox,
+                  label: element.class_name,
+                  confidence: element.confidence,
+                  rejected: element.rejected,
+                  status:
+                    (history.currentRecord?.annotations ?? {})[idx] !==
+                    undefined
+                      ? "validated"
+                      : "draft",
+                }))}
+                selectedId={focusedIdx}
+                showLabelNames={showLabelNames}
+                overlayMode={overlayMode}
+                viewport={{ zoom, panOffset, isPanning }}
+                transformSize={transformSize}
+                imageFit="fill"
+                boxStateById={Object.fromEntries(
+                  history.currentRecord.result.elements.map((_, idx) => [
+                    idx,
+                    {
+                      imageHovered:
+                        idx === hoveredIdx && hoverSource === "image",
+                      listHovered: idx === hoveredIdx && hoverSource === "list",
+                      submitted:
+                        (history.currentRecord?.annotations ?? {})[idx] !==
+                        undefined,
+                    },
+                  ]),
+                )}
+                renderLabel={(box) =>
+                  formatWorkspaceBboxLabel(
+                    Number(box.id),
+                    box.label ?? "",
+                    showLabelNames,
+                  )
+                }
                 title={
                   <h2
-                    className="truncate text-lg font-semibold text-stone-100 max-w-[200px] sm:max-w-[300px]"
+                    className="ui-title-md max-w-[200px] truncate text-lg sm:max-w-[300px]"
                     title={history.currentRecord.imageName}
                   >
                     {history.currentRecord.imageName}
                   </h2>
                 }
+                headerMeta={workspaceHeaderMeta}
+                headerActions={
+                  <button
+                    type="button"
+                    onClick={handleEditorHandoff}
+                    className="ui-action-primary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                    data-testid="workspace-header-annotate-action"
+                  >
+                    <Edit3 size={16} /> {t.annotateRecord}
+                  </button>
+                }
                 badges={
                   focusedIdx !== null && (
-                    <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500">
+                    <span className="ui-chip ui-chip--accent rounded-md px-2 py-1 text-xs font-medium">
                       {t.focusLabel}: {focusedIdx}
                     </span>
                   )
@@ -181,13 +281,24 @@ export default function WorkspacePage() {
                       overlayAll: t.overlayAll,
                       overlayFocused: t.overlayFocused,
                       overlayHidden: t.overlayHidden,
+                      zoomOut: t.zoomOut,
+                      fitToView: t.fitToView,
+                      zoomIn: t.zoomIn,
+                      deselect: t.deselect,
                     }}
                     onOverlayModeChange={setOverlayMode}
+                    hasSelection={focusedIdx !== null}
+                    zoomLabel={`${Math.round(zoom * 100)}%`}
                     onToggleLabelNames={() =>
                       setShowLabelNames((current) => !current)
                     }
+                    onDeselect={clearWorkspaceSelection}
+                    onZoomOut={zoomOut}
+                    onFitToView={resetWorkspaceView}
+                    onZoomIn={zoomIn}
                   />
                 }
+                toolbarPlacement="bottom-center"
                 stageClassName={`workspace-stage ${zoom > 1 ? (isPanning ? "cursor-grabbing" : "cursor-grab") : ""}`}
                 stageProps={{
                   onPointerDown: startWorkspacePan,
@@ -196,69 +307,21 @@ export default function WorkspacePage() {
                   onPointerCancel: stopWorkspacePan,
                   onWheel: handleWorkspaceStageWheel,
                 }}
-                transformStyle={{
-                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
-                  transformOrigin: "center center",
-                  transition: isPanning ? "none" : "transform 0.1s ease",
-                  willChange: "transform",
+                stageRef={containerRef}
+                imageProps={{ ref: imageRef, onLoad: handleWorkspaceImageLoad }}
+                svgProps={{
+                  onPointerDown: handleWorkspaceOverlayPointerDown,
+                  onPointerMove: handleWorkspaceOverlayPointerMove,
+                  onPointerLeave: () => {
+                    setHoveredIdx(null);
+                    setHoverSource(null);
+                  },
                 }}
-                image={
-                  <img
-                    ref={imageRef}
-                    src={history.currentRecord.imageDataUrl}
-                    alt={history.currentRecord.imageName}
-                    draggable={false}
-                    className="block max-h-full max-w-full rounded-lg object-contain"
-                  />
-                }
-                overlay={
-                  <WorkspaceOverlay
-                    record={history.currentRecord}
-                    focusedIdx={focusedIdx}
-                    hoveredIdx={hoveredIdx}
-                    hoverSource={hoverSource}
-                    overlayMode={overlayMode}
-                    showLabelNames={showLabelNames}
-                    onPointerDown={handleWorkspaceOverlayPointerDown}
-                    onPointerMove={handleWorkspaceOverlayPointerMove}
-                    onPointerLeave={() => {
-                      setHoveredIdx(null);
-                      setHoverSource(null);
-                    }}
-                  />
-                }
-                controls={[
-                  {
-                    id: "zoom-in",
-                    label: t.zoomIn,
-                    title: t.zoomIn,
-                    onClick: () => setZoom((z) => Math.min(4, z + 0.25)),
-                    icon: <ZoomIn size={16} />,
-                  },
-                  {
-                    id: "fit-to-view",
-                    label: t.fitToView,
-                    title: t.fitToView,
-                    onClick: resetWorkspaceView,
-                    icon: <Maximize2 size={16} />,
-                  },
-                  {
-                    id: "zoom-out",
-                    label: t.zoomOut,
-                    title: t.zoomOut,
-                    onClick: () => {
-                      setZoom((currentZoom) => {
-                        const nextZoom = Math.max(0.25, currentZoom - 0.25);
-                        if (nextZoom <= 1) {
-                          setPanOffset({ x: 0, y: 0 });
-                        }
-                        return nextZoom;
-                      });
-                    },
-                    icon: <ZoomOut size={16} />,
-                  },
-                ]}
-                testIds={{ stage: "workspace-stage" }}
+                testIds={{
+                  header: "workspace-image-header",
+                  stage: "workspace-stage",
+                  overlay: "workspace-overlay",
+                }}
               />
 
               <WorkspaceDetectedPanel
@@ -266,10 +329,11 @@ export default function WorkspacePage() {
                 focusedIdx={focusedIdx}
                 hoveredIdx={hoveredIdx}
                 stats={history.stats}
+                trustState={trustState}
                 trustData={trustData}
                 contextLoading={contextLoading}
-                cropCanvasRefs={cropCanvasRefs}
-                detailCanvasRef={detailCanvasRef}
+                setCropCanvasRef={setCropCanvasRef}
+                setDetailCanvasRef={setDetailCanvasRef}
                 onBackToRegions={() => setFocusedIdx(null)}
                 onEditorHandoff={handleEditorHandoff}
                 onDetectedListKeyDown={handleWorkspaceDetectedListKeyDown}

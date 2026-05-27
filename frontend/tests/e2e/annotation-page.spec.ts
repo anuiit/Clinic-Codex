@@ -54,7 +54,10 @@ test('Cas 1 — local save shows FR success toast', async ({ page }) => {
 });
 
 test('Cas 2 — remote save success shows FR toast', async ({ page }) => {
+  let requestPayload: unknown = null;
+
   await page.route('**/save-annotation', async (route) => {
+    requestPayload = route.request().postDataJSON();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -76,6 +79,16 @@ test('Cas 2 — remote save success shows FR toast', async ({ page }) => {
 
   const toast = page.locator('[class*="fixed"]').filter({ hasText: 'Annotations envoyées au serveur' });
   await expect(toast).toBeVisible({ timeout: 5000 });
+  expect(requestPayload).toEqual({
+    analysis_id: 'test-e2e-001',
+    image_name: 'test-glyph.png',
+    image_data_url: TEST_RECORD.imageDataUrl,
+    timestamp: 1700000000000,
+    annotations: [
+      { index: 0, bbox: [50, 60, 80, 70], class_name: 'glyph-a' },
+    ],
+  });
+  expect(Object.keys(requestPayload as Record<string, unknown>)).not.toContain('training_data');
 });
 
 test('Cas 3 — mode switch does not misalign boxes', async ({ page }) => {
@@ -87,7 +100,7 @@ test('Cas 3 — mode switch does not misalign boxes', async ({ page }) => {
   const beforeBox = await bboxRect.boundingBox();
   expect(beforeBox).not.toBeNull();
 
-  const modeBtn = page.getByRole('button', { name: /Mode (dessin|sélection)/i });
+  const modeBtn = page.getByRole('button', { name: /Draw bbox/i });
   await expect(modeBtn).toBeVisible();
   await modeBtn.click();
 

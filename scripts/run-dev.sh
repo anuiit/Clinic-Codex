@@ -25,9 +25,14 @@ PROTO_DERIVED="backend/codex_model/weights/prototypes.pt"
 PROTO_SOURCE="backend/prototypes/prototypes.pt"
 if [ ! -f "$PROTO_DERIVED" ]; then
   [ -f "$PROTO_SOURCE" ] || fail "Model artefacts missing: $PROTO_SOURCE not found. See backend/README.md."
-  log "prototypes.pt missing — running export_model"
+  log "prototypes.pt missing — running bootstrap export_model with explicit runtime-write opt-in"
   PY_ABS="$(cd "$(dirname "$PY")" && pwd)/$(basename "$PY")"
-  (cd backend && "$PY_ABS" -m codex_pipeline.scripts.export_model) \
+  (cd backend && "$PY_ABS" -m codex_pipeline.scripts.export_model \
+    --allow-runtime-write \
+    --prototypes prototypes/prototypes.pt \
+    --weights-dir codex_model/weights \
+    --config-template codex_model/config.json \
+    --config-out codex_model/config.json) \
     || fail "export_model failed — see error above"
   [ -f "$PROTO_DERIVED" ] || fail "export_model ran but $PROTO_DERIVED still missing"
 fi

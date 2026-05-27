@@ -69,6 +69,17 @@ def _post_image(client, path, field="image"):
     return client.post(path, data={field: (io.BytesIO(_png_bytes()), "glyph.png")})
 
 
+def _invalid_image_file(name="not-image.txt"):
+    return (io.BytesIO(b"not an image"), name)
+
+
+def _valid_image_file(name="glyph.png"):
+    return (io.BytesIO(_png_bytes()), name)
+
+
+INVALID_IMAGE_RESPONSE = {"error": {"code": "INVALID_IMAGE", "message": "uploaded file is not a valid image"}}
+
+
 def test_classify_and_classify_batch_legacy_routes_are_retained():
     services = StubServices()
     app = create_app(settings=Settings(testing=True), services=services)
@@ -91,6 +102,31 @@ def test_classify_and_classify_batch_legacy_routes_are_retained():
 
     assert services.classify_calls == 1
     assert services.classify_batch_calls == 1
+
+
+def test_classify_invalid_upload_returns_client_error_before_service_call():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True), services=services)
+    with app.test_client() as client:
+        resp = client.post("/classify", data={"image": _invalid_image_file()})
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.classify_calls == 0
+
+
+def test_classify_batch_invalid_upload_returns_client_error_before_service_call():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True), services=services)
+    with app.test_client() as client:
+        resp = client.post(
+            "/classify-batch",
+            data={"images": [_valid_image_file("valid.png"), _invalid_image_file("broken.txt")]},
+        )
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.classify_batch_calls == 0
 
 
 def test_segment_shape_and_batch_classifies_valid_crops_once():
@@ -116,6 +152,19 @@ def test_segment_shape_and_batch_classifies_valid_crops_once():
     assert services.classify_calls == 0
     assert services.classify_batch_calls == 1
     assert services.batch_images == [proposal.crop for proposal in services.last_proposals if proposal.crop is not None]
+
+
+def test_segment_invalid_upload_returns_client_error_before_service_calls():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True), services=services)
+    with app.test_client() as client:
+        resp = client.post("/segment", data={"image": _invalid_image_file()})
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.segment_calls == 0
+    assert services.classify_calls == 0
+    assert services.classify_batch_calls == 0
 
 
 def test_segment_skips_batch_when_no_valid_crops():
