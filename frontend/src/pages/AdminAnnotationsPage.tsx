@@ -77,8 +77,16 @@ function formatTimestamp(value: Date | null) {
   });
 }
 
-function StatusBadge({ status, label }: { status: AdminAnnotationReviewStatus; label?: string }) {
-  const accessibleLabel = label ? `${label}: ${STATUS_LABEL[status]} review status` : `Review status ${STATUS_LABEL[status]}`;
+function StatusBadge({
+  status,
+  label,
+}: {
+  status: AdminAnnotationReviewStatus;
+  label?: string;
+}) {
+  const accessibleLabel = label
+    ? `${label}: ${STATUS_LABEL[status]} review status`
+    : `Review status ${STATUS_LABEL[status]}`;
   return (
     <span
       aria-label={accessibleLabel}
@@ -386,16 +394,16 @@ function ReviewQueueRow({
   onSelect: (element: AdminAnnotationElement) => void;
 }) {
   const { analysis, element, diagnostics } = row;
-  const rowLabel = `Review element ${element.index} ${element.class_name || 'Unnamed'} from ${analysis.analysis_id}`;
+  const rowLabel = `Review element ${element.index} ${element.class_name || "Unnamed"} from ${analysis.analysis_id}`;
   return (
     <li>
       <button
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
-        aria-current={selected ? 'true' : undefined}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
+        aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
+        aria-current={selected ? "true" : undefined}
+        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
@@ -417,9 +425,17 @@ function ReviewQueueRow({
               #{element.index} · {element.class_name || "Unnamed"}
             </span>
             <StatusBadge status={element.review_status} label={rowLabel} />
-            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
-            {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : null}
-            {!element.trainable && element.review_status === 'approved' ? <span className="ui-chip ui-chip--accent">Needs diagnostics</span> : null}
+            {selected ? (
+              <span className="ui-chip ui-chip--accent" aria-hidden="true">
+                Selected
+              </span>
+            ) : null}
+            {element.trainable ? (
+              <span className="ui-chip ui-chip--ready">Trainable</span>
+            ) : null}
+            {!element.trainable && element.review_status === "approved" ? (
+              <span className="ui-chip ui-chip--accent">Needs diagnostics</span>
+            ) : null}
           </span>
           <span className="block ui-text-caption">
             {analysis.analysis_id} · BBox [{formatBbox(element.bbox)}] ·{" "}
@@ -536,9 +552,18 @@ function ReviewElementInspector({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} label={`Selected inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
-          {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : <span className="ui-chip ui-chip--accent">Not trainable</span>}
-          {element.stale_decision ? <span className="ui-chip ui-chip--accent">Stale decision</span> : null}
+          <StatusBadge
+            status={element.review_status}
+            label={`Selected inspector element ${element.index} ${element.class_name || "Unnamed"}`}
+          />
+          {element.trainable ? (
+            <span className="ui-chip ui-chip--ready">Trainable</span>
+          ) : (
+            <span className="ui-chip ui-chip--accent">Not trainable</span>
+          )}
+          {element.stale_decision ? (
+            <span className="ui-chip ui-chip--accent">Stale decision</span>
+          ) : null}
         </div>
 
         <dl className="grid gap-2 text-sm md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -916,7 +941,9 @@ function ReviewTab({
   const selectedRow =
     filteredRows.find((row) => row.element.key === selectedKey) ??
     filteredRows[0] ??
-    (selectedKey ? rows.find((row) => row.element.key === selectedKey) : null) ??
+    (selectedKey
+      ? rows.find((row) => row.element.key === selectedKey)
+      : null) ??
     rows[0] ??
     null;
   const selectedIndex = filteredRows.findIndex(
@@ -1141,16 +1168,16 @@ function DatasetCard({
   onSelect: (element: AdminAnnotationElement) => void;
 }) {
   const { element } = row;
-  const rowLabel = `Dataset element ${element.index} ${element.class_name || 'Unnamed'} from ${element.analysis_id}`;
+  const rowLabel = `Dataset element ${element.index} ${element.class_name || "Unnamed"} from ${element.analysis_id}`;
   return (
     <li>
       <button
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
-        aria-current={selected ? 'true' : undefined}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
+        aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
+        aria-current={selected ? "true" : undefined}
+        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
@@ -1173,8 +1200,14 @@ function DatasetCard({
               {element.index}
             </span>
             <StatusBadge status={element.review_status} label={rowLabel} />
-            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
-            <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
+            {selected ? (
+              <span className="ui-chip ui-chip--accent" aria-hidden="true">
+                Selected
+              </span>
+            ) : null}
+            <span
+              className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
+            >
               {DATASET_BUCKET_LABEL[row.bucket]}
             </span>
           </span>
@@ -1253,8 +1286,13 @@ function DatasetInspector({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} label={`Dataset inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
-          <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
+          <StatusBadge
+            status={element.review_status}
+            label={`Dataset inspector element ${element.index} ${element.class_name || "Unnamed"}`}
+          />
+          <span
+            className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
+          >
             {DATASET_BUCKET_LABEL[row.bucket]}
           </span>
         </div>
@@ -2005,6 +2043,13 @@ function AdminAnnotationsPage({
     null,
   );
 
+  const syncQueue = useCallback(async () => {
+    const nextQueue = await getAdminAnnotationQueue();
+    setQueue(nextQueue);
+    setLastQueueRefreshAt(new Date());
+    return nextQueue;
+  }, []);
+
   const loadQueue = useCallback(
     async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
       if (showLoading) {
@@ -2014,8 +2059,7 @@ function AdminAnnotationsPage({
       }
       setLoadError(null);
       try {
-        setQueue(await getAdminAnnotationQueue());
-        setLastQueueRefreshAt(new Date());
+        await syncQueue();
       } catch {
         setLoadError("Unable to load the local annotation review queue.");
       } finally {
@@ -2026,7 +2070,7 @@ function AdminAnnotationsPage({
         }
       }
     },
-    [],
+    [syncQueue],
   );
 
   useEffect(() => {
@@ -2055,9 +2099,14 @@ function AdminAnnotationsPage({
         element.index,
         status,
       );
-      setQueue(await getAdminAnnotationQueue());
-      setLastQueueRefreshAt(new Date());
-      setActionMessage(`Element ${element.index} marked as ${status}.`);
+      try {
+        await syncQueue();
+        setActionMessage(`Element ${element.index} marked as ${status}.`);
+      } catch {
+        setActionMessage(
+          `Element ${element.index} was marked as ${status}, but the queue could not be refreshed. Use Refresh queue to resync.`,
+        );
+      }
     } catch {
       setActionError(
         `Could not mark element ${element.index} as ${status}. The visible status was not changed.`,
@@ -2081,13 +2130,17 @@ function AdminAnnotationsPage({
         element.index,
         payload,
       );
-      setQueue(await getAdminAnnotationQueue());
-      setLastQueueRefreshAt(new Date());
-      setActionMessage(
-        payload.approve_after_save
-          ? `Element ${element.index} saved and approved.`
-          : `Element ${element.index} changes saved.`,
-      );
+      const successMessage = payload.approve_after_save
+        ? `Element ${element.index} saved and approved.`
+        : `Element ${element.index} changes saved.`;
+      try {
+        await syncQueue();
+        setActionMessage(successMessage);
+      } catch {
+        setActionMessage(
+          `${successMessage} The queue could not be refreshed; use Refresh queue to resync.`,
+        );
+      }
       setEditingKey(null);
     } catch {
       setActionError(
