@@ -182,7 +182,9 @@ describe('AdminAnnotationsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /refresh queue/i }));
     await waitFor(() => expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(2));
-    expect(await screen.findByLabelText(/Approved review status/i)).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(/Review element 0 atl from analysis-1: Approved review status/i),
+    ).toBeInTheDocument();
   });
 
   it('keeps current queue visible when manual refresh fails', async () => {
