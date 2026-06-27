@@ -2,7 +2,11 @@ import type { KeyboardEvent } from "react";
 import { AlertCircle, CheckCircle2, ChevronLeft, Edit3, Info, Loader2 } from "lucide-react";
 import type { AnalysisRecord, TrustResult } from "../../types";
 import type { WorkspaceTrustState } from "./useWorkspaceViewport";
-import { getCropPreviewSize } from "./workspaceViewUtils";
+import {
+  getCropPreviewSize,
+  getWorkspaceElementClassName,
+  hasWorkspaceSubmittedAnnotation,
+} from "./workspaceViewUtils";
 
 export type WorkspaceStats = {
   total: number;
@@ -394,10 +398,8 @@ function WorkspaceDetectedList({
           </div>
         ) : (
           record.result.elements.map((element, idx) => {
-            const hasAnnotation = (record.annotations ?? {})[idx] !== undefined;
-            const displayClass = hasAnnotation
-              ? (record.annotations ?? {})[idx]
-              : element.class_name;
+            const hasAnnotation = hasWorkspaceSubmittedAnnotation(record, idx);
+            const displayClass = getWorkspaceElementClassName(record, idx);
             const isHovered = hoveredIdx === idx;
             const badgeClasses = element.rejected
               ? "ui-chip--danger"

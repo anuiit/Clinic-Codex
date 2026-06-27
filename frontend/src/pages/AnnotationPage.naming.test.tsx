@@ -334,6 +334,14 @@ describe("AnnotationPage element naming UX", () => {
 
     await user.click(await screen.findByText("Envoyer pour revue"));
 
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ class_name: "atl", bbox: [100, 100, 50, 40] }),
+        expect.objectContaining({ class_name: "beta", bbox: [200, 200, 30, 20] }),
+      ],
+      { 0: "validated", 1: "draft" },
+    );
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
         analysis_id: "test-id",
@@ -392,6 +400,14 @@ describe("AnnotationPage element naming UX", () => {
 
     await user.click(await screen.findByText("Envoyer pour revue"));
 
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ class_name: "atl" }),
+        expect.objectContaining({ class_name: "" }),
+      ],
+      { 0: "validated", 1: "draft" },
+    );
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
         annotations: [
