@@ -48,10 +48,11 @@ function formatBbox(bbox: number[]) {
   return bbox.join(', ');
 }
 
-function StatusBadge({ status }: { status: AdminAnnotationReviewStatus }) {
+function StatusBadge({ status, label }: { status: AdminAnnotationReviewStatus; label?: string }) {
+  const accessibleLabel = label ? `${label}: ${STATUS_LABEL[status]} review status` : `Review status ${STATUS_LABEL[status]}`;
   return (
     <span
-      aria-label={`Review status ${status}`}
+      aria-label={accessibleLabel}
       className={`ui-chip ${STATUS_CLASS[status]}`}
     >
       {STATUS_LABEL[status]}
@@ -301,14 +302,16 @@ function trainabilityCopy(row: ReviewRow) {
 
 function ReviewQueueRow({ row, selected, onSelect }: { row: ReviewRow; selected: boolean; onSelect: (element: AdminAnnotationElement) => void }) {
   const { analysis, element, diagnostics } = row;
+  const rowLabel = `Review element ${element.index} ${element.class_name || 'Unnamed'} from ${analysis.analysis_id}`;
   return (
     <li>
       <button
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select review element ${element.index} ${element.class_name || 'Unnamed'} from ${analysis.analysis_id}`}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? 'outline outline-2 outline-[color:var(--accent-primary)]' : ''}`}
+        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
+        aria-current={selected ? 'true' : undefined}
+        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
@@ -327,7 +330,8 @@ function ReviewQueueRow({ row, selected, onSelect }: { row: ReviewRow; selected:
             <span className="font-semibold text-[color:var(--text-heading)]">
               #{element.index} · {element.class_name || 'Unnamed'}
             </span>
-            <StatusBadge status={element.review_status} />
+            <StatusBadge status={element.review_status} label={rowLabel} />
+            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
             {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : null}
             {!element.trainable && element.review_status === 'approved' ? <span className="ui-chip ui-chip--accent">Needs diagnostics</span> : null}
           </span>
@@ -423,7 +427,7 @@ function ReviewElementInspector({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} />
+          <StatusBadge status={element.review_status} label={`Selected inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
           {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : <span className="ui-chip ui-chip--accent">Not trainable</span>}
           {element.stale_decision ? <span className="ui-chip ui-chip--accent">Stale decision</span> : null}
         </div>
@@ -759,14 +763,16 @@ function DatasetDistribution({ title, rows }: { title: string; rows: Array<[stri
 
 function DatasetCard({ row, selected, onSelect }: { row: DatasetRow; selected: boolean; onSelect: (element: AdminAnnotationElement) => void }) {
   const { element } = row;
+  const rowLabel = `Dataset element ${element.index} ${element.class_name || 'Unnamed'} from ${element.analysis_id}`;
   return (
     <li>
       <button
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select dataset element ${element.index} ${element.class_name || 'Unnamed'}`}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? 'outline outline-2 outline-[color:var(--accent-primary)]' : ''}`}
+        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
+        aria-current={selected ? 'true' : undefined}
+        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
@@ -785,7 +791,8 @@ function DatasetCard({ row, selected, onSelect }: { row: DatasetRow; selected: b
             <span className="font-semibold text-[color:var(--text-heading)]">
               {element.class_name || 'Unnamed'} · {element.analysis_id} #{element.index}
             </span>
-            <StatusBadge status={element.review_status} />
+            <StatusBadge status={element.review_status} label={rowLabel} />
+            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
             <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
               {DATASET_BUCKET_LABEL[row.bucket]}
             </span>
@@ -836,7 +843,7 @@ function DatasetInspector({ row, onJumpToReview }: { row: DatasetRow | null; onJ
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} />
+          <StatusBadge status={element.review_status} label={`Dataset inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
           <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
             {DATASET_BUCKET_LABEL[row.bucket]}
           </span>

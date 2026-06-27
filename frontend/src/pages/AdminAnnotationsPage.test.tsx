@@ -153,8 +153,8 @@ describe('AdminAnnotationsPage', () => {
     expect(screen.getByRole('option', { name: /select review element 0 atl/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: /element #0 · atl/i })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Crop 0 for atl' })).toBeInTheDocument();
-    expect(screen.getAllByLabelText('Review status pending')).toHaveLength(2);
-    expect(screen.getByLabelText('Review status rejected')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Pending review status/i)).toHaveLength(2);
+    expect(screen.getByLabelText(/Rejected review status/i)).toBeInTheDocument();
     expect(screen.getByText('Total')).toBeInTheDocument();
     expect(screen.getByText('Trainable')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /retrain/i })).not.toBeInTheDocument();
@@ -451,8 +451,8 @@ describe('AdminAnnotationsPage', () => {
     await waitFor(() => {
       expect(apiMock.setAdminAnnotationReviewStatus).toHaveBeenCalledWith('analysis-1', 0, 'approved');
     });
-    expect(await screen.findAllByLabelText('Review status approved')).toHaveLength(2);
-    expect(screen.getByLabelText('Review status rejected')).toBeInTheDocument();
+    expect(await screen.findAllByLabelText(/Approved review status/i)).toHaveLength(2);
+    expect(screen.getByLabelText(/Rejected review status/i)).toBeInTheDocument();
   });
 
   it('edits class and bbox, saving through the modify endpoint as pending', async () => {
@@ -496,7 +496,7 @@ describe('AdminAnnotationsPage', () => {
       });
     });
     expect(await screen.findByRole('heading', { name: /element #0 · new-atl/i })).toBeInTheDocument();
-    expect(screen.getAllByLabelText('Review status pending')).toHaveLength(2);
+    expect(screen.getAllByLabelText(/Pending review status/i)).toHaveLength(2);
   });
 
   it('explains inspector action consequences and preserves Save & approve as one modify intent', async () => {
@@ -542,7 +542,7 @@ describe('AdminAnnotationsPage', () => {
     await user.click(screen.getByRole('button', { name: /reject element 0/i }));
 
     expect(await screen.findByText(/could not mark element 0 as rejected/i)).toBeInTheDocument();
-    expect(screen.getAllByLabelText('Review status pending')).toHaveLength(3);
+    expect(screen.getAllByLabelText(/Pending review status/i)).toHaveLength(3);
     expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(1);
   });
 });
