@@ -12,7 +12,10 @@ import WorkspaceUploadModal from "./workspace/WorkspaceUploadModal";
 import { useWorkspaceHistory } from "./workspace/useWorkspaceHistory";
 import { useWorkspaceUpload } from "./workspace/useWorkspaceUpload";
 import { useWorkspaceViewport } from "./workspace/useWorkspaceViewport";
-import { formatWorkspaceBboxLabel } from "./workspace/workspaceViewUtils";
+import {
+  formatWorkspaceBboxLabel,
+  hasWorkspaceSubmittedAnnotation,
+} from "./workspace/workspaceViewUtils";
 
 type WorkspacePageProps = {
   themeMode?: ThemeMode;
@@ -216,8 +219,8 @@ export default function WorkspacePage({
                   confidence: element.confidence,
                   rejected: element.rejected,
                   status:
-                    (history.currentRecord?.annotations ?? {})[idx] !==
-                    undefined
+                    history.currentRecord &&
+                    hasWorkspaceSubmittedAnnotation(history.currentRecord, idx)
                       ? "validated"
                       : "draft",
                 }))}
@@ -234,9 +237,9 @@ export default function WorkspacePage({
                       imageHovered:
                         idx === hoveredIdx && hoverSource === "image",
                       listHovered: idx === hoveredIdx && hoverSource === "list",
-                      submitted:
-                        (history.currentRecord?.annotations ?? {})[idx] !==
-                        undefined,
+                      submitted: history.currentRecord
+                        ? hasWorkspaceSubmittedAnnotation(history.currentRecord, idx)
+                        : false,
                     },
                   ]),
                 )}

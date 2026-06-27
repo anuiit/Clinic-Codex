@@ -1,5 +1,6 @@
 import { PanelLeftClose, PanelLeftOpen, Search, Trash2 } from 'lucide-react';
 import type { AnalysisRecord } from '../types';
+import { getWorkspaceElementClassName } from '../pages/workspace/workspaceViewUtils';
 
 export type WorkspaceHistoryPanelLabels = {
   expandHistory: string;
@@ -125,7 +126,7 @@ export function WorkspaceHistoryPanel({
                 const badges = [
                   ...new Set(
                     record.result.elements
-                      .map((element, idx) => (!element.rejected ? (record.annotations ?? {})[idx] ?? element.class_name : null))
+                      .map((element, idx) => (!element.rejected ? getWorkspaceElementClassName(record, idx) : null))
                       .filter((value): value is string => Boolean(value)),
                   ),
                 ].slice(0, 3);

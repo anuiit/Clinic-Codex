@@ -224,6 +224,35 @@ describe('WorkspacePage interaction coverage', () => {
     expect(screen.getByText('Aucun résultat ne correspond au filtre.')).toBeInTheDocument();
   });
 
+  it('reflects AnnotationPage-saved element edits and validation status instead of stale legacy annotations', async () => {
+    renderPage([
+      {
+        ...RECORDS[0],
+        result: {
+          ...RECORDS[0].result,
+          elements: [
+            {
+              ...RECORDS[0].result.elements[0],
+              class_name: 'edited aleph',
+              bbox: [110, 130, 55, 45],
+            },
+            RECORDS[0].result.elements[1],
+          ],
+        },
+        annotations: { 0: 'stale legacy aleph' },
+        annotationStatus: { 0: 'validated' },
+      },
+    ]);
+
+    await screen.findByTestId('workspace-image-header-meta');
+
+    expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent(
+      'Annotés / rejetés 1/2 · 1',
+    );
+    expect(screen.getByRole('button', { name: /edited aleph région 0/i })).toBeInTheDocument();
+    expect(screen.queryByText(/stale legacy aleph/i)).not.toBeInTheDocument();
+  });
+
   it('toggles overlays and opens focused region details without starting a pan', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
