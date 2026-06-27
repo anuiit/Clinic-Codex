@@ -3,7 +3,8 @@
 **Date:** 2026-06-27
 **Lane:** worker-2 (functional audit) of the current feature/admin audit
 **Goal context:** Leader-owned Ultragoal `G001-answer-what-product-features-remain`
-**Worktree HEAD:** `0a88ba8` (Add admin review and training workflow)
+**Worker audit baseline HEAD:** `0a88ba8` (Add admin review and training workflow)
+**Final reconciled source-code HEAD for refreshed gates:** `acfa46cfc94c` (post leader/team integration; later commits may be evidence-only)
 **Scope:** Admin dashboard functional audit — separate intentionally training-disabled-by-default
 behavior from real defects; propose/fix safe blockers. Read-only audit; no source files changed.
 
@@ -84,22 +85,15 @@ edit the shared file. Surfacing for leader/worker-3 prioritization:
 Python: `backend/.venv/bin/python` (leader venv). Run from worktree repo root with `PYTHONPATH=<worktree>`.
 
 1. **End-to-end admin probe (no mocks, real Flask test client):** `admin_probe.py` →
-   **26/26 checks PASS** (`admin-e2e-probe-20260627T213935Z.log`). Exit 0.
-2. **Backend admin route tests:** `pytest backend/tests/test_admin_annotation_routes.py
-   backend/tests/test_admin_training_routes.py` → **28 passed** (`admin-backend-tests-...log`). Exit 0.
+   **26/26 checks PASS**. Historical worker artifact: `admin-e2e-probe-20260627T213935Z.log`; refreshed final-gate artifact at source-code HEAD `acfa46cfc94c`: `admin-e2e-probe-20260627T215000Z.log`. Exit 0.
+2. **Backend admin route tests:** `pytest backend/tests/test_admin_annotation_routes.py backend/tests/test_admin_training_routes.py` → **28 passed**. Historical worker artifact: `admin-backend-tests-20260627T213935Z.log`; refreshed final-gate artifact at source-code HEAD `acfa46cfc94c`: `admin-backend-tests-20260627T215000Z.log`. Exit 0.
 3. **Frontend admin unit tests** (source byte-identical to leader HEAD, run via leader node_modules):
    `vitest run src/pages/AdminAnnotationsPage.test.tsx` → **14 passed**
-   (`admin-frontend-tests-...log`). Exit 0.
-4. **Full backend suite:** `pytest backend/tests` → **133 passed, 5 failed**
-   (`full-backend-suite-...log`). The 5 failures are all in `test_route_characterization.py`
-   (similar/trust/classify/classify_batch/segment) returning **503 SERVICE UNAVAILABLE** because the
-   ML model assets (classifier weights / mobile_sam checkpoint) are not present in this environment.
-   They are in the ML-inference lane, **not the admin lane**, and are unchanged by this audit
-   (no source edits). PASS for admin scope; the 5 are pre-existing, asset-dependent, out of scope.
+   (`admin-frontend-tests-20260627T213935Z.log`). Final full frontend gate after integration later passed 24 files / 218 tests.
+4. **Full backend suite:** refreshed at source-code HEAD `acfa46cfc94c` with `backend/.venv/bin/python -m pytest backend/tests -q` → **138 passed** (`full-backend-suite-20260627T215000Z.log`). The earlier worker artifact `full-backend-suite-20260627T213935Z.log` is historical and showed 133 passed / 5 ML-asset-dependent 503 failures before final reconciliation; it is retained only as worker evidence, not final gate evidence.
 
 **PASS/FAIL summary (admin scope):** PASS — admin backend routes, admin frontend units, and the
-end-to-end functional probe are all green. The only red in the broader suite is asset-dependent ML
-inference, outside this lane.
+end-to-end functional probe are all green. Final refreshed full backend suite at current HEAD is also green.
 
 ---
 
