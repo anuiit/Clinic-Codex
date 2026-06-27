@@ -140,7 +140,7 @@ describe('AdminAnnotationsPage', () => {
 
     expect(await screen.findByRole('heading', { name: /annotation admin console/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /activer le mode sombre/i })).toBeInTheDocument();
-    expect(screen.getByRole('tablist', { name: /admin annotation sections/i })).toBeInTheDocument();
+    expect(await screen.findByRole('tablist', { name: /admin annotation sections/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /review/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /dataset/i })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByRole('tab', { name: /training/i })).toHaveAttribute('aria-selected', 'false');
