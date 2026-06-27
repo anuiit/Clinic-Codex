@@ -53,7 +53,7 @@ const STATUS_LABEL: Record<AdminAnnotationReviewStatus, string> = {
 };
 
 const STATUS_CLASS: Record<AdminAnnotationReviewStatus, string> = {
-  pending: "ui-chip--accent",
+  pending: "",
   approved: "admin-chip--success",
   rejected: "ui-chip--danger",
 };
@@ -97,21 +97,23 @@ function StatusBadge({
   );
 }
 
+type StatTone = "neutral" | "accent" | "ready" | "danger";
+
 function CountCard({
   label,
   value,
   helper,
+  tone = "neutral",
 }: {
   label: string;
   value: number;
   helper?: string;
+  tone?: StatTone;
 }) {
   return (
-    <div className="ui-section p-3">
+    <div className={`admin-stat-card admin-stat-card--${tone}`}>
       <div className="ui-text-eyebrow text-[0.65rem]">{label}</div>
-      <div className="mt-1 text-2xl font-semibold text-[color:var(--text-main)]">
-        {value}
-      </div>
+      <div className="admin-stat-card__value">{value}</div>
       {helper ? <div className="mt-1 ui-text-caption">{helper}</div> : null}
     </div>
   );
@@ -154,12 +156,19 @@ function AdminTabs({
   activeTab: AdminTab;
   onSelect: (tab: AdminTab) => void;
 }) {
+  const activeIndex = ADMIN_TABS.findIndex((tab) => tab.id === activeTab);
+  const selectTabByOffset = (offset: number) => {
+    const nextIndex =
+      (activeIndex + offset + ADMIN_TABS.length) % ADMIN_TABS.length;
+    onSelect(ADMIN_TABS[nextIndex].id);
+  };
+
   return (
-    <div className="ui-panel p-2">
+    <div className="admin-tabs-shell">
       <div
         role="tablist"
         aria-label="Admin annotation sections"
-        className="grid gap-2 md:grid-cols-3"
+        className="admin-tabs"
       >
         {ADMIN_TABS.map((tab) => {
           const selected = tab.id === activeTab;
@@ -172,11 +181,21 @@ function AdminTabs({
               aria-selected={selected}
               aria-controls={`admin-${tab.id}-panel`}
               aria-label={tab.label}
+              tabIndex={selected ? 0 : -1}
               className={`admin-tab ${selected ? "admin-tab--active" : ""}`}
               onClick={() => onSelect(tab.id)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowRight") {
+                  event.preventDefault();
+                  selectTabByOffset(1);
+                }
+                if (event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  selectTabByOffset(-1);
+                }
+              }}
             >
               <span className="admin-tab__label">{tab.label}</span>
-              <span className="admin-tab__description">{tab.description}</span>
             </button>
           );
         })}
@@ -403,7 +422,7 @@ function ReviewQueueRow({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]" : ""}`}
+        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "ui-row--active admin-row--selected" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
@@ -425,16 +444,11 @@ function ReviewQueueRow({
               #{element.index} · {element.class_name || "Unnamed"}
             </span>
             <StatusBadge status={element.review_status} label={rowLabel} />
-            {selected ? (
-              <span className="ui-chip ui-chip--accent" aria-hidden="true">
-                Selected
-              </span>
-            ) : null}
             {element.trainable ? (
               <span className="ui-chip ui-chip--ready">Trainable</span>
             ) : null}
             {!element.trainable && element.review_status === "approved" ? (
-              <span className="ui-chip ui-chip--accent">Needs diagnostics</span>
+              <span className="ui-chip ui-chip--danger">Needs diagnostics</span>
             ) : null}
           </span>
           <span className="block ui-text-caption">
@@ -502,7 +516,7 @@ function ReviewElementInspector({
       className="ui-panel p-5 lg:sticky lg:top-4"
       aria-labelledby="review-inspector-heading"
     >
-      <div className="flex flex-col gap-4">
+      <div className="admin-inspector-scroll flex flex-col gap-4">
         <div>
           <p className="ui-text-eyebrow">Selected inspector</p>
           <h2
@@ -693,10 +707,7 @@ function QueueCounters({ queue }: { queue: AdminAnnotationQueue }) {
     0,
   );
   return (
-    <section
-      aria-label="Review counters"
-      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
-    >
+    <section aria-label="Review counters" className="admin-stat-grid">
       <CountCard
         label="Total"
         value={queue.counts.total}
@@ -711,16 +722,19 @@ function QueueCounters({ queue }: { queue: AdminAnnotationQueue }) {
         label="Approved"
         value={queue.counts.approved}
         helper={`${blockedApproved} blocked from training`}
+        tone={blockedApproved > 0 ? "accent" : "neutral"}
       />
       <CountCard
         label="Rejected"
         value={queue.counts.rejected}
         helper="Excluded from retraining"
+        tone={queue.counts.rejected > 0 ? "danger" : "neutral"}
       />
       <CountCard
         label="Trainable"
         value={queue.counts.trainable}
         helper="Approved, fresh, crop present"
+        tone="ready"
       />
     </section>
   );
@@ -737,17 +751,16 @@ function QueueRefreshPanel({
 }) {
   return (
     <section
-      className="ui-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+      className="admin-refresh-toolbar"
       aria-label="Queue refresh status"
     >
-      <div>
-        <p className="ui-text-eyebrow">Review queue snapshot</p>
-        <p className="mt-1 ui-text-body-sm">
-          Manual refresh reloads the backend queue after filesystem changes,
-          review updates, or recovery from a stale view.
-        </p>
+      <div className="min-w-0">
+        <p className="ui-text-eyebrow">Queue snapshot</p>
         <p className="mt-1 ui-text-caption">
           Last refreshed: {formatTimestamp(lastRefreshedAt)}
+        </p>
+        <p className="mt-1 ui-text-caption">
+          Manual refresh syncs filesystem changes.
         </p>
       </div>
       <button
@@ -1003,6 +1016,7 @@ function ReviewTab({
             Search queue
             <input
               className="ui-input px-3 py-2"
+              type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Analysis, class, bbox…"
@@ -1121,16 +1135,7 @@ function classDistribution(
 }
 
 function DatasetMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="ui-section p-3">
-      <div className="ui-text-caption font-semibold uppercase tracking-wide">
-        {label}
-      </div>
-      <div className="mt-1 text-xl font-black text-[color:var(--text-main)]">
-        {value}
-      </div>
-    </div>
-  );
+  return <CountCard label={label} value={value} />;
 }
 
 function DatasetDistribution({
@@ -1177,7 +1182,7 @@ function DatasetCard({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]" : ""}`}
+        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "ui-row--active admin-row--selected" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
@@ -1593,22 +1598,28 @@ function formatJsonValue(value: unknown) {
 }
 
 function TrainingMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="ui-section p-3">
-      <div className="ui-text-caption font-semibold uppercase tracking-wide">
-        {label}
-      </div>
-      <div className="mt-1 text-xl font-black text-[color:var(--text-main)]">
-        {value}
-      </div>
-    </div>
-  );
+  return <CountCard label={label} value={value} />;
 }
 
 const TRAINING_JOB_POLL_INTERVAL_MS = 1000;
+const ADMIN_QUEUE_AUTO_REFRESH_MS = 30_000;
 
 function formatClassSummary(classes: string[]) {
   return classes.length ? classes.join(", ") : "No approved classes yet";
+}
+
+function PanelSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      className="ui-panel admin-skeleton-panel p-4"
+      role="status"
+      aria-label={label}
+    >
+      <div className="workspace-trust-skeleton h-3 w-40 rounded-full" />
+      <div className="workspace-trust-skeleton mt-4 h-8 rounded-xl" />
+      <div className="workspace-trust-skeleton mt-3 h-8 w-2/3 rounded-xl" />
+    </div>
+  );
 }
 
 function TrainingJobPanel({ job }: { job: AdminTrainingJob | null }) {
@@ -1742,7 +1753,7 @@ function TrainingTab() {
   };
 
   if (loading) {
-    return <div className="ui-panel p-4">Loading training summary…</div>;
+    return <PanelSkeleton label="Loading training summary" />;
   }
 
   if (!summary) {
@@ -2080,6 +2091,21 @@ function AdminAnnotationsPage({
     return () => window.clearTimeout(timeout);
   }, [loadQueue]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (
+        document.visibilityState === "hidden" ||
+        loading ||
+        queueRefreshing ||
+        mutatingKey
+      ) {
+        return;
+      }
+      void loadQueue({ showLoading: false });
+    }, ADMIN_QUEUE_AUTO_REFRESH_MS);
+    return () => window.clearInterval(interval);
+  }, [loadQueue, loading, mutatingKey, queueRefreshing]);
+
   const handleSelectElement = useCallback((element: AdminAnnotationElement) => {
     setSelectedKey(element.key);
     setEditingKey((current) => (current === element.key ? current : null));
@@ -2175,9 +2201,7 @@ function AdminAnnotationsPage({
           {queue?.warning ?? "This admin page is not production-secured."}
         </div>
 
-        {loading ? (
-          <div className="ui-panel p-4">Loading review queue…</div>
-        ) : null}
+        {loading ? <PanelSkeleton label="Loading review queue" /> : null}
 
         {loadError ? (
           <div role="alert" className="ui-alert ui-alert--danger p-4">

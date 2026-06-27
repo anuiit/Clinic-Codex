@@ -75,7 +75,8 @@ body,
 .annotation-stage-frame {
   border: 1px solid var(--annotation-border);
   background: var(--annotation-panel);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-on-solid) 7%, transparent);
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--text-on-solid) 7%, transparent);
 }
 
 .annotation-topbar {
@@ -90,7 +91,8 @@ body,
 }
 
 .image-stage-scrollbar {
-  scrollbar-color: color-mix(in srgb, var(--accent) 36%, transparent) color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  scrollbar-color: color-mix(in srgb, var(--accent) 36%, transparent)
+    color-mix(in srgb, var(--surface-muted) 55%, transparent);
   scrollbar-width: thin;
 }
 
@@ -114,7 +116,11 @@ body,
   background-image:
     linear-gradient(var(--stage-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--stage-grid-line) 1px, transparent 1px),
-    radial-gradient(circle at 50% 42%, var(--stage-grid-glow), transparent 34rem);
+    radial-gradient(
+      circle at 50% 42%,
+      var(--stage-grid-glow),
+      transparent 34rem
+    );
   background-size:
     44px 44px,
     44px 44px,
@@ -410,7 +416,8 @@ body,
 
 .annotation-scrollbar,
 .image-stage-scrollbar {
-  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) color-mix(in srgb, var(--surface-muted) 45%, transparent);
+  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent)
+    color-mix(in srgb, var(--surface-muted) 45%, transparent);
   scrollbar-width: thin;
 }
 
@@ -605,7 +612,9 @@ body {
   border: 1px solid var(--border-subtle);
   background: var(--surface);
   color: var(--text-main);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-on-solid) 8%, transparent), var(--shadow-soft);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-on-solid) 8%, transparent),
+    var(--shadow-soft);
 }
 
 .app-header__icon {
@@ -652,7 +661,11 @@ body {
   background-image:
     linear-gradient(var(--stage-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--stage-grid-line) 1px, transparent 1px),
-    radial-gradient(circle at 50% 42%, var(--stage-grid-glow), transparent 34rem);
+    radial-gradient(
+      circle at 50% 42%,
+      var(--stage-grid-glow),
+      transparent 34rem
+    );
 }
 
 .main-image-panel__toolbar,
@@ -751,7 +764,11 @@ body {
 
 .ui-row--active {
   border-color: var(--border-strong);
-  background: linear-gradient(180deg, var(--row-active), color-mix(in srgb, var(--surface-strong) 90%, transparent));
+  background: linear-gradient(
+    180deg,
+    var(--row-active),
+    color-mix(in srgb, var(--surface-strong) 90%, transparent)
+  );
   box-shadow: 0 14px 38px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
@@ -954,6 +971,12 @@ body {
   color: var(--danger-text);
 }
 
+.ui-alert--success {
+  border-color: var(--status-ready-border);
+  background: var(--status-ready-soft);
+  color: var(--status-ready-text);
+}
+
 .ui-status-dot--accent {
   color: var(--accent);
 }
@@ -1042,7 +1065,11 @@ body {
 .selection-card--active,
 .ui-card-selected {
   border-color: var(--border-strong);
-  background: linear-gradient(180deg, var(--accent-soft), color-mix(in srgb, var(--surface-strong) 92%, transparent));
+  background: linear-gradient(
+    180deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--surface-strong) 92%, transparent)
+  );
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),
     0 18px 48px color-mix(in srgb, var(--accent) 10%, transparent);
@@ -1064,7 +1091,8 @@ body {
 
 .annotation-scrollbar,
 .image-stage-scrollbar {
-  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent)
+    color-mix(in srgb, var(--surface-muted) 55%, transparent);
 }
 
 .annotation-scrollbar::-webkit-scrollbar-track,
@@ -1138,14 +1166,34 @@ body {
 
 .admin-console {
   background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--status-ready) 12%, transparent), transparent 26rem),
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--status-ready) 12%, transparent),
+      transparent 26rem
+    ),
     linear-gradient(135deg, var(--app-bg), var(--app-bg-soft));
   color: var(--text-main);
 }
 
+.admin-tabs-shell {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-tabs {
+  display: flex;
+  min-width: max-content;
+  gap: 0.5rem;
+}
+
 .admin-tab {
   display: flex;
-  min-height: 5rem;
+  min-height: 2.75rem;
+  min-width: 9rem;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
@@ -1173,7 +1221,11 @@ body {
 
 .admin-tab--active {
   border-color: var(--border-strong);
-  background: linear-gradient(180deg, var(--surface-active), var(--surface-muted));
+  background: linear-gradient(
+    180deg,
+    var(--surface-active),
+    var(--surface-muted)
+  );
   color: var(--text-main);
   box-shadow: 0 14px 36px color-mix(in srgb, var(--accent) 12%, transparent);
 }
@@ -1183,10 +1235,86 @@ body {
   font-weight: 900;
 }
 
-.admin-tab__description {
-  color: var(--text-caption);
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
+.admin-refresh-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface-muted) 74%, transparent);
+  padding: 0.85rem 1rem;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .admin-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-stat-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.admin-stat-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--surface-muted);
+  color: var(--text-main);
+  padding: 0.9rem;
+}
+
+.admin-stat-card--accent {
+  border-color: var(--border-strong);
+  background: var(--accent-soft);
+}
+
+.admin-stat-card--ready {
+  border-color: var(--status-ready-border);
+  background: var(--status-ready-soft);
+}
+
+.admin-stat-card--danger {
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  background: var(--danger-soft);
+}
+
+.admin-stat-card__value {
+  margin-top: 0.2rem;
+  color: var(--text-main);
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.admin-stat-card--ready .admin-stat-card__value {
+  color: var(--status-ready-text);
+  font-size: 1.9rem;
+}
+
+.admin-row--selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 52%, transparent),
+    0 14px 36px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.admin-inspector-scroll {
+  max-height: calc(100vh - 9rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.admin-skeleton-panel {
+  min-height: 8rem;
 }
 
 .admin-chip--success {
