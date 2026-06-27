@@ -905,16 +905,6 @@ function ReviewTab({
     setSearchQuery("");
   };
 
-  useEffect(() => {
-    if (
-      !filteredRows.length ||
-      filteredRows.some((row) => row.element.key === selectedKey)
-    ) {
-      return;
-    }
-    onSelect(filteredRows[0].element);
-  }, [filteredRows, onSelect, selectedKey]);
-
   if (!rows.length) {
     return (
       <div className="ui-empty-state p-6">
@@ -924,7 +914,11 @@ function ReviewTab({
   }
 
   const selectedRow =
-    rows.find((row) => row.element.key === selectedKey) ?? rows[0] ?? null;
+    filteredRows.find((row) => row.element.key === selectedKey) ??
+    filteredRows[0] ??
+    (selectedKey ? rows.find((row) => row.element.key === selectedKey) : null) ??
+    rows[0] ??
+    null;
   const selectedIndex = filteredRows.findIndex(
     (row) => row.element.key === selectedRow?.element.key,
   );
@@ -1432,7 +1426,6 @@ function DatasetTab({
     setStatusFilter("all");
     setClassFilter("all");
   };
-
 
   return (
     <section className="space-y-4">
