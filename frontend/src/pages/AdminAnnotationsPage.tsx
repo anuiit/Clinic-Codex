@@ -62,20 +62,6 @@ function formatBbox(bbox: number[]) {
   return bbox.join(", ");
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function formatTimestamp(value: Date | null) {
-  return value
-    ? value.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : "Not refreshed yet";
-}
-
 function StatusBadge({ status, label }: { status: AdminAnnotationReviewStatus; label?: string }) {
   const accessibleLabel = label ? `${label}: ${STATUS_LABEL[status]} review status` : `Review status ${STATUS_LABEL[status]}`;
   return (
@@ -392,8 +378,9 @@ function ReviewQueueRow({
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select review element ${element.index} ${element.class_name || "Unnamed"} from ${analysis.analysis_id}`}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "outline outline-2 outline-[color:var(--accent-primary)]" : ""}`}
+        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
+        aria-current={selected ? 'true' : undefined}
+        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
@@ -414,13 +401,10 @@ function ReviewQueueRow({
             <span className="font-semibold text-[color:var(--text-heading)]">
               #{element.index} · {element.class_name || "Unnamed"}
             </span>
-            <StatusBadge status={element.review_status} />
-            {element.trainable ? (
-              <span className="ui-chip ui-chip--ready">Trainable</span>
-            ) : null}
-            {!element.trainable && element.review_status === "approved" ? (
-              <span className="ui-chip ui-chip--accent">Needs diagnostics</span>
-            ) : null}
+            <StatusBadge status={element.review_status} label={rowLabel} />
+            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
+            {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : null}
+            {!element.trainable && element.review_status === 'approved' ? <span className="ui-chip ui-chip--accent">Needs diagnostics</span> : null}
           </span>
           <span className="block ui-text-caption">
             {analysis.analysis_id} · BBox [{formatBbox(element.bbox)}] ·{" "}
@@ -537,15 +521,9 @@ function ReviewElementInspector({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} />
-          {element.trainable ? (
-            <span className="ui-chip ui-chip--ready">Trainable</span>
-          ) : (
-            <span className="ui-chip ui-chip--accent">Not trainable</span>
-          )}
-          {element.stale_decision ? (
-            <span className="ui-chip ui-chip--accent">Stale decision</span>
-          ) : null}
+          <StatusBadge status={element.review_status} label={`Selected inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
+          {element.trainable ? <span className="ui-chip ui-chip--ready">Trainable</span> : <span className="ui-chip ui-chip--accent">Not trainable</span>}
+          {element.stale_decision ? <span className="ui-chip ui-chip--accent">Stale decision</span> : null}
         </div>
 
         <dl className="grid gap-2 text-sm md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -1161,8 +1139,9 @@ function DatasetCard({
         type="button"
         role="option"
         aria-selected={selected}
-        aria-label={`Select dataset element ${element.index} ${element.class_name || "Unnamed"}`}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "outline outline-2 outline-[color:var(--accent-primary)]" : ""}`}
+        aria-label={`Select ${rowLabel}${selected ? ' (selected)' : ''}`}
+        aria-current={selected ? 'true' : undefined}
+        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-primary)]' : ''}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
@@ -1184,10 +1163,9 @@ function DatasetCard({
               {element.class_name || "Unnamed"} · {element.analysis_id} #
               {element.index}
             </span>
-            <StatusBadge status={element.review_status} />
-            <span
-              className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
-            >
+            <StatusBadge status={element.review_status} label={rowLabel} />
+            {selected ? <span className="ui-chip ui-chip--accent" aria-hidden="true">Selected</span> : null}
+            <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
               {DATASET_BUCKET_LABEL[row.bucket]}
             </span>
           </span>
@@ -1266,10 +1244,8 @@ function DatasetInspector({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={element.review_status} />
-          <span
-            className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
-          >
+          <StatusBadge status={element.review_status} label={`Dataset inspector element ${element.index} ${element.class_name || 'Unnamed'}`} />
+          <span className={`ui-chip ${row.bucket === 'trainable' ? 'ui-chip--ready' : row.bucket === 'rejected' ? 'ui-chip--danger' : 'ui-chip--accent'}`}>
             {DATASET_BUCKET_LABEL[row.bucket]}
           </span>
         </div>
