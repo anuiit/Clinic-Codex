@@ -169,11 +169,13 @@ describe('AdminAnnotationsPage', () => {
     const firstRow = await screen.findByRole('option', { name: /select review element 0 atl/i });
     const secondRow = screen.getByRole('option', { name: /select review element 1 calli/i });
     expect(firstRow).toHaveAttribute('aria-selected', 'true');
+    expect(firstRow).toHaveAttribute('aria-current', 'true');
 
     await user.click(secondRow);
 
     expect(screen.getByRole('heading', { name: /element #1 · calli/i })).toBeInTheDocument();
     expect(secondRow).toHaveAttribute('aria-selected', 'true');
+    expect(secondRow).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('button', { name: /next element/i })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: /previous element/i }));
@@ -248,7 +250,9 @@ describe('AdminAnnotationsPage', () => {
 
     expect(screen.getByText(/trainable class distribution/i)).toBeInTheDocument();
     expect(screen.getByRole('listbox', { name: /dataset review rows/i })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /select dataset element 0 atl/i })).toHaveAttribute('aria-selected', 'true');
+    const selectedDatasetRow = screen.getByRole('option', { name: /select dataset element 0 atl/i });
+    expect(selectedDatasetRow).toHaveAttribute('aria-selected', 'true');
+    expect(selectedDatasetRow).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('heading', { name: /dataset element #0 · atl/i })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Dataset crop 0 for atl' })).toBeInTheDocument();
     expect(screen.getByText(/stale_decision: fingerprint mismatch/i)).toBeInTheDocument();
