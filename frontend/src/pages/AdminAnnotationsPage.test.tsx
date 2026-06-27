@@ -160,6 +160,46 @@ describe('AdminAnnotationsPage', () => {
     expect(screen.queryByRole('button', { name: /retrain/i })).not.toBeInTheDocument();
   });
 
+  it('summarizes review filters, recovers empty filters, and manually refreshes the queue', async () => {
+    const user = userEvent.setup();
+    apiMock.getAdminAnnotationQueue
+      .mockResolvedValueOnce(queueWithStatuses('pending', 'rejected'))
+      .mockResolvedValueOnce(queueWithStatuses('approved', 'rejected'));
+
+    render(<AdminAnnotationsPage />);
+
+    expect(await screen.findByText(/showing 2 of 2 review elements/i)).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/review status filter/i), 'rejected');
+    expect(screen.getByText(/showing 1 of 2 review elements/i)).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: /review filters currently applied/i })).toHaveTextContent(/status: rejected/i);
+
+    await user.selectOptions(screen.getByLabelText(/review class filter/i), 'atl');
+    expect(screen.getByText(/no review elements match the active filters/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /clear filters and recover queue/i }));
+    expect(screen.getByRole('option', { name: /select review element 0 atl/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /select review element 1 calli/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /refresh queue/i }));
+    await waitFor(() => expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(2));
+    expect(await screen.findByLabelText(/Approved review status/i)).toBeInTheDocument();
+  });
+
+  it('keeps current queue visible when manual refresh fails', async () => {
+    const user = userEvent.setup();
+    apiMock.getAdminAnnotationQueue
+      .mockResolvedValueOnce(queueWithStatuses('pending', 'rejected'))
+      .mockRejectedValueOnce(new Error('offline'));
+
+    render(<AdminAnnotationsPage />);
+
+    expect(await screen.findByRole('option', { name: /select review element 0 atl/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /refresh queue/i }));
+
+    expect(await screen.findByText(/unable to load the local annotation review queue/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /select review element 0 atl/i })).toBeInTheDocument();
+  });
+
   it('selects compact Review rows and navigates the inspector within active filters', async () => {
     const user = userEvent.setup();
     apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(queueWithStatuses('pending', 'rejected'));
@@ -258,8 +298,14 @@ describe('AdminAnnotationsPage', () => {
     expect(screen.getByText(/stale_decision: fingerprint mismatch/i)).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/dataset status filter/i), 'rejected');
+    expect(screen.getByText(/showing 1 of 4 dataset crops/i)).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Dataset crop 2 for atl' })).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'Dataset crop 0 for atl' })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/dataset class filter/i), 'calli');
+    expect(screen.getByText(/no dataset crops match the selected filters/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /clear filters and recover dataset/i }));
+    expect(screen.getByRole('option', { name: /select dataset element 0 atl/i })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/dataset status filter/i), 'all');
     await user.selectOptions(screen.getByLabelText(/dataset class filter/i), 'calli');
@@ -455,6 +501,7 @@ describe('AdminAnnotationsPage', () => {
     await waitFor(() => {
       expect(apiMock.setAdminAnnotationReviewStatus).toHaveBeenCalledWith('analysis-1', 0, 'approved');
     });
+    expect(await screen.findByText(/element 0 marked as approved/i)).toBeInTheDocument();
     expect(await screen.findAllByLabelText(/Approved review status/i)).toHaveLength(2);
     expect(screen.getByLabelText(/Rejected review status/i)).toBeInTheDocument();
   });

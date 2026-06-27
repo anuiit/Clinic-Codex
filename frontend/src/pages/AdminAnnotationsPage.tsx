@@ -62,6 +62,21 @@ function formatBbox(bbox: number[]) {
   return bbox.join(", ");
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatTimestamp(value: Date | null) {
+  if (!value) {
+    return "not refreshed yet";
+  }
+  return value.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 function StatusBadge({ status, label }: { status: AdminAnnotationReviewStatus; label?: string }) {
   const accessibleLabel = label ? `${label}: ${STATUS_LABEL[status]} review status` : `Review status ${STATUS_LABEL[status]}`;
   return (
@@ -1418,15 +1433,6 @@ function DatasetTab({
     setClassFilter("all");
   };
 
-  useEffect(() => {
-    if (
-      !filteredRows.length ||
-      filteredRows.some((row) => row.element.key === selectedDatasetKey)
-    ) {
-      return;
-    }
-    setSelectedDatasetKey(filteredRows[0].element.key);
-  }, [filteredRows, selectedDatasetKey]);
 
   return (
     <section className="space-y-4">
@@ -1996,6 +2002,7 @@ function AdminAnnotationsPage({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [mutatingKey, setMutatingKey] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -2046,6 +2053,7 @@ function AdminAnnotationsPage({
     status: AdminAnnotationReviewStatus,
   ) => {
     setActionError(null);
+    setActionMessage(null);
     setSelectedKey(element.key);
     setMutatingKey(element.key);
     try {
@@ -2056,6 +2064,7 @@ function AdminAnnotationsPage({
       );
       setQueue(await getAdminAnnotationQueue());
       setLastQueueRefreshAt(new Date());
+      setActionMessage(`Element ${element.index} marked as ${status}.`);
     } catch {
       setActionError(
         `Could not mark element ${element.index} as ${status}. The visible status was not changed.`,
@@ -2070,6 +2079,7 @@ function AdminAnnotationsPage({
     payload: AdminAnnotationModifyPayload,
   ) => {
     setActionError(null);
+    setActionMessage(null);
     setSelectedKey(element.key);
     setMutatingKey(element.key);
     try {
@@ -2080,6 +2090,11 @@ function AdminAnnotationsPage({
       );
       setQueue(await getAdminAnnotationQueue());
       setLastQueueRefreshAt(new Date());
+      setActionMessage(
+        payload.approve_after_save
+          ? `Element ${element.index} saved and approved.`
+          : `Element ${element.index} changes saved.`,
+      );
       setEditingKey(null);
     } catch {
       setActionError(
@@ -2127,6 +2142,12 @@ function AdminAnnotationsPage({
         {actionError ? (
           <div role="alert" className="ui-alert ui-alert--danger p-4">
             {actionError}
+          </div>
+        ) : null}
+
+        {actionMessage ? (
+          <div role="status" className="ui-alert ui-alert--success p-4">
+            {actionMessage}
           </div>
         ) : null}
 
