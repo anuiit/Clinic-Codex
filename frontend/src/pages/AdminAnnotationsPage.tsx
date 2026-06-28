@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ThemeToggle, { type ThemeMode } from "../components/ThemeToggle";
+import { MetricStrip, PageTabs } from "../components/ui/AdminPrimitives";
 import {
   adminAnnotationMediaUrl,
   getAdminAnnotationQueue,
@@ -54,7 +55,7 @@ const STATUS_LABEL: Record<AdminAnnotationReviewStatus, string> = {
 
 const STATUS_CLASS: Record<AdminAnnotationReviewStatus, string> = {
   pending: "",
-  approved: "admin-chip--success",
+  approved: "ui-chip--ready",
   rejected: "ui-chip--danger",
 };
 
@@ -97,53 +98,59 @@ function StatusBadge({
   );
 }
 
-type StatTone = "neutral" | "accent" | "ready" | "danger";
-
-function CountCard({
-  label,
-  value,
-  helper,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  helper?: string;
-  tone?: StatTone;
-}) {
-  return (
-    <div className={`admin-stat-card admin-stat-card--${tone}`}>
-      <div className="ui-text-eyebrow text-[0.65rem]">{label}</div>
-      <div className="admin-stat-card__value">{value}</div>
-      {helper ? <div className="mt-1 ui-text-caption">{helper}</div> : null}
-    </div>
-  );
-}
-
 function AdminHeader({
   themeMode = "dark",
   onToggleTheme,
-}: AdminAnnotationsPageProps) {
+  queue,
+  refreshing,
+  lastRefreshedAt,
+  onRefresh,
+}: AdminAnnotationsPageProps & {
+  queue: AdminAnnotationQueue | null;
+  refreshing: boolean;
+  lastRefreshedAt: Date | null;
+  onRefresh: () => void;
+}) {
   return (
-    <header className="app-header rounded-2xl p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <header className="app-header admin-chrome rounded-2xl p-4">
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="ui-text-eyebrow">Local admin</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-[color:var(--text-heading)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="ui-text-eyebrow">Local admin</p>
+            <span className="ui-chip ui-chip--accent">Local/dev-only</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-[color:var(--text-heading)]">
             Annotation admin console
           </h1>
-          <p className="mt-2 max-w-3xl ui-text-body-sm">
-            Review submitted annotation elements, inspect the approved-only
-            dataset, and prepare local classifier training without leaving the
-            design system.
+          <p className="mt-1 max-w-4xl ui-text-body-sm">
+            Review submitted annotation elements, inspect approved-only data,
+            and prepare local classifier training.
+          </p>
+          <p className="mt-2 ui-text-caption">
+            <strong>Local/dev-only:</strong>{" "}
+            {queue?.warning ?? "This admin page is not production-secured."}
           </p>
         </div>
-        {onToggleTheme ? (
-          <ThemeToggle
-            mode={themeMode}
-            onToggle={onToggleTheme}
-            className="shrink-0"
-          />
-        ) : null}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <span className="ui-chip">
+            Last refreshed: {formatTimestamp(lastRefreshedAt)}
+          </span>
+          <button
+            type="button"
+            className="ui-action-ghost rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={refreshing}
+            onClick={onRefresh}
+          >
+            {refreshing ? "Refreshing queue…" : "Refresh queue"}
+          </button>
+          {onToggleTheme ? (
+            <ThemeToggle
+              mode={themeMode}
+              onToggle={onToggleTheme}
+              className="shrink-0"
+            />
+          ) : null}
+        </div>
       </div>
     </header>
   );
@@ -156,51 +163,14 @@ function AdminTabs({
   activeTab: AdminTab;
   onSelect: (tab: AdminTab) => void;
 }) {
-  const activeIndex = ADMIN_TABS.findIndex((tab) => tab.id === activeTab);
-  const selectTabByOffset = (offset: number) => {
-    const nextIndex =
-      (activeIndex + offset + ADMIN_TABS.length) % ADMIN_TABS.length;
-    onSelect(ADMIN_TABS[nextIndex].id);
-  };
-
   return (
-    <div className="admin-tabs-shell">
-      <div
-        role="tablist"
-        aria-label="Admin annotation sections"
-        className="admin-tabs"
-      >
-        {ADMIN_TABS.map((tab) => {
-          const selected = tab.id === activeTab;
-          return (
-            <button
-              key={tab.id}
-              id={`admin-${tab.id}-tab`}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              aria-controls={`admin-${tab.id}-panel`}
-              aria-label={tab.label}
-              tabIndex={selected ? 0 : -1}
-              className={`admin-tab ${selected ? "admin-tab--active" : ""}`}
-              onClick={() => onSelect(tab.id)}
-              onKeyDown={(event) => {
-                if (event.key === "ArrowRight") {
-                  event.preventDefault();
-                  selectTabByOffset(1);
-                }
-                if (event.key === "ArrowLeft") {
-                  event.preventDefault();
-                  selectTabByOffset(-1);
-                }
-              }}
-            >
-              <span className="admin-tab__label">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <PageTabs
+      items={ADMIN_TABS}
+      activeId={activeTab}
+      onSelect={onSelect}
+      ariaLabel="Admin annotation sections"
+      panelIdPrefix="admin"
+    />
   );
 }
 
@@ -422,7 +392,7 @@ function ReviewQueueRow({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "ui-row--active admin-row--selected" : ""}`}
+        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "ui-row--active ui-card-selected" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
@@ -513,10 +483,10 @@ function ReviewElementInspector({
 
   return (
     <aside
-      className="ui-panel p-5 lg:sticky lg:top-4"
+      className="ui-panel min-h-0 overflow-y-auto p-4"
       aria-labelledby="review-inspector-heading"
     >
-      <div className="admin-inspector-scroll flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div>
           <p className="ui-text-eyebrow">Selected inspector</p>
           <h2
@@ -659,7 +629,7 @@ function ReviewElementInspector({
             <div>
               <button
                 type="button"
-                className="ui-action-ghost admin-action-danger rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                className="ui-action-ghost ui-action-danger rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={mutating || element.review_status === "rejected"}
                 onClick={() => onReview(element, "rejected")}
               >
@@ -707,71 +677,39 @@ function QueueCounters({ queue }: { queue: AdminAnnotationQueue }) {
     0,
   );
   return (
-    <section aria-label="Review counters" className="admin-stat-grid">
-      <CountCard
-        label="Total"
-        value={queue.counts.total}
-        helper={pluralize(analysisCount, "analysis", "analyses")}
-      />
-      <CountCard
-        label="Pending"
-        value={queue.counts.pending}
-        helper="Awaiting admin decision"
-      />
-      <CountCard
-        label="Approved"
-        value={queue.counts.approved}
-        helper={`${blockedApproved} blocked from training`}
-        tone={blockedApproved > 0 ? "accent" : "neutral"}
-      />
-      <CountCard
-        label="Rejected"
-        value={queue.counts.rejected}
-        helper="Excluded from retraining"
-        tone={queue.counts.rejected > 0 ? "danger" : "neutral"}
-      />
-      <CountCard
-        label="Trainable"
-        value={queue.counts.trainable}
-        helper="Approved, fresh, crop present"
-        tone="ready"
-      />
-    </section>
-  );
-}
-
-function QueueRefreshPanel({
-  refreshing,
-  lastRefreshedAt,
-  onRefresh,
-}: {
-  refreshing: boolean;
-  lastRefreshedAt: Date | null;
-  onRefresh: () => void;
-}) {
-  return (
-    <section
-      className="admin-refresh-toolbar"
-      aria-label="Queue refresh status"
-    >
-      <div className="min-w-0">
-        <p className="ui-text-eyebrow">Queue snapshot</p>
-        <p className="mt-1 ui-text-caption">
-          Last refreshed: {formatTimestamp(lastRefreshedAt)}
-        </p>
-        <p className="mt-1 ui-text-caption">
-          Manual refresh syncs filesystem changes.
-        </p>
-      </div>
-      <button
-        type="button"
-        className="ui-action-ghost rounded-full px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={refreshing}
-        onClick={onRefresh}
-      >
-        {refreshing ? "Refreshing queue…" : "Refresh queue"}
-      </button>
-    </section>
+    <MetricStrip
+      aria-label="Review counters"
+      items={[
+        {
+          label: "Total",
+          value: queue.counts.total,
+          helper: pluralize(analysisCount, "analysis", "analyses"),
+        },
+        {
+          label: "Pending",
+          value: queue.counts.pending,
+          helper: "Awaiting admin decision",
+        },
+        {
+          label: "Approved",
+          value: queue.counts.approved,
+          helper: `${blockedApproved} blocked from training`,
+          tone: blockedApproved > 0 ? "accent" : "neutral",
+        },
+        {
+          label: "Rejected",
+          value: queue.counts.rejected,
+          helper: "Excluded from retraining",
+          tone: queue.counts.rejected > 0 ? "danger" : "neutral",
+        },
+        {
+          label: "Trainable",
+          value: queue.counts.trainable,
+          helper: "Approved, fresh, crop present",
+          tone: "ready",
+        },
+      ]}
+    />
   );
 }
 
@@ -827,7 +765,10 @@ function ReviewFilterSummary({
   );
 
   return (
-    <section className="ui-section p-4" aria-label="Active review filters">
+    <section
+      className="admin-filter-summary"
+      aria-label="Active review filters"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="ui-text-eyebrow">Active filter summary</p>
@@ -964,21 +905,9 @@ function ReviewTab({
   );
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
-      <div className="min-w-0 space-y-4">
-        <div className="ui-panel p-5">
-          <p className="ui-text-eyebrow">Compact review queue</p>
-          <h2 className="mt-2 text-xl font-bold text-[color:var(--text-heading)]">
-            Select one element, inspect one detail panel
-          </h2>
-          <p className="mt-2 ui-text-body-sm">
-            Use status/class filters or text search to shorten long lists.
-            Selection is separate from editing, so the queue stays compact while
-            the inspector keeps context.
-          </p>
-        </div>
-
-        <div className="ui-section grid gap-3 p-4 md:grid-cols-3">
+    <section className="admin-split-grid">
+      <div className="admin-list-pane">
+        <div className="admin-toolbar grid gap-3 md:grid-cols-3">
           <label className="ui-title-sm flex flex-col gap-2">
             Review status filter
             <select
@@ -1038,7 +967,7 @@ function ReviewTab({
           <ul
             role="listbox"
             aria-label="Compact review queue"
-            className="space-y-2"
+            className="admin-list-scroll space-y-2"
           >
             {filteredRows.map((row) => (
               <ReviewQueueRow
@@ -1134,10 +1063,6 @@ function classDistribution(
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-function DatasetMetric({ label, value }: { label: string; value: number }) {
-  return <CountCard label={label} value={value} />;
-}
-
 function DatasetDistribution({
   title,
   rows,
@@ -1182,7 +1107,7 @@ function DatasetCard({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "ui-row--active admin-row--selected" : ""}`}
+        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "ui-row--active ui-card-selected" : ""}`}
         onClick={() => onSelect(element)}
       >
         <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
@@ -1259,7 +1184,7 @@ function DatasetInspector({
   const { element } = row;
   return (
     <aside
-      className="ui-panel p-5 lg:sticky lg:top-4"
+      className="ui-panel min-h-0 overflow-y-auto p-4"
       aria-labelledby="dataset-inspector-heading"
     >
       <div className="flex flex-col gap-4">
@@ -1374,7 +1299,10 @@ function DatasetFilterSummary({
   );
 
   return (
-    <section className="ui-section p-4" aria-label="Active dataset filters">
+    <section
+      className="admin-filter-summary"
+      aria-label="Active dataset filters"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="ui-text-eyebrow">Dataset filter summary</p>
@@ -1471,30 +1399,38 @@ function DatasetTab({
   };
 
   return (
-    <section className="space-y-4">
-      <div className="ui-panel p-5">
+    <section className="space-y-3">
+      <div className="admin-page-summary">
         <p className="ui-text-eyebrow">Dataset</p>
-        <h2 className="mt-2 text-xl font-bold text-[color:var(--text-heading)]">
+        <h2 className="mt-1 text-xl font-bold text-[color:var(--text-heading)]">
           Approved-only dataset overview
         </h2>
-        <p className="mt-2 ui-text-body-sm">
+        <p className="mt-1 ui-text-body-sm">
           Trainable crops are exactly approved, fresh, crop-present elements.
-          Rejected and pending crops stay visible for operator diagnostics but
-          are excluded from training.
+          Rejected and pending crops stay visible for diagnostics but are
+          excluded from training.
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <DatasetMetric label="Trainable" value={bucketCounts.trainable} />
-        <DatasetMetric
-          label="Approved nontrainable"
-          value={bucketCounts.approved_nontrainable}
-        />
-        <DatasetMetric label="Rejected" value={bucketCounts.rejected} />
-        <DatasetMetric label="Pending" value={bucketCounts.pending} />
-      </div>
+      <MetricStrip
+        aria-label="Dataset bucket counters"
+        items={[
+          { label: "Trainable", value: bucketCounts.trainable, tone: "ready" },
+          {
+            label: "Approved nontrainable",
+            value: bucketCounts.approved_nontrainable,
+            tone: bucketCounts.approved_nontrainable > 0 ? "accent" : "neutral",
+          },
+          {
+            label: "Rejected",
+            value: bucketCounts.rejected,
+            tone: bucketCounts.rejected > 0 ? "danger" : "neutral",
+          },
+          { label: "Pending", value: bucketCounts.pending },
+        ]}
+      />
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="admin-dataset-distributions">
         <DatasetDistribution
           title="Trainable class distribution"
           rows={classDistribution(rows, "trainable")}
@@ -1505,7 +1441,7 @@ function DatasetTab({
         />
       </div>
 
-      <div className="ui-section grid gap-3 p-4 md:grid-cols-2">
+      <div className="admin-toolbar grid gap-3 md:grid-cols-2">
         <label className="ui-title-sm flex flex-col gap-2">
           Dataset status filter
           <select
@@ -1548,12 +1484,12 @@ function DatasetTab({
         onClear={clearDatasetFilters}
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
+      <div className="admin-split-grid">
         {filteredRows.length ? (
           <ul
             role="listbox"
             aria-label="Dataset review rows"
-            className="grid gap-3"
+            className="admin-dataset-grid"
           >
             {filteredRows.map((row) => (
               <DatasetCard
@@ -1597,10 +1533,6 @@ function formatJsonValue(value: unknown) {
   return JSON.stringify(value);
 }
 
-function TrainingMetric({ label, value }: { label: string; value: number }) {
-  return <CountCard label={label} value={value} />;
-}
-
 const TRAINING_JOB_POLL_INTERVAL_MS = 1000;
 const ADMIN_QUEUE_AUTO_REFRESH_MS = 30_000;
 
@@ -1610,11 +1542,7 @@ function formatClassSummary(classes: string[]) {
 
 function PanelSkeleton({ label }: { label: string }) {
   return (
-    <div
-      className="ui-panel admin-skeleton-panel p-4"
-      role="status"
-      aria-label={label}
-    >
+    <div className="ui-panel min-h-32 p-4" role="status" aria-label={label}>
       <div className="workspace-trust-skeleton h-3 w-40 rounded-full" />
       <div className="workspace-trust-skeleton mt-4 h-8 rounded-xl" />
       <div className="workspace-trust-skeleton mt-3 h-8 w-2/3 rounded-xl" />
@@ -1783,13 +1711,13 @@ function TrainingTab() {
     : "Full training creates a candidate package under backend/model_registry/versions/<version_id>/; it does not modify the live backend/codex_model/ runtime. Inspect manifest, model-card, and checksums, then run scripts/promote_model.py <version_id> and restart the backend to activate it.";
 
   return (
-    <section className="space-y-4">
-      <div className="ui-panel p-5">
+    <section className="space-y-3">
+      <div className="admin-page-summary">
         <p className="ui-text-eyebrow">Training</p>
-        <h2 className="mt-2 text-xl font-bold text-[color:var(--text-heading)]">
+        <h2 className="mt-1 text-xl font-bold text-[color:var(--text-heading)]">
           Guarded local training
         </h2>
-        <p className="mt-2 ui-text-body-sm">
+        <p className="mt-1 ui-text-body-sm">
           Browser launch stays disabled by default. A local operator must start
           the backend with
           <code> ENABLE_ADMIN_TRAINING_JOBS=1</code> from a loopback session
@@ -1835,13 +1763,20 @@ function TrainingTab() {
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-5">
-        <TrainingMetric label="Trainable" value={summary.data.trainable} />
-        <TrainingMetric label="Approved" value={summary.data.approved} />
-        <TrainingMetric label="Rejected" value={summary.data.rejected} />
-        <TrainingMetric label="Pending" value={summary.data.pending} />
-        <TrainingMetric label="Classes" value={summary.data.classes.length} />
-      </div>
+      <MetricStrip
+        aria-label="Training counters"
+        items={[
+          { label: "Trainable", value: summary.data.trainable, tone: "ready" },
+          { label: "Approved", value: summary.data.approved },
+          {
+            label: "Rejected",
+            value: summary.data.rejected,
+            tone: summary.data.rejected > 0 ? "danger" : "neutral",
+          },
+          { label: "Pending", value: summary.data.pending },
+          { label: "Classes", value: summary.data.classes.length },
+        ]}
+      />
 
       <section className="ui-section p-4">
         <h3 className="ui-title-sm">Approved per-class counts</h3>
@@ -1990,7 +1925,7 @@ function TrainingTab() {
 
       <TrainingJobPanel job={latestJob} />
 
-      <section className="grid gap-3 lg:grid-cols-3">
+      <section className="admin-metadata-grid">
         <div className="ui-section p-4">
           <h3 className="ui-title-sm">Artifact status</h3>
           <dl className="mt-3 space-y-2 text-sm">
@@ -2190,90 +2125,87 @@ function AdminAnnotationsPage({
 
   return (
     <div
-      className="admin-console h-full overflow-auto p-6"
+      className="admin-console flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl p-1"
       data-theme={themeMode}
     >
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <AdminHeader themeMode={themeMode} onToggleTheme={onToggleTheme} />
+      <AdminHeader
+        themeMode={themeMode}
+        onToggleTheme={onToggleTheme}
+        queue={queue}
+        refreshing={queueRefreshing}
+        lastRefreshedAt={lastQueueRefreshAt}
+        onRefresh={() => void loadQueue({ showLoading: false })}
+      />
+      <AdminTabs activeTab={activeTab} onSelect={setActiveTab} />
+      {queue ? <QueueCounters queue={queue} /> : null}
 
-        <div role="alert" className="ui-alert ui-alert--accent p-4">
-          <strong>Local/dev-only:</strong>{" "}
-          {queue?.warning ?? "This admin page is not production-secured."}
-        </div>
-
+      <div className="admin-alert-stack">
         {loading ? <PanelSkeleton label="Loading review queue" /> : null}
 
         {loadError ? (
-          <div role="alert" className="ui-alert ui-alert--danger p-4">
+          <div role="alert" className="ui-alert ui-alert--danger p-3">
             {loadError}
           </div>
         ) : null}
 
         {actionError ? (
-          <div role="alert" className="ui-alert ui-alert--danger p-4">
+          <div role="alert" className="ui-alert ui-alert--danger p-3">
             {actionError}
           </div>
         ) : null}
 
         {actionMessage ? (
-          <div role="status" className="ui-alert ui-alert--success p-4">
+          <div role="status" className="ui-alert ui-alert--success p-3">
             {actionMessage}
           </div>
         ) : null}
 
-        {queue ? (
-          <>
-            <QueueRefreshPanel
-              refreshing={queueRefreshing}
-              lastRefreshedAt={lastQueueRefreshAt}
-              onRefresh={() => void loadQueue({ showLoading: false })}
-            />
-            <QueueCounters queue={queue} />
-            <QueueDiagnostics queue={queue} />
-            <AdminTabs activeTab={activeTab} onSelect={setActiveTab} />
-
-            {ADMIN_TABS.map((tab) => (
-              <section
-                key={tab.id}
-                id={`admin-${tab.id}-panel`}
-                role="tabpanel"
-                aria-label={`${tab.label} tab panel`}
-                hidden={activeTab !== tab.id}
-              >
-                {activeTab === tab.id && tab.id === "review" ? (
-                  <ReviewTab
-                    queue={queue}
-                    selectedKey={effectiveSelectedKey}
-                    mutatingKey={mutatingKey}
-                    editingKey={effectiveEditingKey}
-                    onSelect={handleSelectElement}
-                    onReview={handleReview}
-                    onModify={handleModify}
-                    onEdit={(element) => {
-                      setSelectedKey(element.key);
-                      setEditingKey(element.key);
-                    }}
-                    onCancelEdit={() => setEditingKey(null)}
-                  />
-                ) : null}
-                {activeTab === tab.id && tab.id === "dataset" ? (
-                  <DatasetTab
-                    queue={queue}
-                    onJumpToReview={(element) => {
-                      setActiveTab("review");
-                      setSelectedKey(element.key);
-                      setEditingKey(null);
-                    }}
-                  />
-                ) : null}
-                {activeTab === tab.id && tab.id === "training" ? (
-                  <TrainingTab />
-                ) : null}
-              </section>
-            ))}
-          </>
-        ) : null}
+        {queue ? <QueueDiagnostics queue={queue} /> : null}
       </div>
+
+      {queue ? (
+        <div className="admin-tab-content">
+          {ADMIN_TABS.map((tab) => (
+            <section
+              key={tab.id}
+              id={`admin-${tab.id}-panel`}
+              role="tabpanel"
+              aria-label={`${tab.label} tab panel`}
+              hidden={activeTab !== tab.id}
+            >
+              {activeTab === tab.id && tab.id === "review" ? (
+                <ReviewTab
+                  queue={queue}
+                  selectedKey={effectiveSelectedKey}
+                  mutatingKey={mutatingKey}
+                  editingKey={effectiveEditingKey}
+                  onSelect={handleSelectElement}
+                  onReview={handleReview}
+                  onModify={handleModify}
+                  onEdit={(element) => {
+                    setSelectedKey(element.key);
+                    setEditingKey(element.key);
+                  }}
+                  onCancelEdit={() => setEditingKey(null)}
+                />
+              ) : null}
+              {activeTab === tab.id && tab.id === "dataset" ? (
+                <DatasetTab
+                  queue={queue}
+                  onJumpToReview={(element) => {
+                    setActiveTab("review");
+                    setSelectedKey(element.key);
+                    setEditingKey(null);
+                  }}
+                />
+              ) : null}
+              {activeTab === tab.id && tab.id === "training" ? (
+                <TrainingTab />
+              ) : null}
+            </section>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
