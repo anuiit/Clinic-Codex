@@ -82,6 +82,13 @@ describe('App route contracts', () => {
     expect(container.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
   })
 
+  it('redirects the singular admin annotation URL to the working admin route', async () => {
+    renderAt('/admin/annotation')
+
+    await waitFor(() => expect(window.location.pathname).toBe('/admin/annotations'))
+    expect(screen.getByTestId('admin-annotations-page')).toBeInTheDocument()
+  })
+
   it('redirects the legacy dashboard route to the workspace without merging pages', async () => {
     renderAt('/dashboard')
 

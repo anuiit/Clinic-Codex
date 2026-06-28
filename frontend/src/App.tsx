@@ -58,6 +58,7 @@ function App() {
         <main className="flex-1 overflow-hidden rounded-xl">
           <Routes>
             <Route path="/" element={<WorkspacePage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
+            <Route path="/admin/annotation" element={<Navigate to="/admin/annotations" replace />} />
             <Route path="/admin/annotations" element={<AdminAnnotationsPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/analysis/:id" element={<LegacyAnalysisRedirect />} />
