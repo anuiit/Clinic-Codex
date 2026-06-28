@@ -13,22 +13,32 @@ export function MetricStrip({
   items,
   "aria-label": ariaLabel,
   className = "",
+  variant = "bar",
 }: {
   items: MetricStripItem[];
   "aria-label": string;
   className?: string;
+  variant?: "bar" | "cards";
 }) {
   return (
-    <section aria-label={ariaLabel} className={`ui-metric-strip ${className}`}>
+    <section
+      aria-label={ariaLabel}
+      className={`ui-metric-strip ui-metric-strip--${variant} ${className}`}
+    >
       {items.map((item) => (
         <div
           key={item.label}
           className={`ui-metric ui-metric--${item.tone ?? "neutral"}`}
+          title={
+            typeof item.helper === "string"
+              ? `${item.label}: ${item.value} — ${item.helper}`
+              : undefined
+          }
         >
-          <div className="ui-text-eyebrow text-[0.65rem]">{item.label}</div>
+          <div className="ui-metric__label">{item.label}</div>
           <div className="ui-metric__value">{item.value}</div>
           {item.helper ? (
-            <div className="mt-1 ui-text-caption">{item.helper}</div>
+            <div className="ui-metric__helper">{item.helper}</div>
           ) : null}
         </div>
       ))}
@@ -47,12 +57,14 @@ export function PageTabs<TId extends string>({
   onSelect,
   ariaLabel,
   panelIdPrefix,
+  variant = "underline",
 }: {
   items: PageTabItem<TId>[];
   activeId: TId;
   onSelect: (id: TId) => void;
   ariaLabel: string;
   panelIdPrefix: string;
+  variant?: "underline" | "pill";
 }) {
   const activeIndex = Math.max(
     items.findIndex((item) => item.id === activeId),
@@ -74,8 +86,12 @@ export function PageTabs<TId extends string>({
   };
 
   return (
-    <div className="ui-tabs-shell">
-      <div role="tablist" aria-label={ariaLabel} className="ui-tabs">
+    <div className={`ui-tabs-shell ui-tabs-shell--${variant}`}>
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        className={`ui-tabs ui-tabs--${variant}`}
+      >
         {items.map((item) => {
           const selected = item.id === activeId;
           return (

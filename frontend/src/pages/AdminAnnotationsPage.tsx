@@ -105,39 +105,34 @@ function AdminHeader({
   refreshing,
   lastRefreshedAt,
   onRefresh,
+  activeTab,
+  onSelectTab,
 }: AdminAnnotationsPageProps & {
   queue: AdminAnnotationQueue | null;
   refreshing: boolean;
   lastRefreshedAt: Date | null;
   onRefresh: () => void;
+  activeTab: AdminTab;
+  onSelectTab: (tab: AdminTab) => void;
 }) {
   return (
-    <header className="app-header admin-chrome rounded-2xl p-4">
-      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="ui-text-eyebrow">Local admin</p>
-            <span className="ui-chip ui-chip--accent">Local/dev-only</span>
-          </div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-[color:var(--text-heading)]">
+    <header className="admin-command-bar admin-chrome">
+      <div className="admin-command-main">
+        <div className="admin-command-title">
+          <span className="ui-chip ui-chip--accent">Local/dev-only</span>
+          <h1 className="text-base font-black tracking-tight text-[color:var(--text-heading)]">
             Annotation admin console
           </h1>
-          <p className="mt-1 max-w-4xl ui-text-body-sm">
-            Review submitted annotation elements, inspect approved-only data,
-            and prepare local classifier training.
-          </p>
-          <p className="mt-2 ui-text-caption">
-            <strong>Local/dev-only:</strong>{" "}
-            {queue?.warning ?? "This admin page is not production-secured."}
-          </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <span className="ui-chip">
-            Last refreshed: {formatTimestamp(lastRefreshedAt)}
+        <AdminTabs activeTab={activeTab} onSelect={onSelectTab} />
+        {queue ? <QueueCounters queue={queue} /> : null}
+        <div className="admin-command-actions">
+          <span className="admin-timestamp">
+            Refreshed {formatTimestamp(lastRefreshedAt)}
           </span>
           <button
             type="button"
-            className="ui-action-ghost rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-action-ghost rounded-full px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
             disabled={refreshing}
             onClick={onRefresh}
           >
@@ -170,6 +165,7 @@ function AdminTabs({
       onSelect={onSelect}
       ariaLabel="Admin annotation sections"
       panelIdPrefix="admin"
+      variant="underline"
     />
   );
 }
@@ -228,7 +224,7 @@ function ElementEditor({
 
   return (
     <form
-      className="ui-section mt-3 p-4"
+      className="admin-flat-section mt-2"
       onSubmit={(event) => event.preventDefault()}
     >
       <div className="flex flex-col gap-3">
@@ -392,45 +388,38 @@ function ReviewQueueRow({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-3 text-left transition md:grid-cols-[5rem_1fr] ${selected ? "ui-row--active ui-card-selected" : ""}`}
+        className={`admin-table-row w-full text-left ${selected ? "admin-table-row--active" : ""}`}
         onClick={() => onSelect(element)}
       >
-        <span className="ui-crop-shell flex h-16 items-center justify-center overflow-hidden">
+        <span className="admin-row-thumb">
           {element.crop_exists ? (
             <img
               src={adminAnnotationMediaUrl(element.crop_url)}
               alt={`Queue crop ${element.index} for ${element.class_name}`}
-              className="h-16 w-full object-contain"
+              className="h-full w-full object-contain"
             />
           ) : (
-            <span className="px-2 text-center text-xs text-[color:var(--danger-text)]">
+            <span className="px-1 text-center text-[10px] text-[color:var(--danger-text)]">
               Missing crop
             </span>
           )}
         </span>
-        <span className="min-w-0 space-y-2">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-[color:var(--text-heading)]">
-              #{element.index} · {element.class_name || "Unnamed"}
-            </span>
-            <StatusBadge status={element.review_status} label={rowLabel} />
-            {element.trainable ? (
-              <span className="ui-chip ui-chip--ready">Trainable</span>
-            ) : null}
-            {!element.trainable && element.review_status === "approved" ? (
-              <span className="ui-chip ui-chip--danger">Needs diagnostics</span>
-            ) : null}
-          </span>
-          <span className="block ui-text-caption">
-            {analysis.analysis_id} · BBox [{formatBbox(element.bbox)}] ·{" "}
-            {element.crop_exists ? "crop present" : "crop missing"}
-          </span>
-          {diagnostics.length ? (
-            <span className="block truncate ui-text-caption">
-              {diagnostics[0]}
-            </span>
-          ) : null}
+        <span className="admin-row-index">#{element.index}</span>
+        <span className="admin-row-title">
+          {element.class_name || "Unnamed"}
         </span>
+        <StatusBadge status={element.review_status} label={rowLabel} />
+        {element.trainable ? (
+          <span className="ui-chip ui-chip--ready">Trainable</span>
+        ) : null}
+        {!element.trainable && element.review_status === "approved" ? (
+          <span className="ui-chip ui-chip--danger">Needs diagnostics</span>
+        ) : null}
+        <span className="admin-row-detail">
+          {analysis.analysis_id} · BBox [{formatBbox(element.bbox)}] ·{" "}
+          {element.crop_exists ? "crop present" : "crop missing"}
+        </span>
+        <span className="admin-row-diagnostic">{diagnostics[0] ?? ""}</span>
       </button>
     </li>
   );
@@ -483,15 +472,15 @@ function ReviewElementInspector({
 
   return (
     <aside
-      className="ui-panel min-h-0 overflow-y-auto p-4"
+      className="admin-inspector min-h-0 overflow-y-auto"
       aria-labelledby="review-inspector-heading"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <div>
           <p className="ui-text-eyebrow">Selected inspector</p>
           <h2
             id="review-inspector-heading"
-            className="mt-2 text-xl font-bold text-[color:var(--text-heading)]"
+            className="text-lg font-bold text-[color:var(--text-heading)]"
           >
             Element #{element.index} · {element.class_name || "Unnamed"}
           </h2>
@@ -500,7 +489,7 @@ function ReviewElementInspector({
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
           <div>
             <div className="mb-1 ui-text-caption">Original image</div>
             <div className="ui-crop-shell overflow-hidden">
@@ -508,10 +497,10 @@ function ReviewElementInspector({
                 <img
                   src={adminAnnotationMediaUrl(analysis.image_url)}
                   alt={`Original submission ${analysis.analysis_id}`}
-                  className="h-40 w-full object-contain"
+                  className="h-28 w-full object-contain"
                 />
               ) : (
-                <div className="flex h-40 items-center justify-center px-3 text-center text-sm text-[color:var(--danger-text)]">
+                <div className="flex h-28 items-center justify-center px-3 text-center text-sm text-[color:var(--danger-text)]">
                   Missing original image
                 </div>
               )}
@@ -524,10 +513,10 @@ function ReviewElementInspector({
                 <img
                   src={adminAnnotationMediaUrl(element.crop_url)}
                   alt={`Crop ${element.index} for ${element.class_name}`}
-                  className="h-40 w-full object-contain"
+                  className="h-28 w-full object-contain"
                 />
               ) : (
-                <div className="flex h-40 items-center justify-center px-2 text-center text-sm text-[color:var(--danger-text)]">
+                <div className="flex h-28 items-center justify-center px-2 text-center text-sm text-[color:var(--danger-text)]">
                   Missing crop
                 </div>
               )}
@@ -566,7 +555,7 @@ function ReviewElementInspector({
         </dl>
 
         <section
-          className="ui-section p-4"
+          className="admin-flat-section"
           aria-label="Trainability diagnostics"
         >
           <h3 className="ui-title-sm">Training eligibility</h3>
@@ -607,53 +596,45 @@ function ReviewElementInspector({
         ) : null}
 
         <section
-          className="ui-section p-4"
+          className="admin-flat-section"
           aria-label="Review actions and consequences"
         >
-          <h3 className="ui-title-sm">Actions and consequences</h3>
-          <div className="mt-3 grid gap-3">
-            <div>
-              <button
-                type="button"
-                className="ui-action-primary px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={mutating || element.review_status === "approved"}
-                onClick={() => onReview(element, "approved")}
-              >
-                Approve element {element.index}
-              </button>
-              <p className="mt-1 ui-text-caption">
-                Marks this element approved and eligible only when crop and
-                fingerprint checks are valid.
-              </p>
-            </div>
-            <div>
-              <button
-                type="button"
-                className="ui-action-ghost ui-action-danger rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={mutating || element.review_status === "rejected"}
-                onClick={() => onReview(element, "rejected")}
-              >
-                Reject element {element.index}
-              </button>
-              <p className="mt-1 ui-text-caption">
-                Excludes this element from approved-only training while keeping
-                it visible for audit context.
-              </p>
-            </div>
-            <div>
-              <button
-                type="button"
-                className="ui-action-ghost rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={mutating}
-                onClick={() => onEdit(element)}
-              >
-                Edit element {element.index}
-              </button>
-              <p className="mt-1 ui-text-caption">
-                Changes class or bbox, regenerates the crop, and requires an
-                explicit save before training.
-              </p>
-            </div>
+          <h3 className="sr-only">Actions and consequences</h3>
+          <p className="sr-only">
+            Marks this element approved and eligible only when crop and
+            fingerprint checks are valid. Excludes this element from
+            approved-only training while keeping it visible for audit context.
+            Changes class or bbox, regenerates the crop, and requires an
+            explicit save before training.
+          </p>
+          <div className="admin-action-row">
+            <button
+              type="button"
+              className="ui-action-primary px-2.5 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={mutating || element.review_status === "approved"}
+              title="Marks this element approved and eligible only when crop and fingerprint checks are valid."
+              onClick={() => onReview(element, "approved")}
+            >
+              Approve element {element.index}
+            </button>
+            <button
+              type="button"
+              className="ui-action-ghost ui-action-danger rounded-full px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={mutating || element.review_status === "rejected"}
+              title="Excludes this element from approved-only training while keeping it visible for audit context."
+              onClick={() => onReview(element, "rejected")}
+            >
+              Reject element {element.index}
+            </button>
+            <button
+              type="button"
+              className="ui-action-ghost rounded-full px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={mutating}
+              title="Changes class or bbox, regenerates the crop, and requires an explicit save before training."
+              onClick={() => onEdit(element)}
+            >
+              Edit element {element.index}
+            </button>
           </div>
         </section>
 
@@ -719,9 +700,9 @@ function QueueDiagnostics({ queue }: { queue: AdminAnnotationQueue }) {
   }
 
   return (
-    <section className="ui-alert ui-alert--accent p-4">
-      <h2 className="font-semibold">Diagnostics</h2>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+    <section className="admin-local-warning">
+      <span className="font-semibold">Diagnostics:</span>
+      <ul className="admin-inline-list ml-2 text-sm">
         {queue.diagnostics.map((diagnostic, idx) => (
           <li key={`${diagnostic.code}-${diagnostic.key ?? idx}`}>
             <span className="font-medium">{diagnostic.code}:</span>{" "}
@@ -765,54 +746,39 @@ function ReviewFilterSummary({
   );
 
   return (
-    <section
-      className="admin-filter-summary"
-      aria-label="Active review filters"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="ui-text-eyebrow">Active filter summary</p>
-          <p className="mt-1 ui-text-body-sm">
-            Showing {filtered} of {total} review element{total === 1 ? "" : "s"}
-            .
-          </p>
-          <p className="mt-1 ui-text-caption">
-            Visible: {visibleStatusCounts.pending} pending ·{" "}
-            {visibleStatusCounts.approved} approved ·{" "}
-            {visibleStatusCounts.rejected} rejected
-          </p>
-        </div>
-        <button
-          type="button"
-          className="ui-action-ghost rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!hasActiveFilters}
-          onClick={onClear}
-        >
-          Clear review filters
-        </button>
+    <section className="admin-list-meta" aria-label="Active review filters">
+      <div className="admin-list-meta__main">
+        <span>
+          Showing {filtered} of {total} review element{total === 1 ? "" : "s"}.
+        </span>
+        <span>
+          Visible: {visibleStatusCounts.pending} pending ·{" "}
+          {visibleStatusCounts.approved} approved ·{" "}
+          {visibleStatusCounts.rejected} rejected
+        </span>
+        {hasActiveFilters ? (
+          <ul
+            className="admin-inline-list"
+            aria-label="Review filters currently applied"
+          >
+            {statusFilter !== "all" ? (
+              <li>Status: {REVIEW_STATUS_FILTER_LABEL[statusFilter]}</li>
+            ) : null}
+            {classFilter !== "all" ? <li>Class: {classFilter}</li> : null}
+            {searchQuery.trim() ? <li>Search: {searchQuery.trim()}</li> : null}
+          </ul>
+        ) : (
+          <span>No filters applied; all submitted elements are visible.</span>
+        )}
       </div>
-      {hasActiveFilters ? (
-        <ul
-          className="mt-3 flex flex-wrap gap-2"
-          aria-label="Review filters currently applied"
-        >
-          {statusFilter !== "all" ? (
-            <li className="ui-chip">
-              Status: {REVIEW_STATUS_FILTER_LABEL[statusFilter]}
-            </li>
-          ) : null}
-          {classFilter !== "all" ? (
-            <li className="ui-chip">Class: {classFilter}</li>
-          ) : null}
-          {searchQuery.trim() ? (
-            <li className="ui-chip">Search: {searchQuery.trim()}</li>
-          ) : null}
-        </ul>
-      ) : (
-        <p className="mt-3 ui-text-caption">
-          No filters applied; all submitted elements are visible.
-        </p>
-      )}
+      <button
+        type="button"
+        className="ui-action-ghost rounded-full px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={!hasActiveFilters}
+        onClick={onClear}
+      >
+        Clear review filters
+      </button>
     </section>
   );
 }
@@ -907,11 +873,11 @@ function ReviewTab({
   return (
     <section className="admin-split-grid">
       <div className="admin-list-pane">
-        <div className="admin-toolbar grid gap-3 md:grid-cols-3">
-          <label className="ui-title-sm flex flex-col gap-2">
-            Review status filter
+        <div className="admin-toolbar">
+          <label className="admin-field">
+            <span>Review status filter</span>
             <select
-              className="ui-select px-3 py-2"
+              className="ui-select px-2 py-1"
               value={statusFilter}
               onChange={(event) =>
                 setStatusFilter(event.target.value as ReviewStatusFilter)
@@ -926,10 +892,10 @@ function ReviewTab({
               )}
             </select>
           </label>
-          <label className="ui-title-sm flex flex-col gap-2">
-            Review class filter
+          <label className="admin-field">
+            <span>Review class filter</span>
             <select
-              className="ui-select px-3 py-2"
+              className="ui-select px-2 py-1"
               value={classFilter}
               onChange={(event) => setClassFilter(event.target.value)}
             >
@@ -941,10 +907,10 @@ function ReviewTab({
               ))}
             </select>
           </label>
-          <label className="ui-title-sm flex flex-col gap-2">
-            Search queue
+          <label className="admin-field admin-field--grow">
+            <span>Search queue</span>
             <input
-              className="ui-input px-3 py-2"
+              className="ui-input px-2 py-1"
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -967,7 +933,7 @@ function ReviewTab({
           <ul
             role="listbox"
             aria-label="Compact review queue"
-            className="admin-list-scroll space-y-2"
+            className="admin-list-scroll"
           >
             {filteredRows.map((row) => (
               <ReviewQueueRow
@@ -1071,10 +1037,10 @@ function DatasetDistribution({
   rows: Array<[string, number]>;
 }) {
   return (
-    <section className="ui-section p-4">
+    <section className="admin-distribution-group">
       <h3 className="ui-title-sm">{title}</h3>
       {rows.length ? (
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="flex flex-wrap gap-1.5">
           {rows.map(([className, count]) => (
             <li key={className} className="ui-chip">
               {className}: {count}
@@ -1107,59 +1073,48 @@ function DatasetCard({
         aria-selected={selected}
         aria-label={`Select ${rowLabel}${selected ? " (selected)" : ""}`}
         aria-current={selected ? "true" : undefined}
-        className={`ui-row grid w-full gap-3 p-4 text-left md:grid-cols-[8rem_1fr] ${selected ? "ui-row--active ui-card-selected" : ""}`}
+        className={`admin-table-row w-full text-left ${selected ? "admin-table-row--active" : ""}`}
         onClick={() => onSelect(element)}
       >
-        <span className="ui-crop-shell flex h-28 items-center justify-center overflow-hidden">
+        <span className="admin-row-thumb">
           {element.crop_exists ? (
             <img
               src={adminAnnotationMediaUrl(element.crop_url)}
               alt={`Dataset crop ${element.index} for ${element.class_name}`}
-              className="h-28 w-full object-contain"
+              className="h-full w-full object-contain"
             />
           ) : (
-            <span className="px-2 text-center text-sm text-[color:var(--danger-text)]">
+            <span className="px-1 text-center text-[10px] text-[color:var(--danger-text)]">
               Missing crop
             </span>
           )}
         </span>
-        <span className="min-w-0 space-y-2">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-[color:var(--text-heading)]">
-              {element.class_name || "Unnamed"} · {element.analysis_id} #
-              {element.index}
-            </span>
-            <StatusBadge status={element.review_status} label={rowLabel} />
-            {selected ? (
-              <span className="ui-chip ui-chip--accent" aria-hidden="true">
-                Selected
-              </span>
-            ) : null}
-            <span
-              className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
-            >
-              {DATASET_BUCKET_LABEL[row.bucket]}
-            </span>
+        <span className="admin-row-index">#{element.index}</span>
+        <span className="admin-row-title">
+          {element.class_name || "Unnamed"}
+        </span>
+        <StatusBadge status={element.review_status} label={rowLabel} />
+        {selected ? (
+          <span className="ui-chip ui-chip--accent" aria-hidden="true">
+            Selected
           </span>
-          <span className="block ui-text-body-sm">
-            BBox [{formatBbox(element.bbox)}] ·{" "}
-            {element.crop_exists ? "crop present" : "crop missing"}
-          </span>
-          {element.stale_decision ? (
-            <span className="block ui-text-caption">
-              Stale decision: this item is not trainable.
-            </span>
-          ) : null}
-          {row.diagnostics.length ? (
-            <span className="block truncate ui-text-caption">
-              {row.diagnostics[0]}
-            </span>
-          ) : null}
-          {row.bucket === "rejected" ? (
-            <span className="block ui-text-caption">
-              Rejected crops are retained for review context and do not train.
-            </span>
-          ) : null}
+        ) : null}
+        <span
+          className={`ui-chip ${row.bucket === "trainable" ? "ui-chip--ready" : row.bucket === "rejected" ? "ui-chip--danger" : "ui-chip--accent"}`}
+        >
+          {DATASET_BUCKET_LABEL[row.bucket]}
+        </span>
+        <span className="admin-row-detail">
+          {element.analysis_id} · BBox [{formatBbox(element.bbox)}] ·{" "}
+          {element.crop_exists ? "crop present" : "crop missing"}
+        </span>
+        <span className="admin-row-diagnostic">
+          {row.diagnostics[0] ??
+            (element.stale_decision
+              ? "Stale decision: this item is not trainable."
+              : row.bucket === "rejected"
+                ? "Rejected crops are retained for review context and do not train."
+                : "")}
         </span>
       </button>
     </li>
@@ -1184,15 +1139,15 @@ function DatasetInspector({
   const { element } = row;
   return (
     <aside
-      className="ui-panel min-h-0 overflow-y-auto p-4"
+      className="admin-inspector min-h-0 overflow-y-auto"
       aria-labelledby="dataset-inspector-heading"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <div>
           <p className="ui-text-eyebrow">Dataset inspector</p>
           <h2
             id="dataset-inspector-heading"
-            className="mt-2 text-xl font-bold text-[color:var(--text-heading)]"
+            className="text-lg font-bold text-[color:var(--text-heading)]"
           >
             Dataset element #{element.index} · {element.class_name || "Unnamed"}
           </h2>
@@ -1206,10 +1161,10 @@ function DatasetInspector({
             <img
               src={adminAnnotationMediaUrl(element.crop_url)}
               alt={`Selected dataset crop ${element.index} for ${element.class_name}`}
-              className="h-48 w-full object-contain"
+              className="h-32 w-full object-contain"
             />
           ) : (
-            <div className="flex h-48 items-center justify-center px-2 text-center text-sm text-[color:var(--danger-text)]">
+            <div className="flex h-32 items-center justify-center px-2 text-center text-sm text-[color:var(--danger-text)]">
               Missing crop
             </div>
           )}
@@ -1243,7 +1198,7 @@ function DatasetInspector({
         </dl>
 
         <section
-          className="ui-section p-4"
+          className="admin-flat-section"
           aria-label="Dataset training diagnostics"
         >
           <h3 className="ui-title-sm">Training diagnostics</h3>
@@ -1299,51 +1254,41 @@ function DatasetFilterSummary({
   );
 
   return (
-    <section
-      className="admin-filter-summary"
-      aria-label="Active dataset filters"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="ui-text-eyebrow">Dataset filter summary</p>
-          <p className="mt-1 ui-text-body-sm">
-            Showing {filtered} of {total} dataset crop{total === 1 ? "" : "s"}.
-          </p>
-          <p className="mt-1 ui-text-caption">
-            Visible: {visibleBucketCounts.trainable} trainable ·{" "}
-            {visibleBucketCounts.approved_nontrainable} approved nontrainable ·{" "}
-            {visibleBucketCounts.rejected} rejected ·{" "}
-            {visibleBucketCounts.pending} pending
-          </p>
-        </div>
-        <button
-          type="button"
-          className="ui-action-ghost rounded-full px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!hasActiveFilters}
-          onClick={onClear}
-        >
-          Clear dataset filters
-        </button>
+    <section className="admin-list-meta" aria-label="Active dataset filters">
+      <div className="admin-list-meta__main">
+        <span>
+          Showing {filtered} of {total} dataset crop{total === 1 ? "" : "s"}.
+        </span>
+        <span>
+          Visible: {visibleBucketCounts.trainable} trainable ·{" "}
+          {visibleBucketCounts.approved_nontrainable} approved nontrainable ·{" "}
+          {visibleBucketCounts.rejected} rejected ·{" "}
+          {visibleBucketCounts.pending} pending
+        </span>
+        {hasActiveFilters ? (
+          <ul
+            className="admin-inline-list"
+            aria-label="Dataset filters currently applied"
+          >
+            {statusFilter !== "all" ? (
+              <li>Status: {DATASET_BUCKET_LABEL[statusFilter]}</li>
+            ) : null}
+            {classFilter !== "all" ? <li>Class: {classFilter}</li> : null}
+          </ul>
+        ) : (
+          <span>
+            No dataset filters applied; all review buckets are visible.
+          </span>
+        )}
       </div>
-      {hasActiveFilters ? (
-        <ul
-          className="mt-3 flex flex-wrap gap-2"
-          aria-label="Dataset filters currently applied"
-        >
-          {statusFilter !== "all" ? (
-            <li className="ui-chip">
-              Status: {DATASET_BUCKET_LABEL[statusFilter]}
-            </li>
-          ) : null}
-          {classFilter !== "all" ? (
-            <li className="ui-chip">Class: {classFilter}</li>
-          ) : null}
-        </ul>
-      ) : (
-        <p className="mt-3 ui-text-caption">
-          No dataset filters applied; all review buckets are visible.
-        </p>
-      )}
+      <button
+        type="button"
+        className="ui-action-ghost rounded-full px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={!hasActiveFilters}
+        onClick={onClear}
+      >
+        Clear dataset filters
+      </button>
     </section>
   );
 }
@@ -1399,13 +1344,12 @@ function DatasetTab({
   };
 
   return (
-    <section className="space-y-3">
-      <div className="admin-page-summary">
-        <p className="ui-text-eyebrow">Dataset</p>
-        <h2 className="mt-1 text-xl font-bold text-[color:var(--text-heading)]">
+    <section className="admin-tab-stack admin-tab-stack--split">
+      <div className="sr-only">
+        <h2>
           Approved-only dataset overview
         </h2>
-        <p className="mt-1 ui-text-body-sm">
+        <p>
           Trainable crops are exactly approved, fresh, crop-present elements.
           Rejected and pending crops stay visible for diagnostics but are
           excluded from training.
@@ -1430,7 +1374,7 @@ function DatasetTab({
         ]}
       />
 
-      <div className="admin-dataset-distributions">
+      <div className="admin-distribution-line">
         <DatasetDistribution
           title="Trainable class distribution"
           rows={classDistribution(rows, "trainable")}
@@ -1441,11 +1385,11 @@ function DatasetTab({
         />
       </div>
 
-      <div className="admin-toolbar grid gap-3 md:grid-cols-2">
-        <label className="ui-title-sm flex flex-col gap-2">
-          Dataset status filter
+      <div className="admin-toolbar">
+        <label className="admin-field">
+          <span>Dataset status filter</span>
           <select
-            className="ui-select px-3 py-2"
+            className="ui-select px-2 py-1"
             value={statusFilter}
             onChange={(event) =>
               setStatusFilter(event.target.value as DatasetStatusFilter)
@@ -1458,10 +1402,10 @@ function DatasetTab({
             ))}
           </select>
         </label>
-        <label className="ui-title-sm flex flex-col gap-2">
-          Dataset class filter
+        <label className="admin-field">
+          <span>Dataset class filter</span>
           <select
-            className="ui-select px-3 py-2"
+            className="ui-select px-2 py-1"
             value={classFilter}
             onChange={(event) => setClassFilter(event.target.value)}
           >
@@ -1542,7 +1486,11 @@ function formatClassSummary(classes: string[]) {
 
 function PanelSkeleton({ label }: { label: string }) {
   return (
-    <div className="ui-panel min-h-32 p-4" role="status" aria-label={label}>
+    <div
+      className="admin-flat-section min-h-20"
+      role="status"
+      aria-label={label}
+    >
       <div className="workspace-trust-skeleton h-3 w-40 rounded-full" />
       <div className="workspace-trust-skeleton mt-4 h-8 rounded-xl" />
       <div className="workspace-trust-skeleton mt-3 h-8 w-2/3 rounded-xl" />
@@ -1553,14 +1501,14 @@ function PanelSkeleton({ label }: { label: string }) {
 function TrainingJobPanel({ job }: { job: AdminTrainingJob | null }) {
   if (!job) {
     return (
-      <div className="ui-empty-state p-4">
+      <div className="ui-empty-state p-3">
         No local training job has been recorded yet.
       </div>
     );
   }
 
   return (
-    <section className="ui-section p-4">
+    <section className="admin-flat-section">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="ui-title-sm">Latest job {job.run_id}</h3>
         <span
@@ -1711,13 +1659,13 @@ function TrainingTab() {
     : "Full training creates a candidate package under backend/model_registry/versions/<version_id>/; it does not modify the live backend/codex_model/ runtime. Inspect manifest, model-card, and checksums, then run scripts/promote_model.py <version_id> and restart the backend to activate it.";
 
   return (
-    <section className="space-y-3">
+    <section className="admin-tab-stack">
       <div className="admin-page-summary">
         <p className="ui-text-eyebrow">Training</p>
-        <h2 className="mt-1 text-xl font-bold text-[color:var(--text-heading)]">
+        <h2 className="text-lg font-bold text-[color:var(--text-heading)]">
           Guarded local training
         </h2>
-        <p className="mt-1 ui-text-body-sm">
+        <p className="ui-text-caption">
           Browser launch stays disabled by default. A local operator must start
           the backend with
           <code> ENABLE_ADMIN_TRAINING_JOBS=1</code> from a loopback session
@@ -1726,7 +1674,7 @@ function TrainingTab() {
       </div>
 
       {!summary.launch_allowed_for_request ? (
-        <div role="alert" className="ui-alert ui-alert--accent p-4">
+        <div role="alert" className="ui-alert ui-alert--accent p-2">
           <strong>Not launchable: launch disabled for this request.</strong>
           <ul className="mt-2 list-disc pl-5 text-sm">
             {summary.launch_disabled_reasons.map((reason) => (
@@ -1747,7 +1695,7 @@ function TrainingTab() {
       ) : null}
 
       {modelDirOverrideActive ? (
-        <div role="alert" className="ui-alert ui-alert--accent p-4">
+        <div role="alert" className="ui-alert ui-alert--accent p-2">
           <strong>MODEL_DIR override active.</strong>
           <p className="mt-2 text-sm">
             Promotion to <code>backend/codex_model/</code> may not affect the
@@ -1758,7 +1706,7 @@ function TrainingTab() {
       ) : null}
 
       {error ? (
-        <div role="alert" className="ui-alert ui-alert--danger p-4">
+        <div role="alert" className="ui-alert ui-alert--danger p-2">
           {error}
         </div>
       ) : null}
@@ -1778,7 +1726,7 @@ function TrainingTab() {
         ]}
       />
 
-      <section className="ui-section p-4">
+      <section className="admin-flat-section">
         <h3 className="ui-title-sm">Approved per-class counts</h3>
         {Object.keys(summary.data.per_class).length ? (
           <ul className="mt-3 flex flex-wrap gap-2">
@@ -1798,7 +1746,7 @@ function TrainingTab() {
       </section>
 
       <section
-        className="ui-section p-4"
+        className="admin-flat-section"
         aria-label="Training pre-action summary"
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -1855,11 +1803,11 @@ function TrainingTab() {
         </dl>
       </section>
 
-      <section className="ui-section grid gap-3 p-4 md:grid-cols-4">
-        <label className="ui-title-sm flex flex-col gap-2">
-          Dry run
+      <section className="admin-flat-section admin-training-form">
+        <label className="admin-field">
+          <span>Dry run</span>
           <select
-            className="ui-select px-3 py-2"
+            className="ui-select px-2 py-1"
             value={dryRun ? "yes" : "no"}
             onChange={(event) => setDryRun(event.target.value === "yes")}
           >
@@ -1867,10 +1815,10 @@ function TrainingTab() {
             <option value="no">No, full training</option>
           </select>
         </label>
-        <label className="ui-title-sm flex flex-col gap-2">
-          Device
+        <label className="admin-field">
+          <span>Device</span>
           <select
-            className="ui-select px-3 py-2"
+            className="ui-select px-2 py-1"
             value={device}
             onChange={(event) => setDevice(event.target.value)}
           >
@@ -1881,10 +1829,10 @@ function TrainingTab() {
             ))}
           </select>
         </label>
-        <label className="ui-title-sm flex flex-col gap-2">
-          Batch size
+        <label className="admin-field">
+          <span>Batch size</span>
           <input
-            className="ui-input px-3 py-2"
+            className="ui-input px-2 py-1"
             type="number"
             min={batchBounds.min}
             max={batchBounds.max}
@@ -1892,15 +1840,15 @@ function TrainingTab() {
             onChange={(event) => setBatchSize(Number(event.target.value))}
           />
         </label>
-        <label className="ui-title-sm flex flex-col gap-2">
-          Notes
+        <label className="admin-field admin-field--grow">
+          <span>Notes</span>
           <input
-            className="ui-input px-3 py-2"
+            className="ui-input px-2 py-1"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
           />
         </label>
-        <div className="md:col-span-4">
+        <div className="admin-training-submit">
           <p className="mb-3 ui-text-caption">
             Dry run checks the approved-only export/training path. Full training
             writes a candidate registry package, not the live runtime; inspect
@@ -1908,7 +1856,7 @@ function TrainingTab() {
           </p>
           <button
             type="button"
-            className="ui-action-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-action-primary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled}
             onClick={startJob}
           >
@@ -1926,7 +1874,7 @@ function TrainingTab() {
       <TrainingJobPanel job={latestJob} />
 
       <section className="admin-metadata-grid">
-        <div className="ui-section p-4">
+        <div className="admin-flat-section">
           <h3 className="ui-title-sm">Artifact status</h3>
           <dl className="mt-3 space-y-2 text-sm">
             {Object.entries(summary.artifacts).map(([key, value]) => (
@@ -1937,7 +1885,7 @@ function TrainingTab() {
             ))}
           </dl>
         </div>
-        <div className="ui-section p-4">
+        <div className="admin-flat-section">
           <h3 className="ui-title-sm">Resolved paths</h3>
           <dl className="mt-3 space-y-2 text-sm">
             {Object.entries(summary.paths).map(([key, value]) => (
@@ -1948,7 +1896,7 @@ function TrainingTab() {
             ))}
           </dl>
         </div>
-        <div className="ui-section p-4">
+        <div className="admin-flat-section">
           <h3 className="ui-title-sm">Read-only config</h3>
           <dl className="mt-3 space-y-2 text-sm">
             {Object.entries(summary.parameters.config).flatMap(
@@ -2125,7 +2073,7 @@ function AdminAnnotationsPage({
 
   return (
     <div
-      className="admin-console flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl p-1"
+      className="admin-console flex h-full min-h-0 flex-col overflow-hidden"
       data-theme={themeMode}
     >
       <AdminHeader
@@ -2135,11 +2083,18 @@ function AdminAnnotationsPage({
         refreshing={queueRefreshing}
         lastRefreshedAt={lastQueueRefreshAt}
         onRefresh={() => void loadQueue({ showLoading: false })}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
       />
-      <AdminTabs activeTab={activeTab} onSelect={setActiveTab} />
-      {queue ? <QueueCounters queue={queue} /> : null}
 
       <div className="admin-alert-stack">
+        {queue ? (
+          <div role="alert" className="admin-local-warning">
+            <strong>Local/dev-only:</strong>{" "}
+            {queue.warning ?? "This admin page is not production-secured."}
+          </div>
+        ) : null}
+
         {loading ? <PanelSkeleton label="Loading review queue" /> : null}
 
         {loadError ? (
