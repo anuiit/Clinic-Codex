@@ -5,7 +5,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The app uses one shared Vite dev server plus IndexedDB-heavy flows.
+  // Keep browser e2e deterministic locally and in CI; previous fully parallel
+  // runs produced false-red page/context timeouts while the same suite passed
+  // consistently with one worker.
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:7118',
