@@ -1,0 +1,156 @@
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+/*
+ * Theme contract: [data-theme] variables below are the presentation source of truth.
+ * Reusable UI/component recipes live in their owner modules or `ui-primitives.css`.
+ * App theme keeps tokens, body defaults, and deferred annotation-only shell rules.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --font-ui: "Geist", "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --app-bg: #0b0b10;
+  --app-bg-soft: #09090d;
+  --surface: #111119;
+  --surface-muted: #15151f;
+  --surface-strong: #09090d;
+  --surface-elevated: #15151f;
+  --surface-recessed: #050507;
+  --surface-hover: #181822;
+  --surface-active: #14131b;
+  --stage-bg: #050507;
+  --stage-grid-line: rgb(240 236 223 / 0.06);
+  --stage-grid-glow: rgb(214 179 106 / 0.06);
+  --border-subtle: #252533;
+  --border-strong: #343443;
+  --divider: var(--border-subtle);
+  --text-main: #f0ecdf;
+  --text-muted: #656174;
+  --text-soft: #8e8a9a;
+  --text-heading: var(--text-main);
+  --text-body: var(--text-soft);
+  --text-caption: var(--text-muted);
+  --text-on-solid: #f0ecdf;
+  --accent: #d6b36a;
+  --accent-hover: #e8c476;
+  --accent-soft: rgb(214 179 106 / 0.11);
+  --accent-text: #18130b;
+  --status-ready: #8fd18f;
+  --status-ready-soft: rgb(143 209 143 / 0.08);
+  --status-ready-text: #8fd18f;
+  --status-ready-on-solid: #18130b;
+  --status-ready-border: rgb(143 209 143 / 0.28);
+  --danger: #e87979;
+  --danger-soft: rgb(232 121 121 / 0.08);
+  --danger-text: #e87979;
+  --danger-on-solid: #18130b;
+  --warning-text: #f4b86a;
+  --warning-soft: rgb(244 184 106 / 0.08);
+  --orange: #f4b86a;
+  --violet: #9c7dff;
+  --shadow-soft: 0 18px 55px rgba(12, 10, 9, 0.35);
+  --control-bg: rgb(17 17 25 / 0.78);
+  --control-bg-hover: #181822;
+  --field-bg: #0b0b10;
+  --field-border: #252533;
+  --field-placeholder: #656174;
+  --field-focus: rgb(214 179 106 / 0.52);
+  --row-bg: #111119;
+  --row-hover: var(--surface-hover);
+  --row-active: var(--surface-active);
+  --progress-track: #252533;
+  --crop-bg: #050507;
+  --modal-scrim: rgb(5 5 7 / 0.78);
+  --annotation-bg: var(--app-bg);
+  --annotation-panel: var(--surface);
+  --annotation-panel-strong: var(--surface-strong);
+  --annotation-border: var(--border-subtle);
+  --annotation-border-strong: var(--border-strong);
+  --annotation-amber: var(--accent);
+  --annotation-ready: var(--status-ready);
+  --annotation-red: var(--danger);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --font-ui: "Geist", "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --app-bg: #f7f3ec;
+  --app-bg-soft: #eee8dc;
+  --surface: #fffaf0;
+  --surface-muted: #f1eadc;
+  --surface-strong: #fffdf7;
+  --surface-elevated: #fffdf7;
+  --surface-recessed: #e4d8c7;
+  --surface-hover: #e9dfd0;
+  --surface-active: rgba(217, 119, 6, 0.12);
+  --stage-bg: #efe6d8;
+  --stage-grid-line: rgba(120, 113, 108, 0.18);
+  --stage-grid-glow: rgba(180, 83, 9, 0.08);
+  --border-subtle: #d8cdbc;
+  --border-strong: #bfa66d;
+  --divider: var(--border-subtle);
+  --text-main: #1f1b16;
+  --text-muted: #6d665d;
+  --text-soft: #4b463f;
+  --text-heading: var(--text-main);
+  --text-body: var(--text-soft);
+  --text-caption: var(--text-muted);
+  --text-on-solid: #fffaf0;
+  --accent: #b89143;
+  --accent-hover: #a37d32;
+  --accent-soft: rgb(184 145 67 / 0.13);
+  --accent-text: #fff7ed;
+  --status-ready: #2f7d42;
+  --status-ready-soft: rgb(47 125 66 / 0.1);
+  --status-ready-text: #256536;
+  --status-ready-on-solid: #fffaf0;
+  --status-ready-border: rgb(47 125 66 / 0.28);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.1);
+  --danger-text: #991b1b;
+  --danger-on-solid: #fffaf0;
+  --warning-text: #a06318;
+  --warning-soft: rgb(160 99 24 / 0.1);
+  --orange: #a06318;
+  --violet: #694ec8;
+  --shadow-soft: 0 18px 46px rgba(87, 83, 78, 0.18);
+  --control-bg: rgba(255, 251, 235, 0.78);
+  --control-bg-hover: rgba(231, 220, 204, 0.78);
+  --field-bg: rgba(255, 251, 235, 0.92);
+  --field-border: rgba(120, 113, 108, 0.34);
+  --field-placeholder: #656174;
+  --field-focus: rgba(217, 119, 6, 0.52);
+  --row-bg: rgba(255, 251, 235, 0.58);
+  --row-hover: var(--surface-hover);
+  --row-active: var(--surface-active);
+  --progress-track: rgba(214, 202, 186, 0.82);
+  --crop-bg: rgba(238, 226, 210, 0.86);
+  --modal-scrim: rgba(68, 64, 60, 0.42);
+  --annotation-bg: var(--app-bg);
+  --annotation-panel: var(--surface);
+  --annotation-panel-strong: var(--surface-strong);
+  --annotation-border: var(--border-subtle);
+  --annotation-border-strong: var(--border-strong);
+  --annotation-amber: var(--accent);
+  --annotation-ready: var(--status-ready);
+  --annotation-red: var(--danger);
+}
+
+html,
+body {
+  background: var(--app-bg);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+}

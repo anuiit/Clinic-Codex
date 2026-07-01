@@ -177,7 +177,7 @@ describe("MainImagePanel shared boundary", () => {
   });
 
   it("documents the neutral analyzer chrome CSS contract", () => {
-    const source = readFileSync("src/index.css", "utf8");
+    const source = readFileSync("src/styles/app-theme.css", "utf8");
 
     expect(source).not.toMatch(
       new RegExp(
@@ -201,7 +201,7 @@ describe("MainImagePanel shared boundary", () => {
   it("keeps storage, API, router, and bbox-editing logic out of the shared component", () => {
     const imports = sourceImports("src/components/MainImagePanel.tsx");
 
-    expect(imports).toEqual(["react"]);
+    expect(imports).toEqual(["react", "./MainImagePanel.module.css"]);
     expect(imports).not.toEqual(
       expect.arrayContaining([
         expect.stringMatching(/react-router-dom/),

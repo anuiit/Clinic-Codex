@@ -1,4 +1,5 @@
 import type { HTMLAttributes } from "react";
+import styles from "./ImageBBoxStage.module.css";
 
 type ImageBBoxToolbarProps = HTMLAttributes<HTMLDivElement> & {
   label?: string;
@@ -22,6 +23,7 @@ export function ImageBBoxToolbar({
       {...props}
       className={cx(
         "image-bbox-toolbar flex items-center gap-1 rounded-2xl p-1",
+        styles.owner,
         className,
       )}
     >

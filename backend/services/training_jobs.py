@@ -350,6 +350,12 @@ class AdminTrainingService:
         rows = [element for analysis in queue["analyses"] for element in analysis["elements"]]
         trainable = [element for element in rows if element.get("trainable")]
         per_class: dict[str, int] = {}
+        split_counts = {"train": 0, "val": 0, "test": 0, "excluded": 0}
+        for element in rows:
+            split = element.get("dataset_split")
+            if split not in split_counts:
+                split = "excluded"
+            split_counts[split] += 1
         for element in trainable:
             class_name = element.get("class_name") or "Unnamed"
             per_class[class_name] = per_class.get(class_name, 0) + 1
@@ -370,6 +376,7 @@ class AdminTrainingService:
                 "trainable": queue["counts"]["trainable"],
                 "classes": sorted(per_class),
                 "per_class": dict(sorted(per_class.items())),
+                "split_counts": split_counts,
                 "diagnostics": queue["diagnostics"],
             },
             "parameters": self._parameters(),

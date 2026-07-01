@@ -1,0 +1,10 @@
+.owner {
+  --app-chrome-owner: app-shell;
+}
+
+:global(.app-shell) {
+  background:
+    radial-gradient(circle at top left, var(--accent-soft), transparent 28rem),
+    linear-gradient(135deg, var(--app-bg), var(--app-bg-soft));
+  color: var(--text-main);
+}

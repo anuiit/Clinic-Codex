@@ -70,6 +70,13 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     assert body["launch_disabled_reasons"] == [DISABLED_BY_DEFAULT_REASON]
     assert body["data"]["trainable"] == 1
     assert body["data"]["per_class"] == {"atl": 1}
+    assert set(body["data"]["split_counts"]) == {"train", "val", "test", "excluded"}
+    assert (
+        body["data"]["split_counts"]["train"]
+        + body["data"]["split_counts"]["val"]
+        + body["data"]["split_counts"]["test"]
+    ) == 1
+    assert body["data"]["split_counts"]["excluded"] == 0
     assert body["parameters"]["editable"]["device"] == ["auto", "cpu", "mps", "cuda"]
     assert body["paths"]["model_registry_dir"] == str(settings.model_registry_dir)
     assert body["paths"]["promote_script"].endswith("scripts/promote_model.py")

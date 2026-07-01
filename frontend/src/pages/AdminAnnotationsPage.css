@@ -1,0 +1,73 @@
+/* AdminAnnotationsPage.css route shell styles for /admin/annotations. Tab/header/shared styles live in adminAnnotations/*.module.css. */
+.admin-console {
+  background: var(--app-bg);
+  color: var(--text-main);
+}
+
+.app-shell:has(.admin-console) {
+  padding: 0 !important;
+  background: var(--app-bg);
+}
+
+.app-shell:has(.admin-console) main {
+  border-radius: 0 !important;
+}
+
+.admin-chrome {
+  flex-shrink: 0;
+}
+
+.admin-alert-stack {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+}
+
+.admin-alert-stack:empty {
+  display: none;
+}
+
+@media (max-width: 760px) {
+html:has(.admin-console),
+body:has(.admin-console),
+#root:has(.admin-console) {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+.app-shell:has(.admin-console),
+.app-shell:has(.admin-console) main {
+    height: auto !important;
+    min-height: 100vh;
+    overflow: visible !important;
+  }
+
+.admin-console {
+    height: auto !important;
+    min-height: 100vh;
+    overflow: auto !important;
+  }
+
+.admin-tab-content,
+.admin-tab-content > [role="tabpanel"] {
+    height: auto;
+    overflow: visible;
+  }
+
+.admin-tab-content {
+    flex: initial;
+  }
+
+}
+
+.admin-tab-content {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-tab-content > [role="tabpanel"] {
+  min-height: 0;
+  height: 100%;
+}

@@ -1,6 +1,7 @@
 import { MainImagePanel } from "../MainImagePanel";
 import { ImageBBoxOverlay } from "./ImageBBoxOverlay";
 import type { ImageBBoxStageProps } from "./imageBBoxStage.types";
+import styles from "./ImageBBoxStage.module.css";
 
 function cx(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -98,7 +99,7 @@ export function ImageBBoxStage({
           </>
         ) : undefined
       }
-      className={cx("image-bbox-stage", className)}
+      className={cx("image-bbox-stage", styles.owner, className)}
       headerClassName={headerClassName}
       stageClassName={cx(
         "image-bbox-stage__stage",
@@ -107,7 +108,7 @@ export function ImageBBoxStage({
       )}
       transformClassName={cx(
         "image-bbox-stage__transform",
-        transformSize ? "shrink-0 overflow-hidden rounded-lg" : undefined,
+        transformSize ? "shrink-0 overflow-hidden" : undefined,
         transformClassName,
       )}
       transformStyle={{
@@ -139,7 +140,7 @@ export function ImageBBoxStage({
           className={cx(
             "image-bbox-stage__image",
             imageFitClassName(imageFit),
-            imageFit === "contain" ? "rounded-lg" : "pointer-events-none",
+            imageFit === "contain" ? undefined : "pointer-events-none",
             imageClassName,
           )}
         />

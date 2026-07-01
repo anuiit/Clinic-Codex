@@ -1,0 +1,489 @@
+{
+  "routeShell": [
+    ".admin-console",
+    ".app-shell:has(.admin-console)",
+    ".admin-chrome",
+    ".admin-alert-stack",
+    ".admin-tab-content"
+  ],
+  "ownedSelectors": [
+    {
+      "selector": ".admin-brand",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-brand-mark",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-command-actions",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-command-bar",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-command-main",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-command-title",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-live-dot",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-station-id",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-timestamp",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-topstats",
+      "ownerModule": "adminAnnotations/AdminHeader.module.css",
+      "importOwner": "pages/adminAnnotations/AdminHeader.tsx"
+    },
+    {
+      "selector": ".admin-audit-details",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-field",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-field--grow",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-flat-section",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx",
+      "requiresRule": false
+    },
+    {
+      "selector": ".admin-inline-list",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-list-meta",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-list-meta__main",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-metadata-grid",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-metadata-list",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-metadata-more",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx",
+      "requiresRule": false
+    },
+    {
+      "selector": ".admin-metadata-nested",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-metric-pane",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-page-summary",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx",
+      "requiresRule": false
+    },
+    {
+      "selector": ".admin-workflow-steps",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".chart",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".metric-label",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".metric-value",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".admin-dataset-reference-shell",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".admin-dataset-reference-top",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".class-list-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".class-row-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".classes-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".count",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".dataset-shell-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".gallery-area-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".gallery-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".gallery-toolbar-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".health",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".mini-toolbar-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".tile-foot-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".tile-reference",
+      "ownerModule": "adminAnnotations/DatasetTab.module.css",
+      "importOwner": "pages/adminAnnotations/DatasetTab.tsx"
+    },
+    {
+      "selector": ".admin-action-bar",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-action",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-actions",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-header",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-media",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-media__context",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-decision-media__crop",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-element-editor",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-element-editor__layout",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-element-editor__header",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-element-editor__actions",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-editor",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-stage",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-overlay",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-rect",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-handle",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-segmentation-side",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-bbox-advanced",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-inspector",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-inspector-flags",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-inspector-grid",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-key-hints",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-list-pane",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-list-scroll",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-main-actions",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-native-filter",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-prev-action",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-review-workspace",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-row-detail",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-row-diagnostic",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-row-index",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-row-title",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-search-field",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-split-grid",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-status-pills",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-table-row",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-table-row--active",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-toolbar",
+      "ownerModule": "adminAnnotations/ReviewTab.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+    },
+    {
+      "selector": ".admin-class-summary",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-launch-summary",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-tab-stack",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-train-check",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-train-checks",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-train-config",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-train-config-line",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-console",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-form",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-job-panel",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-launch",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-metrics",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-primary",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".admin-training-submit",
+      "ownerModule": "adminAnnotations/TrainingTab.module.css",
+      "importOwner": "pages/adminAnnotations/TrainingTab.tsx"
+    },
+    {
+      "selector": ".ui-metric-strip--bar",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    },
+    {
+      "selector": ".ui-metric",
+      "ownerModule": "adminAnnotations/AdminShared.module.css",
+      "importOwner": "pages/AdminAnnotationsPage.tsx"
+    }
+  ]
+}

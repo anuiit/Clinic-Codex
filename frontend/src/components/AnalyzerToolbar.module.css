@@ -1,0 +1,49 @@
+.owner {
+  --analyzer-toolbar-owner: analyzer-toolbar;
+}
+
+:global(.analyzer-toolbar) {
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  color: var(--text-main);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+:global(.analyzer-toolbar__button--idle) {
+  color: var(--text-soft);
+}
+
+:global(.analyzer-toolbar__button--idle:hover:not(:disabled)) {
+  background: var(--control-bg-hover);
+  color: var(--text-main);
+}
+
+:global(.analyzer-toolbar__button--active) {
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: none;
+}
+
+:global(.analyzer-toolbar__icon-slot) {
+  display: inline-flex;
+  width: 1.1rem;
+  min-width: 1.1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+:global(.analyzer-toolbar__label-slot) {
+  white-space: nowrap;
+}
+
+:global(.analyzer-toolbar__separator) {
+  background: var(--border-subtle);
+}
+
+:global(.workspace-analyzer-toolbar__zoom-label),
+:global(.annotation-analyzer-toolbar__zoom-label) {
+  color: var(--text-soft);
+}
+:global(.analyzer-toolbar__button) { white-space: nowrap; }
