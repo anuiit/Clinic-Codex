@@ -267,14 +267,14 @@ describe('WorkspacePage interaction coverage', () => {
     expect(container.querySelector('svg.absolute')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'tout' })).toHaveClass(
       'analyzer-toolbar__button',
-      'rounded-xl',
+      'rounded-none',
     );
     expect(screen.getByRole('button', { name: 'tout' }).parentElement).not.toHaveClass('border');
 
     await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));
 
     expect(await screen.findByText('Retour aux régions')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-focused-selected-card')).toHaveClass('ui-card-selected');
+    expect(screen.getByTestId('workspace-focused-selected-card')).toHaveClass('workspace-inspector-section');
     expect(screen.getByText('Aperçu du segment')).toBeInTheDocument();
     await waitFor(() => expect(getTrust).toHaveBeenCalledWith('data:image/png;base64,alpha', [100, 120, 50, 40], 'aleph', 10, expect.objectContaining({ signal: expect.any(AbortSignal) })));
 
@@ -344,6 +344,47 @@ describe('WorkspacePage interaction coverage', () => {
           [260, 200, 35, 60],
         ]),
       ),
+    );
+  });
+
+  it('keeps tiny and invalid workspace crop previews visible without drawing empty sources', async () => {
+    renderPage([
+      {
+        ...RECORDS[0],
+        result: {
+          ...RECORDS[0].result,
+          num_elements: 2,
+          elements: [
+            {
+              ...RECORDS[0].result.elements[0],
+              bbox: [100, 120, 1, 80],
+              class_name: 'thin',
+            },
+            {
+              ...RECORDS[0].result.elements[1],
+              bbox: [260, 200, 0, 60],
+              class_name: 'empty-source',
+              rejected: false,
+            },
+          ],
+        },
+      },
+    ]);
+
+    const tinyCanvas = await screen.findByTestId('workspace-list-crop-canvas-0') as HTMLCanvasElement;
+    const invalidCanvas = await screen.findByTestId('workspace-list-crop-canvas-1') as HTMLCanvasElement;
+
+    expect(tinyCanvas.width).toBeGreaterThanOrEqual(18);
+    expect(tinyCanvas.height).toBe(48);
+    expect(invalidCanvas.width).toBe(48);
+    expect(invalidCanvas.height).toBe(48);
+    await waitFor(() =>
+      expect(drawImageSourceRects()).toEqual(
+        expect.arrayContaining([[100, 120, 1, 80]]),
+      ),
+    );
+    expect(drawImageSourceRects()).not.toEqual(
+      expect.arrayContaining([[260, 200, 0, 60]]),
     );
   });
 
@@ -418,7 +459,9 @@ describe('WorkspacePage interaction coverage', () => {
     renderPage();
 
     const header = await screen.findByTestId('workspace-image-header');
-    expect(within(header).getByRole('button', { name: 'Annoter l’analyse' })).toBeInTheDocument();
+    const annotateAction = within(header).getByRole('button', { name: 'Annoter l’analyse' });
+    expect(annotateAction).toHaveClass('workspace-annotate-action');
+    expect(annotateAction).not.toHaveClass('ui-action-primary');
     expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('800×600');
     expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('Annotés / rejetés 1/2 · 1');
     expect(screen.getByTestId('workspace-image-header-meta')).toHaveTextContent('Classes');
@@ -548,7 +591,7 @@ describe('WorkspacePage interaction coverage', () => {
     const sidebar = screen.getByTestId('workspace-detected-panel');
     expect(sidebar).toBeInTheDocument();
     const proposalList = within(sidebar).getByTestId('workspace-detected-list');
-    expect(proposalList).toHaveClass('grid-cols-1', 'overflow-y-auto', 'pr-2');
+    expect(proposalList).toHaveClass('grid-cols-1', 'overflow-y-auto', 'pr-0');
     expect(proposalList).not.toHaveClass('2xl:gap-x-4');
 
     await user.click(screen.getByRole('button', { name: /annotated aleph région 0/i }));

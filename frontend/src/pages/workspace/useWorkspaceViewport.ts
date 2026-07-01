@@ -124,6 +124,9 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
 
         const [x, y, w, h] = element.bbox;
         cropCtx.clearRect(0, 0, canvas.width, canvas.height);
+        if (w <= 0 || h <= 0) {
+          return;
+        }
         cropCtx.drawImage(image, x, y, w, h, 0, 0, canvas.width, canvas.height);
       };
 
@@ -270,7 +273,9 @@ export function useWorkspaceViewport(currentRecord: AnalysisRecord | null) {
     const target = event.target;
     if (
       target instanceof Element &&
-      target.closest('[data-overlay-region="true"]')
+      target.closest(
+        '[data-overlay-region="true"], [data-stage-interactive="true"], button, a, input, select, textarea, [role="button"]',
+      )
     ) {
       pendingEmptyClickRef.current = null;
       return;

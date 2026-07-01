@@ -7,6 +7,9 @@ import {
   getWorkspaceElementClassName,
   hasWorkspaceSubmittedAnnotation,
 } from "./workspaceViewUtils";
+import skeletonStyles from "../../components/LoadingSkeleton.module.css";
+import sidebarStyles from "../../components/SidebarChrome.module.css";
+import workspaceStyles from "./WorkspaceChrome.module.css";
 
 export type WorkspaceStats = {
   total: number;
@@ -81,7 +84,7 @@ export default function WorkspaceDetectedPanel({
 }: WorkspaceDetectedPanelProps) {
   return (
     <section
-      className="app-sidebar flex min-h-0 flex-col overflow-hidden rounded-2xl sidebar-shell"
+      className={`${sidebarStyles.owner} ${workspaceStyles.owner} app-sidebar workspace-inspector-rail flex min-h-0 flex-col overflow-hidden rounded-none sidebar-shell`}
       data-testid="workspace-detected-panel"
     >
       {focusedIdx !== null ? (
@@ -154,51 +157,56 @@ function WorkspaceFocusedRegionPanel({
   const isAmbiguous = trust ? trust.ambiguous : false;
   const detailPreviewSize = getCropPreviewSize(element.bbox, 180);
   const initialPredictionDiffers = Boolean(trust && trust.top1_class !== element.class_name);
+  const bboxSummary = element.bbox.map((value) => Math.round(value)).join(" · ");
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="app-sidebar__header flex items-center justify-between sidebar-header px-5 py-4">
+    <div className="workspace-focused-panel flex h-full flex-col">
+      <div className="workspace-focused-header app-sidebar__header flex items-center justify-between sidebar-header">
         <button
           onClick={onBackToRegions}
-          className="text-app-muted flex items-center gap-2 transition-colors hover:text-[var(--text-main)]"
+          className="flex items-center gap-2 text-[color:var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
         >
           <ChevronLeft size={16} />
           <span className="text-sm font-medium">{labels.backToRegions}</span>
         </button>
       </div>
 
-      <div className="annotation-scrollbar app-sidebar__body flex-1 overflow-y-auto sidebar-body p-5 space-y-6">
-        <div className="ui-card-selected flex flex-col gap-3 rounded-2xl p-3" data-testid="workspace-focused-selected-card">
-          <div className="flex items-center justify-between">
-            <h4 className="ui-title-md">
-              {labels.segmentPreview}
-            </h4>
+      <div className="workspace-focused-body ui-scrollbar app-sidebar__body flex-1 overflow-y-auto sidebar-body">
+        <div className="workspace-inspector-section workspace-inspector-section--preview flex flex-col gap-0" data-testid="workspace-focused-selected-card">
+          <div className="workspace-inspector-section__header flex items-center justify-between">
+            <div className="min-w-0">
+              <h4 className="ui-title-md">{labels.segmentPreview}</h4>
+              <p className="workspace-preview-meta ui-text-meta mt-1 truncate">
+                #{focusedIdx} · {element.class_name || labels.noElements}
+              </p>
+            </div>
+            <span className="workspace-preview-size ui-text-meta tabular-nums" title={`x · y · w · h: ${bboxSummary}`}>
+              {Math.round(element.bbox[2])}×{Math.round(element.bbox[3])}
+            </span>
           </div>
-          <div className="ui-crop-shell flex min-h-[180px] items-center justify-center p-3">
+          <div className="workspace-inspector-preview flex min-h-[180px] items-center justify-center">
             <canvas
               ref={setDetailCanvasRef}
               data-testid="workspace-detail-crop-canvas"
               width={detailPreviewSize.width}
               height={detailPreviewSize.height}
-              className="max-h-[180px] max-w-full rounded-lg bg-[var(--crop-bg)]"
+              className="workspace-inspector-preview__canvas max-h-[180px] max-w-full rounded-none"
             />
           </div>
         </div>
 
         <div
-          className="flex flex-col gap-3 p-1"
+          className={`${skeletonStyles.owner} workspace-inspector-section workspace-inspector-section--trust flex flex-col gap-3`}
           aria-busy={trustLoading}
           data-testid="workspace-trust-summary"
         >
-          <div className="flex items-center justify-between">
-            <h4 className="ui-title-md">
-              {labels.trustSummary}
-            </h4>
-            {contextLoading && <Loader2 size={14} className="text-app-muted animate-spin" />}
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="ui-title-md">{labels.trustSummary}</h4>
+            {contextLoading && <Loader2 size={14} className="animate-spin text-[color:var(--text-muted)]" />}
           </div>
           {(trustLoading || trustError) && (
             <div
-              className="ui-section space-y-3 p-3"
+              className="workspace-trust-loading space-y-3"
               data-testid="workspace-trust-loading"
             >
               <div className="ui-text-eyebrow">
@@ -221,106 +229,106 @@ function WorkspaceFocusedRegionPanel({
           )}
           {!trustLoading && !trustError && (
             <>
-          <div className="flex items-center justify-between">
-            <span className="truncate text-2xl font-bold text-[var(--text-heading)]">
-              {summaryClass}
-            </span>
-            <span
-	              className={`shrink-0 px-3 py-1.5 rounded-md text-base font-bold ${
-	                isRejected
-	                  ? "ui-chip--danger border"
-	                  : "status-ready-chip border"
-	              }`}
-            >
-              {(topPrediction * 100).toFixed(1)}%
-            </span>
-          </div>
-          {initialPredictionDiffers && trust && (
-	            <div className="ui-alert ui-alert--accent p-2 text-xs">
-	              <div className="font-semibold">{labels.recalculatedPrediction}</div>
-	              <div className="mt-1 opacity-85">
-	                {labels.initialProposal}: <span className="font-medium">{element.class_name}</span>{" "}
-	                #{trust.predicted_class_rank} · {(trust.predicted_class_similarity * 100).toFixed(1)}%
-	              </div>
-	            </div>
-	          )}
-	          {isAmbiguous && !isRejected && (
-	            <div className="ui-alert ui-alert--accent flex items-start gap-2 p-3">
-	              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <strong>{labels.ambiguousPrediction}</strong>
-                <p className="mt-1 text-xs opacity-80">
-                  {labels.ambiguousDetails} {(margin * 100).toFixed(1)}%. {labels.alternativesExist}
-                </p>
-              </div>
-            </div>
-	          )}
-	          {isRejected && (
-	            <div className="ui-alert ui-alert--danger flex items-start gap-2 p-3">
-	              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <strong>{labels.lowConfidenceFlag}</strong>
-                <p className="mt-1 text-xs opacity-80">{labels.thresholdDetails}</p>
-              </div>
-            </div>
-          )}
-          {trust && (
-            <div className="flex gap-2 text-sm">
-              <div className="ui-section flex-1 p-2">
-                <span className="ui-text-meta block">{labels.rank}</span>
-                <span className="font-semibold text-[var(--text-body)]">#1</span>
-              </div>
-              <div className="ui-section flex-1 p-2">
-                <span className="ui-text-meta block">{labels.margin}</span>
-	                <span className={`font-semibold ${isAmbiguous ? "text-[var(--accent)]" : "text-[var(--text-body)]"}`}>
-                  {(margin * 100).toFixed(1)}%
+              <div className="workspace-trust-hero flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-xl font-semibold text-[var(--text-heading)]">
+                  {summaryClass}
+                </span>
+                <span
+                  className={`workspace-trust-score shrink-0 px-2.5 py-1 text-sm font-semibold ${
+                    isRejected
+                      ? "ui-chip--danger"
+                      : "border border-[color:var(--status-ready-border)] bg-[color:var(--status-ready-soft)] text-[color:var(--status-ready-text)]"
+                  }`}
+                >
+                  {(topPrediction * 100).toFixed(1)}%
                 </span>
               </div>
-            </div>
-          )}
+              {initialPredictionDiffers && trust && (
+                <div className="ui-alert ui-alert--accent p-2 text-xs">
+                  <div className="font-semibold">{labels.recalculatedPrediction}</div>
+                  <div className="mt-1 opacity-85">
+                    {labels.initialProposal}: <span className="font-medium">{element.class_name}</span>{" "}
+                    #{trust.predicted_class_rank} · {(trust.predicted_class_similarity * 100).toFixed(1)}%
+                  </div>
+                </div>
+              )}
+              {isAmbiguous && !isRejected && (
+                <div className="ui-alert ui-alert--accent flex items-start gap-2 p-3">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <strong>{labels.ambiguousPrediction}</strong>
+                    <p className="mt-1 text-xs opacity-80">
+                      {labels.ambiguousDetails} {(margin * 100).toFixed(1)}%. {labels.alternativesExist}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {isRejected && (
+                <div className="ui-alert ui-alert--danger flex items-start gap-2 p-3">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <strong>{labels.lowConfidenceFlag}</strong>
+                    <p className="mt-1 text-xs opacity-80">
+                      {labels.thresholdDetails}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {trust && (
+                <div className="flex gap-2 text-sm">
+                  <div className="workspace-trust-stat flex-1 p-2">
+                    <span className="ui-text-meta block">{labels.rank}</span>
+                    <span className="font-semibold text-[var(--text-body)]">#1</span>
+                  </div>
+                  <div className="workspace-trust-stat flex-1 p-2">
+                    <span className="ui-text-meta block">{labels.margin}</span>
+                    <span className={`font-semibold ${isAmbiguous ? "text-[var(--accent)]" : "text-[var(--text-body)]"}`}>
+                      {(margin * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
 
         {!trustLoading && !trustError && (
-          <div className="flex flex-col gap-3 p-1">
-          <div className="flex items-center justify-between">
-            <h4 className="ui-title-md">
-              {labels.topPredictions}
-            </h4>
-          </div>
-          <div className="space-y-2">
-            {(trust?.top_k ?? element.top_k).map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="ui-text-meta w-4 text-right">{i + 1}</span>
-                <div className="flex-1">
-                  <div className="flex justify-between text-sm mb-0.5">
-                    <span className={i === 0 ? "font-medium text-[var(--text-body)]" : "text-app-muted"}>
-                      {item.class_name}
-                    </span>
-                    <span className={i === 0 ? "font-medium text-[var(--text-soft)]" : "text-app-muted"}>
-                      {(item.confidence * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="ui-progress-track h-1 w-full">
-                    <div
-	                      className={`h-full rounded-full ${i === 0 ? (isRejected ? "ui-progress-value--accent" : "ui-progress-value--ready") : "bg-[var(--surface-hover)]"}`}
-                      style={{ width: `${item.confidence * 100}%` }}
-                    />
+          <div className="workspace-inspector-section flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h4 className="ui-title-md">{labels.topPredictions}</h4>
+            </div>
+            <div className="space-y-2">
+              {(trust?.top_k ?? element.top_k).map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="ui-text-meta w-4 text-right">{i + 1}</span>
+                  <div className="flex-1">
+                    <div className="mb-0.5 flex justify-between text-sm">
+                      <span className={i === 0 ? "font-medium text-[var(--text-body)]" : "text-[color:var(--text-muted)]"}>
+                        {item.class_name}
+                      </span>
+                      <span className={i === 0 ? "font-medium text-[var(--text-soft)]" : "text-[color:var(--text-muted)]"}>
+                        {(item.confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="ui-progress-track h-1 w-full">
+                      <div
+                        className={`h-full rounded-full ${i === 0 ? (isRejected ? "ui-progress-value--accent" : "ui-progress-value--ready") : "bg-[var(--surface-hover)]"}`}
+                        style={{ width: `${item.confidence * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
 
-      <div className="app-sidebar__header border-t p-5 sidebar-header">
+      <div className="workspace-inspector-footer app-sidebar__header border-t sidebar-header">
         <button
           type="button"
           onClick={onEditorHandoff}
-          className="ui-action-primary flex w-full items-center justify-center gap-2 px-4 py-3 text-sm transition-all active:scale-[0.98]"
+          className="workspace-annotate-action workspace-annotate-action--full flex w-full items-center justify-center gap-2 px-4 py-2 text-sm transition-all active:scale-[0.99]"
         >
           <Edit3 size={16} />
           {element.rejected ? labels.correctElement : labels.annotateRegion}
@@ -357,8 +365,8 @@ function WorkspaceDetectedList({
   onListRegionLeave,
 }: DetectedListProps) {
   return (
-    <div className="flex h-full flex-col p-4 lg:p-5">
-      <div className="mb-3 flex items-start justify-between gap-3 pb-3">
+    <div className="flex h-full flex-col p-0">
+      <div className="workspace-detected-header flex items-start justify-between gap-3 border-b border-[color:var(--border-subtle)]">
         <div>
           <p className="ui-text-eyebrow">
             {labels.proposalPanel}
@@ -370,7 +378,7 @@ function WorkspaceDetectedList({
       </div>
 
       {stats && stats.rejectedCount === stats.total && stats.total > 0 && (
-	        <div className="ui-alert ui-alert--accent mb-4 flex items-start gap-3 rounded-2xl p-3">
+	        <div className="ui-alert ui-alert--accent mb-0 flex items-start gap-3 rounded-none p-3">
 	          <Info className="mt-0.5 shrink-0" size={18} />
           <div>
             <p className="ui-text-body-sm">{labels.allRejected}</p>
@@ -386,14 +394,14 @@ function WorkspaceDetectedList({
       )}
 
       <div
-        className="annotation-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-2 overflow-y-auto pr-2"
+        className="ui-scrollbar workspace-detected-grid grid flex-1 auto-rows-min grid-cols-1 gap-0 overflow-y-auto pr-0"
         data-testid="workspace-detected-list"
         tabIndex={0}
         onKeyDown={onDetectedListKeyDown}
       >
         {record.result.elements.length === 0 ? (
           <div className="ui-empty-state flex h-full flex-col items-center justify-center p-6 text-center">
-            <Info className="text-app-muted mb-3" size={32} />
+            <Info className="mb-3 text-[color:var(--text-muted)]" size={32} />
             <p>{labels.noElements}</p>
           </div>
         ) : (
@@ -405,7 +413,7 @@ function WorkspaceDetectedList({
               ? "ui-chip--danger"
               : "ui-chip--accent";
             const indexBadgeClasses = element.rejected
-              ? "bg-[var(--danger)] text-[var(--text-on-solid)]"
+              ? "bg-[var(--danger)] text-[var(--danger-on-solid)]"
               : "bg-[var(--accent)] text-[var(--accent-text)]";
             const previewSize = getCropPreviewSize(element.bbox, 48);
 
@@ -414,7 +422,7 @@ function WorkspaceDetectedList({
                 <div
                   role="button"
                   aria-label={`${displayClass} région ${idx}`}
-                  className={`selection-card ui-row--hover flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${isHovered ? "selection-card--active" : ""}`}
+                  className={`selection-card workspace-detected-row ui-row--hover flex cursor-pointer items-center gap-2.5 rounded-none text-left transition-colors ${isHovered ? "selection-card--active" : ""}`}
                   onClick={() => onFocusRegion(idx)}
                   onMouseEnter={() => onListRegionEnter(idx)}
                   onMouseLeave={() => onListRegionLeave(idx)}
@@ -426,13 +434,13 @@ function WorkspaceDetectedList({
                   }}
                   tabIndex={0}
                 >
-                  <div className="ui-crop-shell flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-none">
                     <canvas
                       ref={(canvas) => setCropCanvasRef(idx, canvas)}
                       data-testid={`workspace-list-crop-canvas-${idx}`}
                       width={previewSize.width}
                       height={previewSize.height}
-                      className="block rounded bg-[var(--crop-bg)]"
+                      className="block rounded-none bg-[var(--crop-bg)]"
                     />
                   </div>
                   <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-xs font-bold ${indexBadgeClasses}`}>
@@ -441,9 +449,9 @@ function WorkspaceDetectedList({
                   <span className="ui-text-body-sm flex-1 truncate">
                     {displayClass}
                   </span>
-                  {hasAnnotation && <CheckCircle2 size={12} className="text-status-ready shrink-0" />}
+                  {hasAnnotation && <CheckCircle2 size={12} className="shrink-0 text-[color:var(--status-ready-text)]" />}
                   <div className="flex shrink-0 flex-col items-end gap-0.5">
-                    <span className={`ui-chip ${badgeClasses} rounded px-1.5 py-0.5 leading-none`}>
+                    <span className={`ui-chip ${badgeClasses} rounded-none px-1.5 py-0.5 leading-none`}>
                       {(element.confidence * 100).toFixed(1)}%
                     </span>
                   </div>

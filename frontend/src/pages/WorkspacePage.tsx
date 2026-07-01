@@ -9,6 +9,7 @@ import WorkspaceEmptyState from "./workspace/WorkspaceEmptyState";
 import WorkspaceHeader from "./workspace/WorkspaceHeader";
 import WorkspaceOverlayToolbar from "./workspace/WorkspaceOverlayToolbar";
 import WorkspaceUploadModal from "./workspace/WorkspaceUploadModal";
+import workspaceStyles from "./workspace/WorkspaceChrome.module.css";
 import { useWorkspaceHistory } from "./workspace/useWorkspaceHistory";
 import { useWorkspaceUpload } from "./workspace/useWorkspaceUpload";
 import { useWorkspaceViewport } from "./workspace/useWorkspaceViewport";
@@ -114,7 +115,7 @@ export default function WorkspacePage({
 
   return (
     <div
-      className={`workspace-page flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-2xl transition-colors ${upload.dragging ? "ring-2 ring-[color:var(--border-strong)] ring-offset-2 ring-offset-[var(--app-bg)]" : ""}`}
+      className={`${workspaceStyles.owner} workspace-page flex h-full min-h-0 flex-col gap-0 overflow-hidden rounded-none transition-colors ${upload.dragging ? "ring-2 ring-[color:var(--border-strong)] ring-offset-2 ring-offset-[var(--app-bg)]" : ""}`}
       onDragEnter={(event) => {
         event.preventDefault();
         upload.setDragging(true);
@@ -173,7 +174,7 @@ export default function WorkspacePage({
       )}
 
       <div
-        className={`grid min-h-0 flex-1 gap-3 transition-[grid-template-columns] duration-300 ease-out ${history.historyOpen ? "xl:grid-cols-[300px_minmax(0,1fr)]" : "xl:grid-cols-[56px_minmax(0,1fr)]"}`}
+        className={`grid min-h-0 flex-1 gap-0 transition-[grid-template-columns] duration-300 ease-out ${history.historyOpen ? "xl:grid-cols-[300px_minmax(0,1fr)]" : "xl:grid-cols-[56px_minmax(0,1fr)]"}`}
       >
         <WorkspaceHistoryPanel
           records={history.records}
@@ -202,7 +203,7 @@ export default function WorkspacePage({
         <section className="min-h-0 overflow-hidden">
           {history.currentRecord ? (
             <div
-              className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]"
+              className="grid h-full min-h-0 gap-0 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]"
               data-testid="workspace-content-grid"
             >
               <ImageBBoxStage
@@ -263,7 +264,7 @@ export default function WorkspacePage({
                   <button
                     type="button"
                     onClick={handleEditorHandoff}
-                    className="ui-action-primary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                    className="workspace-annotate-action inline-flex items-center gap-2 rounded-none px-3 py-2 text-sm"
                     data-testid="workspace-header-annotate-action"
                   >
                     <Edit3 size={16} /> {t.annotateRecord}
@@ -271,7 +272,7 @@ export default function WorkspacePage({
                 }
                 badges={
                   focusedIdx !== null && (
-                    <span className="ui-chip ui-chip--accent rounded-md px-2 py-1 text-xs font-medium">
+                    <span className="ui-chip ui-chip--accent whitespace-nowrap rounded-none px-2 py-1 text-xs font-medium">
                       {t.focusLabel}: {focusedIdx}
                     </span>
                   )

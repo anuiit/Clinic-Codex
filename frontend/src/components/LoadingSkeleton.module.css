@@ -1,0 +1,23 @@
+.owner {
+  --loading-skeleton-owner: loading-skeleton;
+}
+
+:global(.workspace-trust-skeleton) {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--surface-muted) 54%, transparent),
+    color-mix(in srgb, var(--surface-hover) 64%, transparent),
+    color-mix(in srgb, var(--surface-muted) 54%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: workspace-trust-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes workspace-trust-skeleton-pulse {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
