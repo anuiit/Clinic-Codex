@@ -421,6 +421,9 @@ describe("AdminAnnotationsPage", () => {
     expect(screen.queryByText(/enable_admin_training_jobs=1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/bash scripts\/retrain\.sh --dry-run/i)).not.toBeInTheDocument();
     expect(screen.getAllByText(/protection locale active/i).length).toBeGreaterThan(0);
+    expect(document.body).not.toHaveTextContent(
+      /placeholder|LossSketch|ValidationAccuracySketch/i,
+    );
     expect(
       screen.getByRole("region", { name: /résumé avant lancement de l'entraînement/i }),
     ).toHaveTextContent(/bloquée par la protection backend/i);

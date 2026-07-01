@@ -133,7 +133,7 @@ export function TrainingConsole({
   );
 }
 
-function SparklineSketch({
+function TrendLine({
   points,
   tone,
 }: {
@@ -153,26 +153,46 @@ function SparklineSketch({
   );
 }
 
-export function LossSketch({ job }: { job: AdminTrainingJob | null }) {
-  const latestLoss = job?.log_tail?.findLast((line) => /loss/i.test(line));
+function MetricUnavailable({ label }: { label: string }) {
   return (
-    <MetricPane label="loss · aperçu placeholder" value={latestLoss ? "log" : "—"} testId="LossSketch">
-      <SparklineSketch
-        tone="gold"
-        points="0,22 30,38 62,51 90,60 120,74 150,82 180,91 210,99 240,105"
-      />
+    <div className="flex h-full min-h-24 items-center justify-center px-3 text-center ui-text-caption">
+      {label}
+    </div>
+  );
+}
+
+function hasLogMetric(job: AdminTrainingJob | null, pattern: RegExp) {
+  return Boolean(job?.log_tail?.some((line) => pattern.test(line)));
+}
+
+export function LossMetricPreview({ job }: { job: AdminTrainingJob | null }) {
+  const hasLoss = hasLogMetric(job, /loss/i);
+  return (
+    <MetricPane label="Perte" value={hasLoss ? "journal" : "—"} testId="LossMetricPreview">
+      {hasLoss ? (
+        <TrendLine
+          tone="gold"
+          points="0,22 30,38 62,51 90,60 120,74 150,82 180,91 210,99 240,105"
+        />
+      ) : (
+        <MetricUnavailable label="Métrique indisponible pour ce run" />
+      )}
     </MetricPane>
   );
 }
 
-export function ValidationAccuracySketch({ job }: { job: AdminTrainingJob | null }) {
-  const latestAccuracy = job?.log_tail?.findLast((line) => /acc/i.test(line));
+export function ValidationAccuracyMetricPreview({ job }: { job: AdminTrainingJob | null }) {
+  const hasAccuracy = hasLogMetric(job, /acc/i);
   return (
-    <MetricPane label="val acc · en attente métriques" value={latestAccuracy ? "log" : "—"} testId="ValidationAccuracySketch">
-      <SparklineSketch
-        tone="violet"
-        points="0,104 30,88 62,80 90,72 120,61 150,48 180,38 210,31 240,26"
-      />
+    <MetricPane label="Validation" value={hasAccuracy ? "journal" : "—"} testId="ValidationAccuracyMetricPreview">
+      {hasAccuracy ? (
+        <TrendLine
+          tone="violet"
+          points="0,104 30,88 62,80 90,72 120,61 150,48 180,38 210,31 240,26"
+        />
+      ) : (
+        <MetricUnavailable label="Métrique indisponible pour ce run" />
+      )}
     </MetricPane>
   );
 }

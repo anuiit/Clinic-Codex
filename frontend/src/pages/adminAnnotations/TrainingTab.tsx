@@ -5,7 +5,7 @@ import { getAdminTrainingSummary, getLatestAdminTrainingJob, startAdminTrainingJ
 import type { AdminTrainingJob, AdminTrainingSummary } from "../../types";
 import { formatClassSummary, formatPrimitiveValue, isRecord, TRAINING_JOB_POLL_INTERVAL_MS } from "./model";
 import { PanelSkeleton } from "./shared";
-import { ClassDistributionBars, LossSketch, MetadataValue, TrainingConsole, TrainingJobPanel, ValidationAccuracySketch } from "./TrainingHelpers";
+import { ClassDistributionBars, LossMetricPreview, MetadataValue, TrainingConsole, TrainingJobPanel, ValidationAccuracyMetricPreview } from "./TrainingHelpers";
 
 function trainingLaunchReasonLabel(reason: string) {
   if (reason.startsWith("disabled_by_default:")) {
@@ -239,13 +239,12 @@ export function TrainingTab() {
         className="admin-training-metrics"
         aria-label="Aperçu des métriques d'entraînement"
       >
-        <LossSketch job={latestJob} />
-        <ValidationAccuracySketch job={latestJob} />
+        <LossMetricPreview job={latestJob} />
+        <ValidationAccuracyMetricPreview job={latestJob} />
         <ClassDistributionBars splitCounts={splitCounts} />
       </section>
       <p className="ui-text-caption px-1">
-        LossSketch et ValidationAccuracySketch sont des placeholders visuels :
-        ils attendent des métriques de run typées. Les barres de split utilisent
+        Les courbes de perte et validation s’activent quand le journal du run expose ces métriques. Les barres de split utilisent
         la distribution réelle du résumé local.
       </p>
 
