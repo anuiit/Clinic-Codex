@@ -44,7 +44,7 @@ export function useAnnotationViewport({
     pushBboxHistory: history.pushBboxHistory,
     undoBboxHistoryChange: history.undoLastBboxChange,
   });
-  const { imageRef, previewCanvasRef } = useAnnotationPreviewCanvas({
+  const { imageRef, previewCanvasRef, handlePreviewImageLoad } = useAnnotationPreviewCanvas({
     record,
     elements,
     focusedIdx,
@@ -56,6 +56,7 @@ export function useAnnotationViewport({
     containerRef: stageViewport.containerRef,
     imageRef,
     previewCanvasRef,
+    handlePreviewImageLoad,
     drawMode: editing.drawMode,
     zoom: stageViewport.zoom,
     panOffset: stageViewport.panOffset,

@@ -616,6 +616,54 @@ describe("AnnotationPage pan behavior", () => {
     );
   });
 
+  it("redraws the selected inspector preview when the handoff image finishes loading", async () => {
+    let imageComplete = false;
+    Object.defineProperty(HTMLImageElement.prototype, "complete", {
+      configurable: true,
+      get: () => imageComplete,
+    });
+    const recordWithElements: AnalysisRecord = {
+      ...STUB_RECORD,
+      result: {
+        ...STUB_RECORD.result,
+        num_elements: 2,
+        elements: [
+          {
+            bbox: [100, 100, 50, 40],
+            class_name: "atl",
+            class_label: 1,
+            confidence: 0.9,
+            rejected: false,
+            top_k: [],
+          },
+          {
+            bbox: [220, 180, 60, 50],
+            class_name: "bet",
+            class_label: 2,
+            confidence: 0.75,
+            rejected: false,
+            top_k: [],
+          },
+        ],
+      },
+    };
+
+    renderPage(recordWithElements, "/annotate/test-id?element=1");
+
+    expect(
+      await screen.findByLabelText("Nommer l’élément 1"),
+    ).toBeInTheDocument();
+    expect(drawImageMock).not.toHaveBeenCalled();
+
+    imageComplete = true;
+    fireEvent.load(screen.getByAltText("test.png"));
+
+    await waitFor(() => expect(drawImageMock).toHaveBeenCalled());
+    expect(drawImageMock.mock.calls.at(-1)?.slice(1, 5)).toEqual([
+      220, 180, 60, 50,
+    ]);
+  });
+
   it("uses flattened sidebar tokens for the selected annotation inspector", async () => {
     const recordWithElement: AnalysisRecord = {
       ...STUB_RECORD,
@@ -640,7 +688,7 @@ describe("AnnotationPage pan behavior", () => {
     const inspector = await screen.findByTestId("selected-element-inspector");
     expect(inspector).toHaveClass(
       "annotation-selected-inspector",
-      "rounded-xl",
+      "rounded-none",
     );
     expect(inspector).not.toHaveClass("sidebar-shell");
     expect(inspector.querySelector(".sidebar-header")).toBeInTheDocument();

@@ -2,6 +2,8 @@ import { ArrowLeft, Loader2, Save, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { appText } from "../i18n/text";
 import { ThemeToggle, type ThemeMode } from "../components/ThemeToggle";
+import { ActionButton } from "../components/ui/Primitives";
+import annotationStyles from "./annotation/AnnotationChrome.module.css";
 
 type AnnotationLabels = typeof appText.annotation;
 
@@ -29,7 +31,7 @@ export function AnnotationPageChrome({
   onToggleTheme,
 }: AnnotationPageChromeProps) {
   return (
-    <div data-testid="annotation-page-chrome">
+    <div className={annotationStyles.owner} data-testid="annotation-page-chrome">
       <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-3 py-2">
         <div className="flex min-w-0 items-center gap-4">
           <Link
@@ -50,18 +52,19 @@ export function AnnotationPageChrome({
 
         <div className="flex items-center gap-2">
           <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
-          <button
+          <ActionButton
             type="button"
             onClick={onSubmitNamed}
-            className="annotation-action-button annotation-action-button--ghost"
+            tone="ghost"
           >
             {labels.submitNamed}
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="annotation-action-button annotation-action-button--primary px-4"
+            tone="primary"
+            className="px-4"
           >
             {saving ? (
               <Loader2 size={18} className="animate-spin" />
@@ -69,12 +72,13 @@ export function AnnotationPageChrome({
               <Save size={18} />
             )}
             {labels.saveChanges}
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
             onClick={onSendSubmittedForReview}
             disabled={sending}
-            className="annotation-action-button annotation-action-button--success px-4"
+            tone="ready"
+            className="px-4"
           >
             {sending ? (
               <Loader2 size={18} className="animate-spin" />
@@ -82,7 +86,7 @@ export function AnnotationPageChrome({
               <Upload size={18} />
             )}
             {labels.sendSubmittedForReview}
-          </button>
+          </ActionButton>
         </div>
       </div>
 

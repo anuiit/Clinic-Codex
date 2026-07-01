@@ -758,6 +758,14 @@ describe("AnnotationPage element naming UX", () => {
     const suggestionList = await screen.findByTestId("element-name-suggestions");
     expect(combobox).not.toContainElement(suggestionList);
     expect(document.body).toContainElement(suggestionList);
+    expect(input).toHaveAttribute("role", "combobox");
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-controls", suggestionList.id);
+    expect(suggestionList).toHaveAttribute("role", "listbox");
+    expect(within(suggestionList).getByRole("option", { name: /aleph/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(suggestionList).toHaveClass(
       "annotation-name-combobox__menu",
       "annotation-name-combobox__menu--portal",

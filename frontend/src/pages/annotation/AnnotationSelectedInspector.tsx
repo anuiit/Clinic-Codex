@@ -3,6 +3,9 @@ import { Trash2 } from "lucide-react";
 import type { DetectedElement } from "../../types";
 import { appText } from "../../i18n/text";
 import { isUnnamedClass } from "../../utils/fuzzyClasses";
+import sidebarStyles from "../../components/SidebarChrome.module.css";
+import { ActionButton, StatusPill } from "../../components/ui/Primitives";
+import annotationStyles from "./AnnotationChrome.module.css";
 import { ElementNameCombobox } from "./ElementNameCombobox";
 
 interface AnnotationSelectedInspectorProps {
@@ -38,7 +41,7 @@ export function AnnotationSelectedInspector({
 }: AnnotationSelectedInspectorProps) {
   return (
     <section
-      className="annotation-selected-inspector relative mb-3 flex shrink-0 flex-col overflow-visible rounded-xl p-0"
+      className={`${annotationStyles.owner} ${sidebarStyles.owner} annotation-selected-inspector relative flex shrink-0 flex-col overflow-visible rounded-none p-0`}
       data-testid="selected-element-inspector"
     >
       <div className="sidebar-header flex items-start justify-between gap-3 px-3 py-2">
@@ -46,35 +49,36 @@ export function AnnotationSelectedInspector({
           <div className="ui-text-eyebrow">
             Inspecteur
           </div>
-          <h2 className="ui-title-md mt-1 truncate text-xl normal-case tracking-tight">
+          <h2 className="ui-title-md mt-0.5 truncate text-base normal-case tracking-tight">
             {focusedElement && focusedIdx !== null
               ? `#${focusedIdx} · ${focusedDisplayName}`
               : "Sélectionnez un élément"}
           </h2>
         </div>
         {focusedElement && focusedIdx !== null && (
-          <span
-            className={`annotation-status-chip shrink-0 px-2 py-1 ${focusedElement.rejected ? "annotation-status-chip--rejected" : focusedIsSubmitted ? "annotation-status-chip--validated" : "annotation-status-chip--draft"}`}
+          <StatusPill
+            tone={focusedElement.rejected ? "danger" : focusedIsSubmitted ? "ready" : "neutral"}
+            className="shrink-0 px-2 py-1"
           >
             {focusedIsSubmitted ? labels.submitted : labels.draft}
-          </span>
+          </StatusPill>
         )}
       </div>
 
-      <div className="annotation-selected-inspector__body sidebar-body min-h-0 overflow-visible p-3">
+      <div className="annotation-selected-inspector__body sidebar-body min-h-0 overflow-visible p-0">
         {focusedElement && focusedIdx !== null ? (
-          <div className="flex h-full min-h-0 flex-col gap-3">
-            <div className="annotation-selected-overview grid grid-cols-[150px_minmax(0,1fr)] gap-3">
-              <div className="annotation-crop flex h-[150px] items-center justify-center overflow-hidden rounded-xl border">
+          <div className="flex h-full min-h-0 flex-col gap-0">
+            <div className="annotation-selected-overview grid grid-cols-[118px_minmax(0,1fr)] gap-0">
+              <div className="annotation-crop flex h-[116px] items-center justify-center overflow-hidden rounded-none border-0 border-r border-[color:var(--border-subtle)]">
                 <canvas
                   ref={previewCanvasRef}
                   width={200}
                   height={200}
-                  className="block h-[140px] w-[140px] rounded-lg object-contain"
+                  className="block h-[108px] w-[108px] rounded-none object-contain"
                 />
               </div>
-              <div className="min-w-0 space-y-3">
-                <div>
+              <div className="annotation-selected-metrics min-w-0">
+                <div className="px-3 py-2">
                   <div className="ui-text-meta mb-1 flex items-center justify-between font-semibold">
                     <span>Confiance</span>
                     <span className="tabular-nums text-[var(--text-body)]">
@@ -90,26 +94,25 @@ export function AnnotationSelectedInspector({
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <dl className="annotation-bbox-meta" aria-label="Coordonnées de segmentation">
                   {(["x", "y", "w", "h"] as const).map((label, coordIdx) => (
                     <div
                       key={label}
-                      className="ui-section px-3 py-2"
                     >
-                      <div className="ui-text-eyebrow">
+                      <dt>
                         {label}
-                      </div>
-                      <div className="mt-1 font-semibold tabular-nums text-[var(--text-main)]">
+                      </dt>
+                      <dd>
                         {Math.round(focusedElement.bbox[coordIdx])}
-                      </div>
+                      </dd>
                     </div>
                   ))}
-                </div>
+                </dl>
               </div>
             </div>
 
             <div
-              className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-2"
+              className="annotation-inspector-action-row grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-1.5"
               data-testid="annotation-inspector-action-row"
             >
               <div className="min-w-0">
@@ -124,26 +127,28 @@ export function AnnotationSelectedInspector({
                   onCommit={(name) => onCommitElementName(focusedIdx, name)}
                 />
               </div>
-              <button
+              <ActionButton
                 type="button"
                 onClick={() =>
                 onSetElementValidation(focusedIdx, !focusedIsSubmitted)
                 }
                 disabled={isUnnamedClass(focusedElement.class_name)}
-                className={`annotation-action-button shrink-0 ${focusedIsSubmitted ? "annotation-action-button--ghost" : "annotation-action-button--success"}`}
+                tone={focusedIsSubmitted ? "ghost" : "ready"}
+                className="shrink-0 px-2.5 py-1.5 text-xs"
               >
                 {focusedIsSubmitted ? labels.markDraft : labels.markSubmitted}
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
                 type="button"
                 onClick={() => onRemoveElement(focusedIdx)}
-                className="annotation-action-button annotation-action-button--danger shrink-0 px-3 py-2"
+                tone="danger"
+                className="shrink-0 px-2.5 py-1.5"
               >
                 <span className="sr-only">
                   Supprimer l’élément #{focusedIdx}
                 </span>
                 <Trash2 size={18} />
-              </button>
+              </ActionButton>
             </div>
           </div>
         ) : (

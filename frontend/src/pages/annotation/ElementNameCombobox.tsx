@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -39,6 +40,7 @@ export function ElementNameCombobox({
   index,
   onCommit,
 }: ElementNameComboboxProps) {
+  const generatedId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const displayValue = isUnnamedClass(value) ? "" : value;
   const [inputState, setInputState] = useState(() => ({
@@ -73,6 +75,11 @@ export function ElementNameCombobox({
   const canCreate =
     normalizedInput.length > 0 &&
     !hasExactClassName(normalizedInput, allCandidateNames);
+  const inputId = `element-name-${index}-${generatedId}`;
+  const listboxId = `${inputId}-suggestions`;
+  const activeOptionId = suggestions[highlightedIdx]
+    ? `${listboxId}-option-${highlightedIdx}`
+    : undefined;
 
   const updateMenuPosition = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -172,6 +179,9 @@ export function ElementNameCombobox({
 
   const suggestionsMenu = (
     <div
+      id={listboxId}
+      role="listbox"
+      aria-label={labels.suggestions}
       className="annotation-name-combobox__menu annotation-name-combobox__menu--portal ui-panel fixed overflow-y-auto rounded-none shadow-xl"
       data-testid="element-name-suggestions"
       style={menuStyle}
@@ -184,6 +194,9 @@ export function ElementNameCombobox({
       )}
       {suggestions.map((suggestion, suggestionIdx) => (
         <button
+          id={`${listboxId}-option-${suggestionIdx}`}
+          role="option"
+          aria-selected={suggestionIdx === highlightedIdx}
           key={`${suggestion.source}-${suggestion.name}`}
           type="button"
           onMouseDown={(event) => event.preventDefault()}
@@ -198,6 +211,8 @@ export function ElementNameCombobox({
       ))}
       {canCreate && (
         <button
+          role="option"
+          aria-selected={false}
           type="button"
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => commitName(normalizedInput)}
@@ -216,13 +231,18 @@ export function ElementNameCombobox({
     >
       <label
         className="ui-text-eyebrow mb-1 block"
-        htmlFor={`element-name-${index}`}
+        htmlFor={inputId}
       >
         {labels.renameElement}
       </label>
       <input
         ref={inputRef}
-        id={`element-name-${index}`}
+        id={inputId}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={isOpen ? listboxId : undefined}
+        aria-expanded={isOpen}
+        aria-activedescendant={isOpen ? activeOptionId : undefined}
         aria-label={`${labels.nameElement} ${index}`}
         value={inputValue}
         onChange={(event) => {
