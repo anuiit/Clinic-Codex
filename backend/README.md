@@ -189,8 +189,11 @@ Or, for local development only, enable the guarded Training tab launcher before 
 ENABLE_ADMIN_TRAINING_JOBS=1 bash scripts/run-dev.sh
 ```
 
-The committed/default state remains disabled. When the flag is absent, the backend returns the exact
+The committed/default state remains disabled. When the flag is absent, the backend returns the
 launch-blocking reason `disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches`.
+When no current annotation is trainable, summary/start also report
+`no_trainable_annotations: approve at least one current annotation before launching retraining` so the
+operator approves data before creating a run.
 
 `POST /admin/training/jobs` still rejects non-loopback clients, nonlocal `Host`/`Origin` headers, unknown payload fields, invalid device/batch values, and concurrent runs. Accepted jobs run only `bash scripts/retrain.sh` with optional `--dry-run`; status JSON and logs are written below `backend/training_runs/<run_id>/`. Each job records `model_version_id`, candidate registry paths, and the allowlisted `MODEL_VERSION_ID`/`MODEL_REGISTRY_DIR` environment passed to the script. `/admin/training/summary` also reports registry aliases, manifest/checksum health, the effective classifier weights directory, and any interrupted-promotion marker.
 If the backend restarts and later finds a persisted `running` dry-run without its in-memory process handle, or a full run whose lock PID and recorded process identity cannot still confirm the original retrain process, it marks that job failed instead of blocking future local launches forever. A short-lived atomic launch guard also rejects simultaneous start requests before a `status.json` record exists.
@@ -200,6 +203,7 @@ The browser Training tab launcher is Bash-only. Native Windows users should run 
 Both scripts run:
 
 1. `scripts/export_approved_annotations.py` → `backend/training_data/approved/Elements`
+   with `_approved_export_manifest.json` containing exported rows, source fingerprints, and deterministic train/val/test split provenance
 2. `backend/codex_pipeline/scripts/build_metadata.py` → `backend/training_data/approved/metadata.csv`
 3. `backend/codex_pipeline/scripts/precompute_embeddings.py` → `backend/training_data/approved/precomputed/features.pt`
 4. `backend/codex_pipeline/scripts/train.py` → `backend/model_registry/versions/<version_id>/checkpoints`

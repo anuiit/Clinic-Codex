@@ -495,6 +495,76 @@ describe("AdminAnnotationsPage", () => {
     ).toBeEnabled();
   });
 
+
+  it("validates Training launch inputs before calling the backend", async () => {
+    const user = userEvent.setup();
+    apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(
+      queueWithStatuses("approved", "rejected"),
+    );
+    apiMock.getAdminTrainingSummary.mockResolvedValueOnce(
+      trainingSummary({
+        training_jobs_enabled: true,
+        launch_allowed_for_request: true,
+        launch_disabled_reasons: [],
+      }),
+    );
+
+    render(<AdminAnnotationsPage />);
+    await user.click(await screen.findByRole("tab", { name: /entraîner/i }));
+
+    await screen.findByRole("button", { name: /lancer l'essai à blanc/i });
+    await user.clear(screen.getByLabelText(/taille de lot/i));
+    await user.type(screen.getByLabelText(/taille de lot/i), "999");
+    await user.click(screen.getByRole("button", { name: /lancer l'essai à blanc/i }));
+
+    expect(
+      await screen.findByText(/taille de lot doit être un entier entre 1 et 256/i),
+    ).toBeInTheDocument();
+    expect(apiMock.startAdminTrainingJob).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByLabelText(/taille de lot/i));
+    await user.type(screen.getByLabelText(/taille de lot/i), "8");
+    await user.type(screen.getByLabelText(/notes/i), "x".repeat(201));
+    await user.click(screen.getByRole("button", { name: /lancer l'essai à blanc/i }));
+
+    expect(
+      await screen.findByText(/notes de lancement doivent contenir 200 caractères ou moins/i),
+    ).toBeInTheDocument();
+    expect(apiMock.startAdminTrainingJob).not.toHaveBeenCalled();
+  });
+
+  it("explains when local retraining is blocked because no element is trainable", async () => {
+    const user = userEvent.setup();
+    apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(
+      queueWithStatuses("pending", "rejected"),
+    );
+    apiMock.getAdminTrainingSummary.mockResolvedValueOnce(
+      trainingSummary({
+        training_jobs_enabled: true,
+        launch_allowed_for_request: false,
+        launch_disabled_reasons: [
+          "no_trainable_annotations: approve at least one current annotation before launching retraining",
+        ],
+        data: {
+          ...trainingSummary().data,
+          approved: 0,
+          trainable: 0,
+          classes: [],
+          per_class: {},
+          split_counts: { train: 0, val: 0, test: 0, excluded: 4 },
+        },
+      }),
+    );
+
+    render(<AdminAnnotationsPage />);
+    await user.click(await screen.findByRole("tab", { name: /entraîner/i }));
+
+    expect(
+      await screen.findByText(/dataset insuffisant : validez au moins un élément à jour/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /lancer l'essai à blanc/i })).toBeDisabled();
+  });
+
   it("starts a guarded dry-run training job and hides log tail behind support details", async () => {
     const user = userEvent.setup();
     const started = trainingJob({

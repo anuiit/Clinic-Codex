@@ -11,8 +11,12 @@ function trainingLaunchReasonLabel(reason: string) {
   if (reason.startsWith("disabled_by_default:")) {
     return "Protection locale active : l'entraînement doit être ouvert volontairement par un administrateur technique.";
   }
-  if (reason.includes("not enough") || reason.includes("insufficient")) {
-    return "Dataset insuffisant : validez davantage d'éléments avant de lancer un essai.";
+  if (
+    reason.includes("no_trainable_annotations") ||
+    reason.includes("not enough") ||
+    reason.includes("insufficient")
+  ) {
+    return "Dataset insuffisant : validez au moins un élément à jour avant de lancer un essai.";
   }
   if (reason.includes("running")) {
     return "Un essai est déjà en cours : attendez sa fin avant d'en démarrer un autre.";
@@ -75,6 +79,14 @@ export function TrainingTab() {
     }
     if (latestJob?.status === "running") {
       setError("Un essai local est déjà en cours.");
+      return;
+    }
+    if (!Number.isInteger(batchSize) || batchSize < batchBounds.min || batchSize > batchBounds.max) {
+      setError(`La taille de lot doit être un entier entre ${batchBounds.min} et ${batchBounds.max}.`);
+      return;
+    }
+    if (notes.length > 200) {
+      setError("Les notes de lancement doivent contenir 200 caractères ou moins.");
       return;
     }
     setError(null);
