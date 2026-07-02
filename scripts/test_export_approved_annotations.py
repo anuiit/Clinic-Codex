@@ -62,7 +62,13 @@ def test_export_approved_annotations_materializes_only_trainable_approved_elemen
     assert summary["class_count"] == 1
     assert summary["classes"] == ["atl"]
     assert exported_files == ["0001-atl/999_000_000-approved-export-1_0.bmp"]
-    assert (output_dir / "_approved_export_manifest.json").is_file()
+    assert summary["rows"][0]["dataset_split"] in {"train", "val", "test"}
+    approved_row = next(iter(AnnotationReviewStore(annotations_dir).iter_approved_annotations()))
+    assert summary["rows"][0]["dataset_split"] == approved_row["dataset_split"]
+    manifest_path = output_dir / "_approved_export_manifest.json"
+    assert manifest_path.is_file()
+    persisted = json.loads(manifest_path.read_text())
+    assert persisted["rows"][0]["dataset_split"] == summary["rows"][0]["dataset_split"]
 
 
 def test_export_approved_annotations_clean_removes_stale_output(tmp_path):

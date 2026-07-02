@@ -70,6 +70,7 @@ def export_approved_annotations(
                 "source_crop_path": row["crop_path"],
                 "output_path": str(dest),
                 "source_fingerprint": row["source_fingerprint"],
+                "dataset_split": row["dataset_split"],
             }
         )
 
