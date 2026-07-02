@@ -87,6 +87,12 @@ export function useAnnotationSubmission({
 
     setSending(true);
     try {
+      const persisted = await updateElements(id, elements, annotationStatus);
+      if (!persisted) {
+        setToast({ msg: translate("save.networkError"), ok: false });
+        return;
+      }
+
       const payload = {
         analysis_id: id,
         image_name: record.imageName,
@@ -106,6 +112,9 @@ export function useAnnotationSubmission({
         let msg = translate("save.networkError");
 
         switch (result.error_code) {
+          case "VALIDATION_ERROR":
+            msg = result.message;
+            break;
           case "PERMISSION_DENIED":
             msg = translate("save.permissionDenied");
             break;

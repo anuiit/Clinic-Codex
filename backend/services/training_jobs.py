@@ -8,34 +8,33 @@ from __future__ import annotations
 
 import hashlib
 import errno
-import ipaddress
 import json
 import os
 import subprocess
 import threading
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import urlparse
 
 import yaml
 
 try:
     from backend.app.config import Settings
+    from backend.security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address
     from backend.services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file
     from backend.services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore
 except ImportError:  # pragma: no cover - compatibility when backend dir is sys.path root
     from app.config import Settings  # type: ignore
+    from security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address  # type: ignore
     from services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file  # type: ignore
     from services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore  # type: ignore
 
 ALLOWED_JOB_FIELDS = {"dry_run", "device", "batch_size", "notes"}
 DEFAULT_ALLOWED_DEVICES = ("auto", "cpu", "mps", "cuda")
 TERMINAL_STATUSES = {"succeeded", "failed", "disabled", "rejected"}
-LAUNCH_GUARD_STALE_SECONDS = 300
+LAUNCH_GUARD_STALE_SECONDS = 3600
 _LAUNCH_GUARD_LOCK = threading.Lock()
 
 
@@ -294,43 +293,6 @@ def _read_lock_pid(path: Path) -> int | None:
     return pid if pid > 0 else None
 
 
-def _host_without_port(host: str | None) -> str:
-    if not host:
-        return ""
-    host = host.strip().lower()
-    if host.startswith("[") and "]" in host:
-        return host[1:host.index("]")]
-    if ":" in host and host.count(":") == 1:
-        return host.split(":", 1)[0]
-    return host
-
-
-def is_loopback_address(value: str | None) -> bool:
-    if not value:
-        return False
-    host = _host_without_port(value)
-    if host == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
-
-
-def is_local_origin(origin: str | None) -> bool:
-    if not origin:
-        return True
-    parsed = urlparse(origin)
-    return is_loopback_address(parsed.hostname)
-
-
-@dataclass(frozen=True)
-class RequestLaunchContext:
-    remote_addr: str | None
-    host: str | None
-    origin: str | None
-
-
 class AdminTrainingService:
     def __init__(self, settings: Settings, review_store: AnnotationReviewStore):
         self.settings = settings
@@ -350,11 +312,17 @@ class AdminTrainingService:
         rows = [element for analysis in queue["analyses"] for element in analysis["elements"]]
         trainable = [element for element in rows if element.get("trainable")]
         per_class: dict[str, int] = {}
+        split_counts = {"train": 0, "val": 0, "test": 0, "excluded": 0}
+        for element in rows:
+            split = element.get("dataset_split")
+            if split not in split_counts:
+                split = "excluded"
+            split_counts[split] += 1
         for element in trainable:
             class_name = element.get("class_name") or "Unnamed"
             per_class[class_name] = per_class.get(class_name, 0) + 1
 
-        allowed = self.launch_allowed(context)
+        allowed = self.launch_allowed(context, trainable_count=queue["counts"]["trainable"])
         return {
             "status": "ok",
             "local_only": True,
@@ -370,6 +338,7 @@ class AdminTrainingService:
                 "trainable": queue["counts"]["trainable"],
                 "classes": sorted(per_class),
                 "per_class": dict(sorted(per_class.items())),
+                "split_counts": split_counts,
                 "diagnostics": queue["diagnostics"],
             },
             "parameters": self._parameters(),
@@ -378,10 +347,23 @@ class AdminTrainingService:
             "latest_job": self.latest_job(),
         }
 
-    def launch_allowed(self, context: RequestLaunchContext | None) -> dict[str, Any]:
+    def launch_allowed(
+        self,
+        context: RequestLaunchContext | None,
+        *,
+        trainable_count: int | None = None,
+    ) -> dict[str, Any]:
         reasons: list[str] = []
         if not self.settings.enable_admin_training_jobs:
             reasons.append("disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches")
+        if trainable_count is None:
+            try:
+                trainable_count = int(self.review_store.list_queue()["counts"]["trainable"])
+            except Exception as exc:
+                reasons.append(f"review_store_unavailable: {exc}")
+                trainable_count = None
+        if trainable_count is not None and trainable_count <= 0:
+            reasons.append("no_trainable_annotations: approve at least one current annotation before launching retraining")
         if context is not None:
             if not is_loopback_address(context.remote_addr):
                 reasons.append("non_loopback_remote_addr")

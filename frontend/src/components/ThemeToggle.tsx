@@ -1,4 +1,5 @@
 import { Moon, Sun } from "lucide-react";
+import { ActionButton } from "./ui/Primitives";
 
 export type ThemeMode = "dark" | "light";
 
@@ -13,19 +14,20 @@ export function ThemeToggle({ mode, onToggle, className }: ThemeToggleProps) {
   const label = isLight ? "Activer le mode sombre" : "Activer le mode clair";
 
   return (
-    <button
+    <ActionButton
       type="button"
-      className={["theme-toggle", className].filter(Boolean).join(" ")}
+      tone="ghost"
+      className={["min-h-9 px-2.5 py-1.5", className].filter(Boolean).join(" ")}
       onClick={onToggle}
       aria-label={label}
       title={label}
       data-theme-mode={mode}
     >
-      <span className="theme-toggle__icon" aria-hidden="true">
+      <span className="inline-flex w-4 items-center justify-center" aria-hidden="true">
         {isLight ? <Moon size={16} /> : <Sun size={16} />}
       </span>
-      <span className="theme-toggle__label">{isLight ? "Sombre" : "Clair"}</span>
-    </button>
+      <span className="min-w-12 text-left">{isLight ? "Sombre" : "Clair"}</span>
+    </ActionButton>
   );
 }
 

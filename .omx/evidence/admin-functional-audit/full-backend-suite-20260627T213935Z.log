@@ -1,0 +1,80 @@
+........................................................................ [ 52%]
+..................FFFFF...........................................       [100%]
+=================================== FAILURES ===================================
+________________________ test_similar_happy_path_shape _________________________
+
+client = <FlaskClient <Flask 'backend.app.factory'>>
+
+    def test_similar_happy_path_shape(client):
+        resp = client.post("/similar", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4]})
+>       assert resp.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>.status_code
+
+backend/tests/test_route_characterization.py:171: AssertionError
+_________________________ test_trust_happy_path_shape __________________________
+
+client = <FlaskClient <Flask 'backend.app.factory'>>
+
+    def test_trust_happy_path_shape(client):
+        resp = client.post(
+            "/trust",
+            json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4], "predicted_class": "atl"},
+        )
+>       assert resp.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>.status_code
+
+backend/tests/test_route_characterization.py:192: AssertionError
+____________________ test_classify_missing_and_happy_shapes ____________________
+
+client = <FlaskClient <Flask 'backend.app.factory'>>
+
+    def test_classify_missing_and_happy_shapes(client):
+        missing = client.post("/classify", data={})
+        assert missing.status_code == 400
+        assert missing.get_json() == {"error": "No 'image' file in request"}
+
+        happy = _post_image(client, "/classify")
+>       assert happy.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>.status_code
+
+backend/tests/test_route_characterization.py:215: AssertionError
+_________________ test_classify_batch_missing_and_happy_shapes _________________
+
+client = <FlaskClient <Flask 'backend.app.factory'>>
+
+    def test_classify_batch_missing_and_happy_shapes(client):
+        missing = client.post("/classify-batch", data={})
+        assert missing.status_code == 400
+        assert missing.get_json() == {"error": "No 'images' files in request"}
+
+        happy = _post_image(client, "/classify-batch", field="images")
+>       assert happy.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>.status_code
+
+backend/tests/test_route_characterization.py:225: AssertionError
+___________ test_segment_missing_and_happy_shapes_use_batch_classify ___________
+
+client = <FlaskClient <Flask 'backend.app.factory'>>
+
+    def test_segment_missing_and_happy_shapes_use_batch_classify(client):
+        missing = client.post("/segment", data={})
+        assert missing.status_code == 400
+        assert missing.get_json() == {"error": "No 'image' file in request"}
+
+        happy = _post_image(client, "/segment")
+>       assert happy.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <WrapperTestResponse streamed [503 SERVICE UNAVAILABLE]>.status_code
+
+backend/tests/test_route_characterization.py:237: AssertionError
+=========================== short test summary info ============================
+FAILED backend/tests/test_route_characterization.py::test_similar_happy_path_shape
+FAILED backend/tests/test_route_characterization.py::test_trust_happy_path_shape
+FAILED backend/tests/test_route_characterization.py::test_classify_missing_and_happy_shapes
+FAILED backend/tests/test_route_characterization.py::test_classify_batch_missing_and_happy_shapes
+FAILED backend/tests/test_route_characterization.py::test_segment_missing_and_happy_shapes_use_batch_classify
+5 failed, 133 passed in 3.92s

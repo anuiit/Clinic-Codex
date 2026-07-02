@@ -6,6 +6,8 @@ from typing import BinaryIO, Protocol
 
 from PIL import Image, UnidentifiedImageError
 
+from backend.services.image_limits import ImageSizeLimitError, ensure_image_within_limits
+
 
 class ReadableUpload(Protocol):
     def read(self, *args, **kwargs) -> bytes: ...
@@ -23,7 +25,12 @@ def invalid_image_payload() -> dict[str, dict[str, str]]:
     return {"error": {"code": INVALID_IMAGE_CODE, "message": INVALID_IMAGE_MESSAGE}}
 
 
-def decode_uploaded_image(file: ReadableUpload | BinaryIO) -> Image.Image:
+def decode_uploaded_image(
+    file: ReadableUpload | BinaryIO,
+    *,
+    max_pixels: int | None = None,
+    max_dimension: int | None = None,
+) -> Image.Image:
     """Decode an uploaded image as RGB and fail before route services run.
 
     The upload stream is consumed once into memory, then PIL validation is
@@ -34,11 +41,13 @@ def decode_uploaded_image(file: ReadableUpload | BinaryIO) -> Image.Image:
     raw = file.read()
     try:
         with Image.open(io.BytesIO(raw)) as probe:
+            ensure_image_within_limits(probe, max_pixels=max_pixels, max_dimension=max_dimension)
             probe.verify()
 
         with Image.open(io.BytesIO(raw)) as image:
+            ensure_image_within_limits(image, max_pixels=max_pixels, max_dimension=max_dimension)
             rgb = image.convert("RGB")
             rgb.load()
             return rgb
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
+    except (Image.DecompressionBombError, ImageSizeLimitError, UnidentifiedImageError, OSError, ValueError) as exc:
         raise InvalidImageError(INVALID_IMAGE_MESSAGE) from exc

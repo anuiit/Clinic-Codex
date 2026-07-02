@@ -33,6 +33,15 @@ except ImportError:  # pragma: no cover - compatibility when backend dir is sys.
 
 REVIEW_STATUSES = {"pending", "approved", "rejected"}
 TRAINABLE_STATUS = "approved"
+DATASET_SPLITS = {"train", "val", "test", "excluded"}
+TRAINABLE_DATASET_SPLITS = {"train", "val", "test"}
+SPLIT_REASONS = {
+    "trainable_hash_80_10_10",
+    "pending_review",
+    "rejected_review",
+    "missing_crop",
+    "stale_decision",
+}
 MANIFEST_SCHEMA_VERSION = 1
 MANIFEST_FILENAME = "review-index.json"
 LOCAL_ONLY_WARNING = (
@@ -154,6 +163,60 @@ def _source_fingerprint(
     return hashlib.sha256(raw).hexdigest()
 
 
+def _dataset_split_for_key(key: str) -> str:
+    """Return the deterministic 80/10/10 split for an immutable review key."""
+    bucket = int(hashlib.sha256(key.encode("utf-8")).hexdigest(), 16) % 100
+    if bucket < 80:
+        return "train"
+    if bucket < 90:
+        return "val"
+    return "test"
+
+
+def _excluded_split_reason(
+    *,
+    review_status: str,
+    crop_exists: bool,
+    stale_decision: bool,
+) -> str:
+    if stale_decision:
+        return "stale_decision"
+    if not crop_exists:
+        return "missing_crop"
+    if review_status == "rejected":
+        return "rejected_review"
+    return "pending_review"
+
+
+def _split_payload_for_element(
+    *,
+    key: str,
+    review_status: str,
+    crop_exists: bool,
+    stale_decision: bool,
+    decision: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    if review_status == TRAINABLE_STATUS and crop_exists and not stale_decision:
+        persisted_split = (decision or {}).get("dataset_split")
+        dataset_split = (
+            persisted_split
+            if persisted_split in TRAINABLE_DATASET_SPLITS
+            else _dataset_split_for_key(key)
+        )
+        return {
+            "dataset_split": dataset_split,
+            "split_reason": "trainable_hash_80_10_10",
+        }
+    return {
+        "dataset_split": "excluded",
+        "split_reason": _excluded_split_reason(
+            review_status=review_status,
+            crop_exists=crop_exists,
+            stale_decision=stale_decision,
+        ),
+    }
+
+
 class AnnotationReviewStore:
     """File-backed element-level review manifest over submitted annotations."""
 
@@ -221,6 +284,15 @@ class AnnotationReviewStore:
 
         manifest = self._load_manifest()
         key = review_key(analysis_id, index)
+        split_payload = _split_payload_for_element(
+            key=key,
+            review_status=status,
+            crop_exists=bool(element.get("crop_exists")),
+            stale_decision=False,
+            decision=manifest["decisions"].get(key)
+            if isinstance(manifest["decisions"].get(key), dict)
+            else None,
+        )
         manifest["decisions"][key] = {
             "analysis_id": analysis_id,
             "index": index,
@@ -229,6 +301,7 @@ class AnnotationReviewStore:
             "source_fingerprint": element["source_fingerprint"],
             "class_name": element["class_name"],
             "bbox": element["bbox"],
+            **split_payload,
         }
         self._save_manifest(manifest)
         refreshed = self._find_element(self.list_queue()["analyses"], analysis_id, index)
@@ -351,6 +424,15 @@ class AnnotationReviewStore:
 
         manifest = self._load_manifest()
         key = review_key(analysis_id, index)
+        split_payload = _split_payload_for_element(
+            key=key,
+            review_status=status,
+            crop_exists=bool(element.get("crop_exists")),
+            stale_decision=False,
+            decision=manifest["decisions"].get(key)
+            if isinstance(manifest["decisions"].get(key), dict)
+            else None,
+        )
         manifest["decisions"][key] = {
             "analysis_id": analysis_id,
             "index": index,
@@ -359,6 +441,7 @@ class AnnotationReviewStore:
             "source_fingerprint": element["source_fingerprint"],
             "class_name": element["class_name"],
             "bbox": element["bbox"],
+            **split_payload,
         }
         self._save_manifest(manifest)
         final_queue = self.list_queue()
@@ -386,6 +469,7 @@ class AnnotationReviewStore:
                         "image_path": analysis["image_path"],
                         "uploaded_at": analysis.get("uploaded_at"),
                         "source_fingerprint": element["source_fingerprint"],
+                        "dataset_split": element["dataset_split"],
                     }
 
     def image_path_for(self, analysis_id: str) -> Path:
@@ -569,6 +653,13 @@ class AnnotationReviewStore:
                 )
 
             trainable = review_status == TRAINABLE_STATUS and crop_exists and not stale_decision
+            split_payload = _split_payload_for_element(
+                key=key,
+                review_status=review_status,
+                crop_exists=crop_exists,
+                stale_decision=stale_decision,
+                decision=decision,
+            )
             elements.append(
                 {
                     "key": key,
@@ -583,6 +674,7 @@ class AnnotationReviewStore:
                     "trainable": trainable,
                     "source_fingerprint": fingerprint,
                     "stale_decision": stale_decision,
+                    **split_payload,
                 }
             )
 

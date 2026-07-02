@@ -55,8 +55,8 @@ export default function WorkspaceOverlayToolbar({
 }: WorkspaceOverlayToolbarProps) {
   return (
     <div data-testid="workspace-analyzer-toolbar">
-      <AnalyzerToolbar className="workspace-analyzer-toolbar__dock rounded-3xl">
-        <div className="inline-flex gap-1 rounded-2xl bg-stone-950/35 p-0.5">
+      <AnalyzerToolbar className="workspace-analyzer-toolbar__dock rounded-none">
+        <div className="inline-flex gap-0 rounded-none bg-transparent p-0">
           {overlayModes.map((mode) => (
             <AnalyzerToolbarButton
               key={mode}

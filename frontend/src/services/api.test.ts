@@ -136,7 +136,25 @@ describe("API client contract", () => {
     });
   });
 
-  it("normalizes structured saveAnnotation 400 validation errors as network-compatible failures", async () => {
+  it("normalizes canonical saveAnnotation validation errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(jsonResponse({ status: "error", error_code: "VALIDATION_ERROR", message: "annotations[0].bbox required", error: "annotations[0].bbox required" }, 400)),
+      ),
+    );
+    const api = await loadApi();
+
+    await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
+      ok: false,
+      error_code: "VALIDATION_ERROR",
+      message: "annotations[0].bbox required",
+      hint: undefined,
+      trace_id: undefined,
+    });
+  });
+
+  it("normalizes legacy saveAnnotation 400 validation errors as actionable failures", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
@@ -147,8 +165,8 @@ describe("API client contract", () => {
 
     await expect(api.saveAnnotation(makeSavePayload())).resolves.toEqual({
       ok: false,
-      error_code: "NETWORK_ERROR",
-      message: "save-annotation failed: 400",
+      error_code: "VALIDATION_ERROR",
+      message: "missing field: annotations",
       hint: undefined,
       trace_id: undefined,
     });

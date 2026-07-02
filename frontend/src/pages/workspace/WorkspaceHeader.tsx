@@ -1,6 +1,7 @@
 import type { KeyboardEvent, RefObject } from "react";
 import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
 import { ThemeToggle, type ThemeMode } from "../../components/ThemeToggle";
+import styles from "./WorkspaceChrome.module.css";
 
 type WorkspaceHeaderLabels = {
   appTitle: string;
@@ -46,7 +47,7 @@ export default function WorkspaceHeader({
   };
 
   return (
-    <section className="app-header workspace-header flex shrink-0 flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className={`${styles.owner} app-header workspace-header flex shrink-0 flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between`}>
       <div className="flex items-center gap-3 px-2">
         <div className="app-header__icon flex h-8 w-8 items-center justify-center rounded-lg">
           <ImagePlus size={18} />
@@ -113,7 +114,7 @@ export default function WorkspaceHeader({
               </button>
             </div>
           ) : (
-            <div className="text-app-muted flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
               <Upload size={16} />
               <span>{labels.uploadPrompt}</span>
             </div>

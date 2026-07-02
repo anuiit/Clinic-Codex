@@ -1,0 +1,42 @@
+.owner {
+  --sidebar-chrome-owner: sidebar-chrome;
+}
+
+:global(.sidebar-shell) {
+  background-color: transparent;
+  border-color: var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+:global(.sidebar-header) {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+:global(.sidebar-body) {
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+
+:global(.app-sidebar) {
+  border: 0;
+  border-right: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-main);
+  box-shadow: none;
+}
+
+:global(.app-sidebar__header),
+:global(.sidebar-header) {
+  border-color: var(--border-subtle);
+}
+
+:global(.app-sidebar__header),
+:global(.sidebar-header) {
+  color: var(--text-muted);
+}

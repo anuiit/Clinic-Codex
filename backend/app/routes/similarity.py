@@ -41,11 +41,19 @@ def _bounded_positive_int(data, field: str, default: int, *, max_value: int = 50
     return parsed, None
 
 
+def _image_decode_kwargs():
+    settings = _settings()
+    return {
+        "max_pixels": settings.max_image_pixels,
+        "max_dimension": settings.max_image_dimension,
+    }
+
+
 def _load_image_and_bbox(data, *, require_positive_bbox: bool = False):
     if not data or "image_base64" not in data or "bbox" not in data:
         return None, None, _invalid_request()
     try:
-        img = decode_base64_image(data["image_base64"])
+        img = decode_base64_image(data["image_base64"], **_image_decode_kwargs())
     except Exception as exc:
         return None, None, (jsonify({"error": {"code": "INVALID_IMAGE", "message": str(exc)}}), 400)
     try:

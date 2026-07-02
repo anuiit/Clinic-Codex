@@ -1,0 +1,34 @@
+Command: PYTHONPATH=/home/sina/omxpro/clinic-codex backend/.venv/bin/python .omx/evidence/admin-functional-audit/admin_probe.py
+HEAD: acfa46cfc94c (acfa46cfc94c3016438e3cec8071680204faeec6)
+Date: 2026-06-27T21:50:00Z
+
+[PASS] save-annotation 200 :: 200
+[PASS] GET /admin/annotations 200
+[PASS] queue counts total=2 :: {"approved": 0, "pending": 2, "rejected": 0, "total": 2, "trainable": 0}
+[PASS] queue starts all-pending
+[PASS] queue local_only warning present
+[PASS] approve element 0 -> 200
+[PASS] approved element trainable :: status=approved trainable=True
+[PASS] reject element 1 not trainable
+[PASS] modify element 0 -> 200 :: 200
+[PASS] modified element back to pending
+[PASS] modified crop regenerated (new path, exists)
+[PASS] modified class persisted :: new-atl
+[PASS] old crop removed
+[PASS] save&approve -> approved+trainable
+[PASS] image media endpoint 200
+[PASS] crop media endpoint 200
+[PASS] invalid review status -> 400
+[PASS] missing element -> 404
+[PASS] training summary 200
+[PASS] launch disabled by default
+[PASS] reason is disabled_by_default :: ["disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches", "missing_retrain_script: /tmp/scripts/retrain.sh"]
+[PASS] summary reports trainable count :: 1
+[PASS] start job blocked while disabled -> 403 :: 403
+[PASS] flag ON removes disabled_by_default :: ["missing_retrain_script: /tmp/scripts/retrain.sh"]
+[PASS] flag ON: only remaining blocker is missing local retrain script :: ["missing_retrain_script: /tmp/scripts/retrain.sh"]
+[PASS] repo ships scripts/retrain.sh (real local launch path exists) :: /home/sina/omxpro/clinic-codex/scripts/retrain.sh
+
+=== SUMMARY ===
+26/26 checks passed
+ALL ADMIN FUNCTIONAL PROBES PASSED

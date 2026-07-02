@@ -334,6 +334,14 @@ describe("AnnotationPage element naming UX", () => {
 
     await user.click(await screen.findByText("Envoyer pour revue"));
 
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ class_name: "atl", bbox: [100, 100, 50, 40] }),
+        expect.objectContaining({ class_name: "beta", bbox: [200, 200, 30, 20] }),
+      ],
+      { 0: "validated", 1: "draft" },
+    );
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
         analysis_id: "test-id",
@@ -368,6 +376,26 @@ describe("AnnotationPage element naming UX", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows backend validation messages when review send returns VALIDATION_ERROR", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveAnnotation).mockResolvedValueOnce({
+      ok: false,
+      error_code: "VALIDATION_ERROR",
+      message: "annotations[0].bbox width and height must be positive",
+    });
+
+    renderPage({
+      ...BASE_RECORD,
+      annotationStatus: { 0: "validated" },
+    });
+
+    await user.click(await screen.findByText("Envoyer pour revue"));
+
+    expect(
+      await screen.findByText("annotations[0].bbox width and height must be positive"),
+    ).toBeInTheDocument();
+  });
+
   it("does not block review send because a draft element is unnamed", async () => {
     const user = userEvent.setup();
     renderPage({
@@ -392,6 +420,14 @@ describe("AnnotationPage element naming UX", () => {
 
     await user.click(await screen.findByText("Envoyer pour revue"));
 
+    expect(updateElements).toHaveBeenCalledWith(
+      "test-id",
+      [
+        expect.objectContaining({ class_name: "atl" }),
+        expect.objectContaining({ class_name: "" }),
+      ],
+      { 0: "validated", 1: "draft" },
+    );
     expect(saveAnnotation).toHaveBeenCalledWith(
       expect.objectContaining({
         annotations: [
@@ -554,7 +590,8 @@ describe("AnnotationPage element naming UX", () => {
       within(compactList).getByRole("searchbox", { name: /filtrer/i }),
     ).toBeInTheDocument();
     const listControls = screen.getByTestId("annotation-list-controls");
-    expect(listControls).toHaveClass("xl:flex-nowrap");
+    expect(listControls).toHaveClass("annotation-list-controls");
+    expect(listControls).not.toHaveClass("xl:flex-nowrap");
     expect(listControls).toContainElement(
       within(compactList).getByLabelText(/statut/i),
     );
@@ -564,9 +601,9 @@ describe("AnnotationPage element naming UX", () => {
 
     const inspector = screen.getByTestId("selected-element-inspector");
     expect(inspector).toHaveClass("annotation-selected-inspector");
-    expect(
-      inspector.querySelector(".annotation-selected-overview"),
-    ).toHaveClass("grid-cols-[150px_minmax(0,1fr)]");
+    const selectedOverview = inspector.querySelector(".annotation-selected-overview") as HTMLElement;
+    expect(selectedOverview).toHaveClass("annotation-selected-overview");
+    expect(within(selectedOverview).getByLabelText("Coordonnées de segmentation")).toBeInTheDocument();
     expect(inspector).toContainElement(
       screen.getByLabelText("Nommer l’élément 1"),
     );
@@ -659,7 +696,7 @@ describe("AnnotationPage element naming UX", () => {
     await screen.findByText("glyphe-0");
 
     const compactList = screen.getByLabelText("Liste compacte des éléments");
-    expect(screen.getByLabelText("Prêt pour revue 38/38")).toBeInTheDocument();
+    expect(screen.getByLabelText("Compteur prêt pour revue 38/38")).toBeInTheDocument();
     expect(compactList).not.toHaveTextContent(/Éléments\s*38\s*\/\s*38/i);
   });
 
@@ -739,8 +776,22 @@ describe("AnnotationPage element naming UX", () => {
     const combobox = input.closest(".annotation-name-combobox");
     expect(combobox).toBeInTheDocument();
     const suggestionList = await screen.findByTestId("element-name-suggestions");
-    expect(combobox).toContainElement(suggestionList);
-    expect(suggestionList).toHaveClass("annotation-name-combobox__menu");
+    expect(combobox).not.toContainElement(suggestionList);
+    expect(document.body).toContainElement(suggestionList);
+    expect(input).toHaveAttribute("role", "combobox");
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-controls", suggestionList.id);
+    expect(suggestionList).toHaveAttribute("role", "listbox");
+    expect(within(suggestionList).getByRole("option", { name: /aleph/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(suggestionList).toHaveClass(
+      "annotation-name-combobox__menu",
+      "annotation-name-combobox__menu--portal",
+      "fixed",
+    );
+    expect(suggestionList).not.toHaveClass("absolute");
     expect(suggestionList).not.toHaveClass("z-20");
     expect(suggestionList).toHaveTextContent("aleph");
   });

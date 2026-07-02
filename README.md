@@ -9,7 +9,7 @@ Clinic Codex is a browser-based annotation and retraining tool for Nahuatl codex
 3. **Annotate** on `/annotate/:id`: move/resize/draw boxes, select or type labels with fuzzy suggestions, create missing labels, and rename labels without deleting boxes.
 4. **Validate** each element that is ready to submit for review. Draft elements stay visible but are excluded from submission exports.
 5. **Send/export validated annotations** to `backend/annotations/<analysis_id>/`; submitted elements start as pending admin review.
-6. **Review locally** at `/admin/annotations` (local/dev-only, not production-secured): approve/reject, correct class/bbox evidence, and inspect the Dataset tab.
+6. **Review locally** at `/admin/annotations` (Phase 1 local-only, loopback-guarded, not shared-production auth): approve/reject, correct class/bbox evidence, and inspect the Dataset tab.
 7. **Retrain approved annotations only** with the guarded Training tab (`ENABLE_ADMIN_TRAINING_JOBS=1`) or `scripts/retrain.sh` / `scripts/retrain.ps1`. Retraining creates an immutable candidate under `backend/model_registry/versions/<version_id>/`; explicitly promote it with `scripts/promote_model.py`, then restart the backend to load new weights.
 
 See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining procedure.
@@ -40,8 +40,10 @@ See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining p
 Backend:
 
 - `PORT=7117`
-- `HOST=0.0.0.0`
+- `HOST=127.0.0.1`
 - `CORS_ORIGINS=http://localhost:7118`
+- `MAX_IMAGE_PIXELS=80000000`
+- `MAX_IMAGE_DIMENSION=10000`
 - `MODEL_DIR=/path/to/model/dir` (optional override)
 - `ENABLE_ADMIN_TRAINING_JOBS=false` (set to `1` only for local loopback Training tab launches)
 
@@ -65,10 +67,18 @@ npm run dev
 npm run lint
 npm run test
 npm run build
+npm audit --audit-level=high --omit=dev
+npm run test:e2e
 
 # Backend/script tests
 backend/.venv/bin/python -m pytest backend/tests scripts/test_export_annotations.py scripts/test_export_approved_annotations.py scripts/test_retrain_scripts.py scripts/test_promote_model.py
 ```
+
+## Phase 1 local-only security baseline
+
+Phase 1 is production-readiness for a **single-machine local workflow**, not a shared web deployment. The dev launchers bind backend and frontend to `127.0.0.1` by default. Current admin routes under `/admin/annotations*` and `/admin/training/*` are guarded in code so non-loopback requests receive `403 LOCAL_ONLY_FORBIDDEN`; the training job launcher remains disabled unless `ENABLE_ADMIN_TRAINING_JOBS=1` and the request passes loopback Host/Origin checks.
+
+CORS is strict: only configured origins receive `Access-Control-Allow-Origin`; unknown or missing `Origin` receives no allow-origin header. Upload and base64/data-url image decoders reject images above `MAX_IMAGE_PIXELS` or `MAX_IMAGE_DIMENSION`. Phase 1 does not trust reverse-proxy headers and does not solve DNS-rebinding, RBAC, sessions, or multi-user authorization; those remain Phase 2/3 work.
 
 ## Local model versioning
 

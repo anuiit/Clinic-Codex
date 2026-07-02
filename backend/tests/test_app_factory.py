@@ -47,6 +47,18 @@ def test_health_and_cors_are_cheap():
     assert resp.headers["Access-Control-Allow-Origin"] == "http://localhost:7118"
 
 
+def test_cors_does_not_allow_unknown_or_missing_origins():
+    app = create_app(settings=Settings(testing=True, cors_origins=("http://localhost:7118",)), services=StubServices())
+    with app.test_client() as client:
+        unknown = client.get("/health", headers={"Origin": "http://evil.example"})
+        no_origin = client.get("/health")
+
+    assert unknown.status_code == 200
+    assert "Access-Control-Allow-Origin" not in unknown.headers
+    assert no_origin.status_code == 200
+    assert "Access-Control-Allow-Origin" not in no_origin.headers
+
+
 def test_legacy_sample_routes_can_be_disabled_without_hiding_active_routes(tmp_path):
     settings = Settings(backend_root=tmp_path, testing=True, enable_legacy_endpoints=False)
     app = create_app(settings=settings, services=StubServices())

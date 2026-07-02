@@ -63,7 +63,8 @@ class ModelAssetUnavailable(Exception):
 
 def annotation_error_response(exc: Exception):
     if isinstance(exc, ValueError):
-        return jsonify({"status": "error", "error": str(exc)}), 400
+        message = str(exc)
+        return jsonify({"status": "error", "error_code": "VALIDATION_ERROR", "message": message, "error": message}), 400
     if isinstance(exc, AnnotationPermissionError):
         return jsonify(
             {

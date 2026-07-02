@@ -83,7 +83,9 @@ describe("ImageBBoxStage shared image/bbox boundary", () => {
   });
 
   it("keeps image-stage browser selection prevention scoped to shared stage surfaces", () => {
-    const css = readSource("src/index.css");
+    const panelCss = readSource("src/components/MainImagePanel.module.css");
+    const stageCss = readSource("src/components/ImageBBoxStage/ImageBBoxStage.module.css");
+    const css = `${panelCss}\n${stageCss}`;
 
     expect(css).toContain(".main-image-panel__stage");
     expect(css).toContain(".main-image-panel__transform");

@@ -1,0 +1,25 @@
+.owner {
+  --image-bbox-stage-owner: image-bbox-stage;
+}
+
+:global(.image-bbox-stage),
+:global(.image-bbox-stage__stage),
+:global(.image-bbox-stage__transform),
+:global(.image-bbox-stage__image),
+:global(.image-bbox-stage svg) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:global(.image-bbox-stage__image) {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+:global(.image-bbox-toolbar) {
+  border: 1px solid var(--border-subtle);
+  background: var(--control-bg);
+  color: var(--text-main);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(16px);
+}

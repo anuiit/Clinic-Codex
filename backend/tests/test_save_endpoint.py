@@ -122,7 +122,25 @@ def test_save_annotation_rejects_malformed_annotation_payloads(client, patch, me
     )
 
     assert resp.status_code == 400
-    assert message in resp.get_json()["error"]
+    body = resp.get_json()
+    assert body["error_code"] == "VALIDATION_ERROR"
+    assert message in body["message"]
+    assert body["error"] == body["message"]
+
+
+def test_save_annotation_rejects_image_above_configured_pixel_limit(tmp_path):
+    app = create_app(settings=Settings(backend_root=tmp_path, testing=True, max_image_pixels=4, max_image_dimension=100))
+    with app.test_client() as client:
+        resp = client.post(
+            "/save-annotation",
+            data=json.dumps(_valid_payload()),
+            content_type="application/json",
+        )
+
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["error_code"] == "VALIDATION_ERROR"
+    assert "maximum size" in body["message"]
 
 
 def test_save_annotation_permission_denied(client, app_and_services):

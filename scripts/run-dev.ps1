@@ -143,7 +143,7 @@ try {
         $env:PORT = $BackendPort
         $env:CORS_ORIGINS = $BackendCorsOrigins
         $backendProc = Start-Process -FilePath $VenvPy `
-            -ArgumentList @('-m', 'flask', '--app', 'backend.wsgi', 'run', '--host', '0.0.0.0', '--port', $BackendPort) `
+            -ArgumentList @('-m', 'flask', '--app', 'backend.wsgi', 'run', '--host', '127.0.0.1', '--port', $BackendPort) `
             -PassThru -NoNewWindow
     } finally {
         Restore-Env 'PORT' $oldPort

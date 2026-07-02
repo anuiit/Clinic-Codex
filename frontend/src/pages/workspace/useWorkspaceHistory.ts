@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { deleteAnalysis, getHistory } from "../../services/storage";
 import type { AnalysisRecord } from "../../types";
+import {
+  getWorkspaceElementClassName,
+  hasWorkspaceSubmittedAnnotation,
+} from "./workspaceViewUtils";
 
 export function resolveCurrentRecord(
   records: AnalysisRecord[],
@@ -103,9 +107,8 @@ export function useWorkspaceHistory() {
     const rejectedCount = elements.filter((element) => element.rejected).length;
     const classCounts: Record<string, number> = {};
 
-    elements.forEach((element, idx) => {
-      const finalClass =
-        (currentRecord.annotations ?? {})[idx] ?? element.class_name;
+    elements.forEach((_element, idx) => {
+      const finalClass = getWorkspaceElementClassName(currentRecord, idx);
       classCounts[finalClass] = (classCounts[finalClass] || 0) + 1;
     });
 
@@ -118,7 +121,9 @@ export function useWorkspaceHistory() {
       }
     });
 
-    const annotatedCount = Object.keys(currentRecord.annotations ?? {}).length;
+    const annotatedCount = elements.filter((_element, idx) =>
+      hasWorkspaceSubmittedAnnotation(currentRecord, idx),
+    ).length;
     const topClasses = Object.entries(classCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3)

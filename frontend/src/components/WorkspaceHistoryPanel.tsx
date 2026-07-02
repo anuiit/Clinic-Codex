@@ -1,5 +1,8 @@
 import { PanelLeftClose, PanelLeftOpen, Search, Trash2 } from 'lucide-react';
 import type { AnalysisRecord } from '../types';
+import { getWorkspaceElementClassName } from '../pages/workspace/workspaceViewUtils';
+import sidebarStyles from './SidebarChrome.module.css';
+import workspaceStyles from '../pages/workspace/WorkspaceChrome.module.css';
 
 export type WorkspaceHistoryPanelLabels = {
   expandHistory: string;
@@ -42,14 +45,14 @@ export function WorkspaceHistoryPanel({
   return (
     <aside
       data-testid="workspace-history-sidebar"
-      className={`app-sidebar sidebar-shell flex flex-col overflow-hidden transition-[padding,background-color] duration-200 ease-out ${historyOpen ? 'min-h-0 rounded-2xl p-3' : 'min-h-0 items-center rounded-2xl py-3'}`}
+      className={`${sidebarStyles.owner} ${workspaceStyles.owner} app-sidebar sidebar-shell flex flex-col overflow-hidden transition-[padding,background-color] duration-200 ease-out ${historyOpen ? 'min-h-0 rounded-none p-0' : 'min-h-0 items-center rounded-none py-0'}`}
     >
       {!historyOpen ? (
         <div className="flex h-full w-full flex-col items-center overflow-hidden">
           <button
             type="button"
             onClick={() => onToggleHistoryOpen(true)}
-            className="ui-icon-button h-10 w-10 shrink-0 rounded-xl"
+            className="ui-icon-button h-10 w-10 shrink-0 rounded-none"
             title={labels.expandHistory}
           >
             <PanelLeftOpen size={18} />
@@ -63,7 +66,7 @@ export function WorkspaceHistoryPanel({
                 key={record.id}
                 type="button"
                 onClick={() => onSelectRecord(record)}
-                className={`ui-row ui-row--hover relative overflow-hidden rounded-lg transition-colors ${
+                className={`ui-row ui-row--hover relative overflow-hidden rounded-none transition-colors ${
                   currentRecordId === record.id
                     ? 'ui-row--active outline outline-1 outline-[color:var(--border-strong)]'
                     : ''
@@ -81,10 +84,10 @@ export function WorkspaceHistoryPanel({
         </div>
       ) : (
         <>
-          <div className="app-sidebar__header sidebar-header mb-3 flex items-center justify-between gap-2 pb-2" data-testid="workspace-history-header">
+          <div className="workspace-history-header app-sidebar__header sidebar-header mb-0 flex items-center justify-between gap-2" data-testid="workspace-history-header">
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="ui-title-sm">{labels.historyTitle}</h2>
-              <span className="ui-chip tabular-nums">
+              <span className="workspace-history-count ui-chip tabular-nums">
                 {filteredRecords.length} {labels.totalSuffix}
               </span>
             </div>
@@ -92,7 +95,7 @@ export function WorkspaceHistoryPanel({
               <button
                 type="button"
                 onClick={() => onToggleHistoryOpen(false)}
-                className="ui-icon-button h-10 w-10 rounded-xl"
+                className="ui-icon-button h-10 w-10 rounded-none"
                 title={labels.collapseHistory}
               >
                 <PanelLeftClose size={18} />
@@ -100,8 +103,8 @@ export function WorkspaceHistoryPanel({
             </div>
           </div>
 
-          <div className="relative mb-3">
-            <Search size={16} className="text-app-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="workspace-history-search relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]" />
             <input
               value={filter}
               onChange={(event) => onFilterChange(event.target.value)}
@@ -110,7 +113,7 @@ export function WorkspaceHistoryPanel({
             />
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" data-testid="workspace-history-list">
+          <div className="min-h-0 flex-1 space-y-0 overflow-y-auto pr-0" data-testid="workspace-history-list">
             {records.length === 0 ? (
               <div className="ui-empty-state px-4 py-8 text-center">
                 {labels.noAnalyses}
@@ -125,7 +128,7 @@ export function WorkspaceHistoryPanel({
                 const badges = [
                   ...new Set(
                     record.result.elements
-                      .map((element, idx) => (!element.rejected ? (record.annotations ?? {})[idx] ?? element.class_name : null))
+                      .map((element, idx) => (!element.rejected ? getWorkspaceElementClassName(record, idx) : null))
                       .filter((value): value is string => Boolean(value)),
                   ),
                 ].slice(0, 3);
@@ -142,10 +145,10 @@ export function WorkspaceHistoryPanel({
                         onSelectRecord(record);
                       }
                     }}
-                    className={`selection-card group relative rounded-xl p-2.5 transition-colors ${isActive ? 'selection-card--active before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-[var(--accent)]' : 'ui-row--hover'}`}
+                    className={`selection-card workspace-history-row group relative rounded-none transition-colors ${isActive ? 'selection-card--active before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-none before:bg-[var(--accent)]' : 'ui-row--hover'}`}
                   >
                     <div className="flex items-start gap-3">
-                      <img src={record.imageDataUrl} alt={record.imageName} className="h-16 w-16 rounded-lg border border-[color:var(--border-subtle)] object-cover" />
+                      <img src={record.imageDataUrl} alt={record.imageName} className="workspace-history-thumb h-16 w-16 rounded-none border border-[color:var(--border-subtle)] object-cover" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -158,7 +161,7 @@ export function WorkspaceHistoryPanel({
                               event.stopPropagation();
                               onRemoveRecord(record.id);
                             }}
-                            className="text-app-muted rounded-lg p-1.5 transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger-text)]"
+                            className="workspace-history-delete rounded-none p-1.5 text-[color:var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger-text)]"
                             aria-label={`${labels.deleteLabel} ${record.imageName}`}
                           >
                             <Trash2 size={14} />

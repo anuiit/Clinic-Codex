@@ -60,6 +60,32 @@ def test_save_annotation_submissions_appear_pending_in_admin_queue(settings):
     ]
 
 
+@pytest.mark.parametrize(
+    ("method", "path", "json_body"),
+    [
+        ("get", "/admin/annotations", None),
+        ("get", "/admin/annotations/guarded-route-1/image", None),
+        ("get", "/admin/annotations/guarded-route-1/0/crop", None),
+        ("post", "/admin/annotations/guarded-route-1/0/review", {"status": "approved"}),
+        ("post", "/admin/annotations/guarded-route-1/0/modify", {"class_name": "atl", "bbox": [0, 0, 4, 4]}),
+    ],
+)
+def test_admin_annotation_routes_reject_non_loopback_requests(settings, method, path, json_body):
+    _app, client = _client(settings)
+    assert client.post("/save-annotation", json=_payload("guarded-route-1")).status_code == 200
+
+    request = getattr(client, method)
+    kwargs = {"environ_overrides": {"REMOTE_ADDR": "192.0.2.10"}, "headers": {"Host": "localhost"}}
+    if json_body is not None:
+        kwargs["json"] = json_body
+    resp = request(path, **kwargs)
+
+    assert resp.status_code == 403
+    body = resp.get_json()
+    assert body["error_code"] == "LOCAL_ONLY_FORBIDDEN"
+    assert "non_loopback_remote_addr" in body["reasons"]
+
+
 def test_admin_review_mutation_persists_across_app_reload(settings):
     _app, client = _client(settings)
     assert client.post("/save-annotation", json=_payload("route-mixed-1")).status_code == 200

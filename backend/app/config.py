@@ -12,14 +12,26 @@ def _truthy(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() not in {"0", "false", "no", "off", ""}
 
 
+def _positive_int(value: str | None, default: int) -> int:
+    if value is None or value.strip() == "":
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else default
+
+
 @dataclass(frozen=True)
 class Settings:
     backend_root: Path = field(default_factory=lambda: Path(__file__).resolve().parents[1])
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 7117
     cors_origins: tuple[str, ...] = ("http://localhost:7118",)
     model_dir: str = ""
     max_content_length: int = 50 * 1024 * 1024
+    max_image_pixels: int = 80_000_000
+    max_image_dimension: int = 10_000
     enable_legacy_endpoints: bool = True
     testing: bool = False
     mobile_sam_checkpoint: str = ""
@@ -71,11 +83,13 @@ class Settings:
         raw_origins = os.environ.get("CORS_ORIGINS", "http://localhost:7118")
         origins = tuple(o.strip() for o in raw_origins.split(",") if o.strip())
         return cls(
-            host=os.environ.get("HOST", "0.0.0.0"),
+            host=os.environ.get("HOST", "127.0.0.1"),
             port=int(os.environ.get("PORT", "7117")),
             cors_origins=origins,
             model_dir=os.environ.get("MODEL_DIR", ""),
             mobile_sam_checkpoint=os.environ.get("MOBILE_SAM_CHECKPOINT", ""),
+            max_image_pixels=_positive_int(os.environ.get("MAX_IMAGE_PIXELS"), 80_000_000),
+            max_image_dimension=_positive_int(os.environ.get("MAX_IMAGE_DIMENSION"), 10_000),
             enable_legacy_endpoints=_truthy(os.environ.get("ENABLE_LEGACY_ENDPOINTS"), True),
             enable_admin_training_jobs=_truthy(os.environ.get("ENABLE_ADMIN_TRAINING_JOBS"), False),
             testing=_truthy(os.environ.get("FLASK_TESTING"), False),

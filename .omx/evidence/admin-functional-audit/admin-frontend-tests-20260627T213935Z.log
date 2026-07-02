@@ -1,0 +1,17 @@
+
+ RUN  v3.2.4 /home/sina/omxpro/clinic-codex/frontend
+
+ ✓ src/pages/AdminAnnotationsPage.test.tsx (14 tests) 5605ms
+   ✓ AdminAnnotationsPage > renders local-only warning, grouped queue, visual context, statuses, and counters  568ms
+   ✓ AdminAnnotationsPage > selects compact Review rows and navigates the inspector within active filters  663ms
+   ✓ AdminAnnotationsPage > switches between accessible Dataset and Training tabs without refetching the queue  309ms
+   ✓ AdminAnnotationsPage > separates Dataset trainable, rejected, and diagnostic buckets with filters and jump-to-review  647ms
+   ✓ AdminAnnotationsPage > updates Training pre-action summary for dry-run versus full-training choices  392ms
+   ✓ AdminAnnotationsPage > starts a guarded dry-run training job and displays log tail  375ms
+   ✓ AdminAnnotationsPage > polls a running Training job until terminal status  1101ms
+   ✓ AdminAnnotationsPage > edits class and bbox, saving through the modify endpoint as pending  676ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  23:40:18
+   Duration  7.29s (transform 236ms, setup 72ms, collect 477ms, tests 5.61s, environment 550ms, prepare 210ms)

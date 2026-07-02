@@ -55,6 +55,11 @@ def _client(settings):
     return app, app.test_client()
 
 
+def _approve_one(client, analysis_id: str = "training-ready-1"):
+    assert client.post("/save-annotation", json=_payload(analysis_id)).status_code == 200
+    assert client.post(f"/admin/annotations/{analysis_id}/0/review", json={"status": "approved"}).status_code == 200
+
+
 def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     settings = _settings(tmp_path, enabled=False)
     _app, client = _client(settings)
@@ -70,6 +75,13 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     assert body["launch_disabled_reasons"] == [DISABLED_BY_DEFAULT_REASON]
     assert body["data"]["trainable"] == 1
     assert body["data"]["per_class"] == {"atl": 1}
+    assert set(body["data"]["split_counts"]) == {"train", "val", "test", "excluded"}
+    assert (
+        body["data"]["split_counts"]["train"]
+        + body["data"]["split_counts"]["val"]
+        + body["data"]["split_counts"]["test"]
+    ) == 1
+    assert body["data"]["split_counts"]["excluded"] == 0
     assert body["parameters"]["editable"]["device"] == ["auto", "cpu", "mps", "cuda"]
     assert body["paths"]["model_registry_dir"] == str(settings.model_registry_dir)
     assert body["paths"]["promote_script"].endswith("scripts/promote_model.py")
@@ -80,6 +92,7 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
 def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-enabled-1")
 
     resp = client.get(
         "/admin/training/summary",
@@ -92,6 +105,98 @@ def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     assert body["training_jobs_enabled"] is True
     assert body["launch_allowed_for_request"] is True
     assert body["launch_disabled_reasons"] == []
+
+
+def test_training_summary_enabled_blocks_launch_until_annotation_is_trainable(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.get(
+        "/admin/training/summary",
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["training_jobs_enabled"] is True
+    assert body["launch_allowed_for_request"] is False
+    assert body["launch_disabled_reasons"] == [
+        "no_trainable_annotations: approve at least one current annotation before launching retraining"
+    ]
+
+    start = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8},
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert start.status_code == 403
+    assert "no_trainable_annotations" in start.get_json()["error"]
+
+
+def test_local_helpers_include_ipv6_loopback_and_reject_remote_addresses():
+    assert training_jobs.is_loopback_address("::1") is True
+    assert training_jobs.is_loopback_address("::ffff:127.0.0.1") is True
+    assert training_jobs.is_loopback_address("[::1]:7117") is True
+    assert training_jobs.is_loopback_address("127.0.0.1") is True
+    assert training_jobs.is_loopback_address("192.0.2.10") is False
+    assert training_jobs.is_local_origin(None) is True
+    assert training_jobs.is_local_origin("http://[::1]:7118") is True
+    assert training_jobs.is_local_origin("http://192.0.2.10:7118") is False
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/admin/training/summary",
+        "/admin/training/jobs/latest",
+        "/admin/training/jobs/some-run",
+    ],
+)
+def test_admin_training_status_routes_reject_non_loopback_requests(tmp_path, path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.get(
+        path,
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "192.0.2.10"},
+    )
+
+    assert resp.status_code == 403
+    body = resp.get_json()
+    assert body["error_code"] == "LOCAL_ONLY_FORBIDDEN"
+    assert "non_loopback_remote_addr" in body["reasons"]
+
+
+def test_admin_route_inventory_has_explicit_local_only_policy(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    app, _test_client = _client(settings)
+    admin_rules = {
+        (next(iter(rule.methods - {"HEAD", "OPTIONS"})), rule.rule, rule.endpoint)
+        for rule in app.url_map.iter_rules()
+        if rule.rule.startswith("/admin/")
+    }
+
+    assert admin_rules == {
+        ("GET", "/admin/annotations", "admin_annotations.list_admin_annotations"),
+        ("GET", "/admin/annotations/<analysis_id>/image", "admin_annotations.get_admin_annotation_image"),
+        ("GET", "/admin/annotations/<analysis_id>/<int:index>/crop", "admin_annotations.get_admin_annotation_crop"),
+        ("POST", "/admin/annotations/<analysis_id>/<int:index>/review", "admin_annotations.set_admin_annotation_review"),
+        ("POST", "/admin/annotations/<analysis_id>/<int:index>/modify", "admin_annotations.modify_admin_annotation_element"),
+        ("GET", "/admin/training/summary", "admin_training.get_admin_training_summary"),
+        ("GET", "/admin/training/jobs/latest", "admin_training.get_latest_admin_training_job"),
+        ("GET", "/admin/training/jobs/<run_id>", "admin_training.get_admin_training_job"),
+        ("POST", "/admin/training/jobs", "admin_training.start_admin_training_job"),
+    }
+
+    service_guarded = {"admin_training.start_admin_training_job"}
+    for _method, _rule, endpoint in admin_rules:
+        if endpoint in service_guarded:
+            continue
+        assert getattr(app.view_functions[endpoint], "__clinic_local_required__", False), endpoint
 
 
 def test_training_summary_surfaces_model_registry_candidate_health(tmp_path):
@@ -183,12 +288,39 @@ def test_training_start_disabled_by_default_returns_403(tmp_path):
     resp = client.post("/admin/training/jobs", json={"dry_run": True, "device": "cpu", "batch_size": 8})
 
     assert resp.status_code == 403
-    assert resp.get_json()["error"] == DISABLED_BY_DEFAULT_REASON
+    error = resp.get_json()["error"]
+    assert DISABLED_BY_DEFAULT_REASON in error
+    assert "no_trainable_annotations" in error
 
+
+
+
+def test_training_start_reports_review_store_unavailable_without_downgrading_to_no_data(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    def fail_queue(self):
+        raise RuntimeError("review manifest is corrupt")
+
+    monkeypatch.setattr("backend.services.annotation_review.AnnotationReviewStore.list_queue", fail_queue)
+
+    resp = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8},
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert resp.status_code == 403
+    error = resp.get_json()["error"]
+    assert "review_store_unavailable" in error
+    assert "review manifest is corrupt" in error
+    assert "no_trainable_annotations" not in error
 
 def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-nonlocal-1")
 
     nonlocal_remote = client.post(
         "/admin/training/jobs",
@@ -226,6 +358,7 @@ def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
 def test_training_start_rejects_malicious_or_invalid_payloads(tmp_path, payload, error):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-payload-1")
 
     resp = client.post("/admin/training/jobs", json=payload, headers={"Host": "localhost"})
 
@@ -235,9 +368,10 @@ def test_training_start_rejects_malicious_or_invalid_payloads(tmp_path, payload,
 
 def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
     settings = _settings(tmp_path, enabled=True)
+    app, client = _client(settings)
+    _approve_one(client, "training-lock-1")
     settings.admin_training_runs_dir.mkdir(parents=True)
     (settings.admin_training_runs_dir / ".launch.lock").write_text('{"pid":999999}\n', encoding="utf-8")
-    _app, client = _client(settings)
 
     resp = client.post("/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"})
 
@@ -248,6 +382,7 @@ def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
 def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-start-1")
     calls = []
 
     class FakePopen:
@@ -324,6 +459,7 @@ def test_training_latest_recovers_stale_running_job_after_backend_restart(tmp_pa
         encoding="utf-8",
     )
     _app, client = _client(settings)
+    _approve_one(client, "training-stale-1")
     monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: False)
     calls = []
 

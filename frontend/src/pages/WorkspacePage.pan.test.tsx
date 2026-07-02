@@ -145,6 +145,15 @@ describe('WorkspacePage image pan behavior', () => {
 
     await user.click(screen.getByRole('button', { name: 'Zoom avant' }));
     expect(wrapper.style.transform).toContain('scale(1.25)');
+    await act(async () => {
+      dispatchPointer(screen.getByRole('button', { name: 'Zoom arrière' }), 'pointerdown', {
+        clientX: 10,
+        clientY: 10,
+        pointerId: 7,
+        buttons: 1,
+      });
+    });
+    expect(viewport.setPointerCapture).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Zoom arrière' }));
     expect(wrapper.style.transform).toBe('translate(0px, 0px) scale(1)');

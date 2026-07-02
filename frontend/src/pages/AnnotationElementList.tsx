@@ -2,6 +2,8 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { AnnotationStatus, DetectedElement } from "../types";
 import { appText } from "../i18n/text";
 import { isUnnamedClass } from "../utils/fuzzyClasses";
+import { StatusPill, type BadgeTone } from "../components/ui/Primitives";
+import annotationStyles from "./annotation/AnnotationChrome.module.css";
 
 type AnnotationLabels = typeof appText.annotation;
 type AnnotationStatusFilter = "all" | "draft" | "submitted" | "rejected";
@@ -53,39 +55,40 @@ export function AnnotationElementList({
 }: AnnotationElementListProps) {
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col"
+      className={`${annotationStyles.owner} flex min-h-0 flex-1 flex-col`}
       aria-label="Liste compacte des éléments"
       data-testid="annotation-element-list"
     >
       <div
-        className="annotation-list-controls ui-section mb-3 flex flex-wrap items-end gap-2 p-3 xl:flex-nowrap"
+        className="annotation-list-controls mb-0 border-b border-[color:var(--border-subtle)]"
         data-testid="annotation-list-controls"
       >
-        <div
-          className="annotation-status-chip annotation-status-chip--validated shrink-0 px-2 py-1.5"
-          aria-label={`${labels.submitted} ${submittedCount}/${elementsCount}`}
+        <StatusPill
+          tone="ready"
+          className="annotation-list-count shrink-0 px-1.5 py-1"
+          label={`Compteur prêt pour revue ${submittedCount}/${elementsCount}`}
         >
-          {labels.submitted} {submittedCount}/{elementsCount}
-        </div>
-        <label className="ui-text-eyebrow min-w-[128px] flex-1">
-          Filtrer
+          Prêts {submittedCount}/{elementsCount}
+        </StatusPill>
+        <label className="annotation-filter-field annotation-filter-field--search ui-text-eyebrow">
+          <span className="annotation-filter-label">Filtrer</span>
           <input
             type="search"
             aria-label="Filtrer les éléments"
             value={listQuery}
             onChange={(event) => onListQueryChange(event.target.value)}
-            placeholder="Nom ou numéro"
-            className="ui-input mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
+            placeholder="Nom ou #"
+            className="ui-input annotation-filter-control w-full rounded-none px-2 py-1 normal-case tracking-normal"
           />
         </label>
-        <label className="ui-text-eyebrow min-w-[112px]">
-          Statut
+        <label className="annotation-filter-field ui-text-eyebrow">
+          <span className="annotation-filter-label">Statut</span>
           <select
             value={statusFilter}
             onChange={(event) =>
               onStatusFilterChange(event.target.value as AnnotationStatusFilter)
             }
-            className="ui-select mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
+            className="ui-select annotation-filter-control w-full rounded-none px-2 py-1 normal-case tracking-normal"
           >
             <option value="all">Tous</option>
             <option value="draft">Brouillons</option>
@@ -93,14 +96,14 @@ export function AnnotationElementList({
             <option value="rejected">Rejetés</option>
           </select>
         </label>
-        <label className="ui-text-eyebrow min-w-[122px]">
-          Tri
+        <label className="annotation-filter-field ui-text-eyebrow">
+          <span className="annotation-filter-label">Tri</span>
           <select
             value={sortMode}
             onChange={(event) =>
               onSortModeChange(event.target.value as AnnotationSortMode)
             }
-            className="ui-select mt-1 w-full rounded-lg px-2 py-1.5 normal-case tracking-normal"
+            className="ui-select annotation-filter-control w-full rounded-none px-2 py-1 normal-case tracking-normal"
           >
             <option value="original">Original</option>
             <option value="confidence-asc">Confiance ↑</option>
@@ -110,7 +113,7 @@ export function AnnotationElementList({
         </label>
       </div>
 
-      <div className="annotation-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
+      <div className="min-h-0 flex-1 space-y-0 overflow-y-auto pr-0">
         {displayedElements.map(({ el, idx }) => {
           const isFocused = idx === focusedIdx;
           const actualDisplayName = isUnnamedClass(el.class_name)
@@ -123,6 +126,11 @@ export function AnnotationElementList({
             : isSubmitted
               ? "ui-progress-value--ready"
               : "ui-progress-value--accent";
+          const badgeTone: BadgeTone = el.rejected
+            ? "danger"
+            : isSubmitted
+              ? "ready"
+              : "neutral";
 
           return (
             <button
@@ -144,9 +152,9 @@ export function AnnotationElementList({
                   current === idx ? null : current,
                 )
               }
-              className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl p-3 text-left transition-colors ${isFocused ? "annotation-card-selected" : ""}`}
+              className={`annotation-card flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-none border-b border-[color:var(--border-subtle)] p-2 text-left transition-colors ${isFocused ? "annotation-card-selected" : ""}`}
             >
-              <span className="flex min-w-0 items-center gap-3">
+              <span className="flex min-w-0 items-center gap-2.5">
                 <span
                   className={`annotation-index-badge ${isSubmitted ? "annotation-index-badge--validated" : isFocused ? "annotation-index-badge--focused" : "annotation-index-badge--draft"}`}
                 >
@@ -173,11 +181,9 @@ export function AnnotationElementList({
                   </span>
                 </span>
               </span>
-              <span
-                className={`annotation-status-chip shrink-0 ${el.rejected ? "annotation-status-chip--rejected" : isSubmitted ? "annotation-status-chip--validated" : "annotation-status-chip--draft"}`}
-              >
+              <StatusPill tone={badgeTone} className="shrink-0 px-1.5 py-0.5 text-[0.66rem]">
                 {isSubmitted ? labels.submitted : labels.draft}
-              </span>
+              </StatusPill>
             </button>
           );
         })}

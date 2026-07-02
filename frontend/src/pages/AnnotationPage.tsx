@@ -8,6 +8,7 @@ import { AnnotationElementList } from "./AnnotationElementList";
 import { AnnotationPageChrome } from "./AnnotationPageChrome";
 import { AnnotationSelectedInspector } from "./annotation/AnnotationSelectedInspector";
 import { AnnotationToast } from "./annotation/AnnotationToast";
+import annotationStyles from "./annotation/AnnotationChrome.module.css";
 import { formatBboxLabel } from "./annotation/annotationUtils";
 import { RESIZE_HANDLE_VISUAL_SIZE } from "./annotation/useBBoxEditing";
 import { useAnnotationElementModel } from "./annotation/useAnnotationElementModel";
@@ -72,6 +73,7 @@ export default function AnnotationPage({
     containerRef,
     imageRef,
     previewCanvasRef,
+    handlePreviewImageLoad,
     drawMode,
     zoom,
     panOffset,
@@ -140,7 +142,7 @@ export default function AnnotationPage({
   }
 
   return (
-    <div className="annotation-app flex h-full min-h-0 w-full flex-col gap-3 overflow-hidden rounded-2xl p-1">
+    <div className={`${annotationStyles.owner} annotation-app flex h-full min-h-0 w-full flex-col gap-0 overflow-hidden rounded-none p-0`}>
       <AnnotationPageChrome
         labels={t}
         imageName={annotation.record?.imageName}
@@ -153,7 +155,7 @@ export default function AnnotationPage({
         onToggleTheme={onToggleTheme}
       />
 
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]">
+      <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]">
         <ImageBBoxStage
           tone="annotation"
           mode="edit"
@@ -266,7 +268,10 @@ export default function AnnotationPage({
           toolbarPlacement="bottom-center"
           imageProps={{
             ref: imageRef,
-            onLoad: updateStageSize,
+            onLoad: () => {
+              updateStageSize();
+              handlePreviewImageLoad();
+            },
           }}
           svgProps={{
             onPointerDown: handleSvgPointerDown,
@@ -276,7 +281,7 @@ export default function AnnotationPage({
         />
 
         <aside
-          className="annotation-rail annotation-inspector flex min-h-0 flex-col overflow-hidden rounded-2xl p-4"
+          className="annotation-rail annotation-inspector annotation-inspector-rail flex min-h-0 flex-col overflow-hidden rounded-none p-0"
           aria-label="Inspecteur d’annotation"
         >
           <AnnotationSelectedInspector

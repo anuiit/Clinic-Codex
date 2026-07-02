@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
+import './styles/app-theme.css';
+import './components/ui/ui-primitives.css';
+import appChromeStyles from './components/AppChrome.module.css';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import AdminAnnotationsPage from './pages/AdminAnnotationsPage';
 import AnnotationPage from './pages/AnnotationPage';
 import WorkspacePage from './pages/WorkspacePage';
 import type { ThemeMode } from './components/ThemeToggle';
+import type { AdminTab } from './pages/adminAnnotations/model';
 
 const THEME_STORAGE_KEY = 'clinic-codex-theme';
 
@@ -17,11 +21,11 @@ function getInitialTheme(): ThemeMode {
     return stored;
   }
 
-  if (window.matchMedia?.('(prefers-color-scheme: light)').matches) {
-    return 'light';
-  }
-
   return 'dark';
+}
+
+function isAdminTab(value: string | undefined): value is AdminTab {
+  return value === 'review' || value === 'dataset' || value === 'training';
 }
 
 function LegacyAnalysisRedirect() {
@@ -40,6 +44,32 @@ function LegacyAnalysisRedirect() {
   return null;
 }
 
+function AdminAnnotationsRoute({
+  themeMode,
+  onToggleTheme,
+}: {
+  themeMode: ThemeMode;
+  onToggleTheme: () => void;
+}) {
+  const navigate = useNavigate();
+  const { tab } = useParams<{ tab?: string }>();
+
+  useEffect(() => {
+    if (tab && !isAdminTab(tab)) {
+      navigate('/admin/annotations/review', { replace: true });
+    }
+  }, [navigate, tab]);
+
+  return (
+    <AdminAnnotationsPage
+      themeMode={themeMode}
+      onToggleTheme={onToggleTheme}
+      initialTab={isAdminTab(tab) ? tab : 'review'}
+      onNavigateTab={(nextTab) => navigate(`/admin/annotations/${nextTab}`)}
+    />
+  );
+}
+
 function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialTheme);
 
@@ -54,11 +84,19 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell h-screen w-screen overflow-hidden flex flex-col p-4" data-theme={themeMode}>
-        <main className="flex-1 overflow-hidden rounded-xl">
+      <div className={`${appChromeStyles.owner} app-shell h-screen w-screen overflow-hidden flex flex-col`} data-theme={themeMode}>
+        <main className="flex-1 overflow-hidden">
           <Routes>
             <Route path="/" element={<WorkspacePage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
-            <Route path="/admin/annotations" element={<AdminAnnotationsPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
+            <Route path="/admin/annotation" element={<Navigate to="/admin/annotations" replace />} />
+            <Route
+              path="/admin/annotations"
+              element={<Navigate to="/admin/annotations/review" replace />}
+            />
+            <Route
+              path="/admin/annotations/:tab"
+              element={<AdminAnnotationsRoute themeMode={themeMode} onToggleTheme={toggleTheme} />}
+            />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/analysis/:id" element={<LegacyAnalysisRedirect />} />
             <Route path="/annotate/:id" element={<AnnotationPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />

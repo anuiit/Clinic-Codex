@@ -97,6 +97,7 @@ export interface SaveAnnotationResponse {
 }
 
 export type SaveAnnotationErrorCode =
+  | 'VALIDATION_ERROR'
   | 'PERMISSION_DENIED'
   | 'DISK_FULL'
   | 'STORAGE_ERROR'
@@ -116,6 +117,7 @@ export type SaveAnnotationSuccess = SaveAnnotationResponse & { ok: true };
 export type SaveAnnotationResult = SaveAnnotationSuccess | SaveAnnotationError;
 
 export type AdminAnnotationReviewStatus = 'pending' | 'approved' | 'rejected';
+export type AdminDatasetSplit = 'train' | 'val' | 'test' | 'excluded';
 
 export interface AdminAnnotationDiagnostic {
   code: string;
@@ -144,6 +146,8 @@ export interface AdminAnnotationElement {
   crop_exists: boolean;
   review_status: AdminAnnotationReviewStatus;
   trainable: boolean;
+  dataset_split: AdminDatasetSplit;
+  split_reason: string;
   source_fingerprint: string;
   stale_decision: boolean;
 }
@@ -226,6 +230,7 @@ export interface AdminTrainingSummary {
     trainable: number;
     classes: string[];
     per_class: Record<string, number>;
+    split_counts: Record<AdminDatasetSplit, number>;
     diagnostics: AdminAnnotationDiagnostic[];
   };
   parameters: {

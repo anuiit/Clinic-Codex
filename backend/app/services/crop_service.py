@@ -8,19 +8,41 @@ from typing import Any
 
 from PIL import Image
 
-
-def decode_base64_image(value: str) -> Image.Image:
-    raw = base64.b64decode(value)
-    return Image.open(io.BytesIO(raw)).convert("RGB")
+from backend.services.image_limits import ImageSizeLimitError, ensure_image_within_limits
 
 
-def decode_data_url(value: str) -> Image.Image:
+def decode_base64_image(
+    value: str,
+    *,
+    max_pixels: int | None = None,
+    max_dimension: int | None = None,
+) -> Image.Image:
+    raw = base64.b64decode(value, validate=True)
+    try:
+        with Image.open(io.BytesIO(raw)) as probe:
+            ensure_image_within_limits(probe, max_pixels=max_pixels, max_dimension=max_dimension)
+            probe.verify()
+        with Image.open(io.BytesIO(raw)) as image:
+            ensure_image_within_limits(image, max_pixels=max_pixels, max_dimension=max_dimension)
+            rgb = image.convert("RGB")
+            rgb.load()
+            return rgb
+    except (Image.DecompressionBombError, ImageSizeLimitError, OSError, ValueError) as exc:
+        raise ValueError(str(exc)) from exc
+
+
+def decode_data_url(
+    value: str,
+    *,
+    max_pixels: int | None = None,
+    max_dimension: int | None = None,
+) -> Image.Image:
     if value.startswith("data:"):
         comma = value.find(",")
         if comma == -1:
             raise ValueError("malformed data URL: no comma found")
         value = value[comma + 1 :]
-    return decode_base64_image(value)
+    return decode_base64_image(value, max_pixels=max_pixels, max_dimension=max_dimension)
 
 
 def validate_bbox(bbox: Any, image_size: tuple[int, int], *, require_positive: bool = False) -> list[int | float]:

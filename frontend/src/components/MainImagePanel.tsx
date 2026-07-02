@@ -5,6 +5,7 @@ import type {
   ReactNode,
   Ref,
 } from "react";
+import styles from "./MainImagePanel.module.css";
 export { AnalyzerToolbar, AnalyzerToolbarButton } from "./AnalyzerToolbar";
 
 export type MainImagePanelTone = "workspace" | "annotation";
@@ -122,8 +123,9 @@ export function MainImagePanel({
     <section
       className={cx(
         "main-image-panel",
+        styles.owner,
         `main-image-panel--${tone}`,
-        "flex min-h-0 flex-col overflow-hidden rounded-2xl",
+        "flex min-h-0 flex-col overflow-hidden rounded-none",
         className,
       )}
       data-testid={testIds?.root}
@@ -173,7 +175,7 @@ export function MainImagePanel({
         className={cx(
           "main-image-panel__stage",
           "image-stage-frame image-stage-grid image-stage-scrollbar",
-          "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl",
+          "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-none",
           stageClassName,
           stagePropsClassName,
         )}
@@ -186,6 +188,7 @@ export function MainImagePanel({
               `main-image-panel__toolbar--${toolbarPlacement}`,
               toolbarPlacementClass,
             )}
+            data-stage-interactive="true"
             data-testid={testIds?.toolbar}
           >
             {toolbar}
@@ -211,10 +214,11 @@ export function MainImagePanel({
         {(controls?.length || zoomLabel) && (
           <div
             className={cx(
-              "main-image-panel__controls absolute z-10 flex items-center gap-1 rounded-2xl p-1",
+              "main-image-panel__controls absolute z-10 flex items-center gap-1 rounded-none p-1",
               `main-image-panel__controls--${controlsPlacement}`,
               controlsPlacementClass,
             )}
+            data-stage-interactive="true"
             data-testid={testIds?.controls}
           >
             {controls?.map((control) => (
@@ -227,7 +231,7 @@ export function MainImagePanel({
                 aria-pressed={control.pressed}
                 title={control.title ?? control.label}
                 className={cx(
-                  "main-image-panel__control rounded-xl p-2 text-[var(--text-soft)] transition-colors hover:bg-[var(--control-bg-hover)] hover:text-[var(--text-main)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--text-soft)]",
+                  "main-image-panel__control rounded-none p-2 text-[var(--text-soft)] transition-colors hover:bg-[var(--control-bg-hover)] hover:text-[var(--text-main)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--text-soft)]",
                   control.className,
                 )}
               >

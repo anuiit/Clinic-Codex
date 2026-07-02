@@ -55,6 +55,10 @@ def test_missing_manifest_defaults_to_pending(tmp_path):
         "trainable": 0,
     }
     assert _status_map(queue, "analysis-1") == {0: "pending", 1: "pending"}
+    assert {
+        (element["dataset_split"], element["split_reason"])
+        for element in queue["analyses"][0]["elements"]
+    } == {("excluded", "pending_review")}
 
 
 def test_element_level_status_persists_and_can_be_mixed(tmp_path):
@@ -76,6 +80,37 @@ def test_element_level_status_persists_and_can_be_mixed(tmp_path):
     assert queue["counts"]["trainable"] == 1
     manifest = json.loads((annotations_dir / MANIFEST_FILENAME).read_text())
     assert sorted(manifest["decisions"]) == ["mixed-1:0", "mixed-1:1"]
+    approved = queue["analyses"][0]["elements"][0]
+    rejected = queue["analyses"][0]["elements"][1]
+    assert approved["dataset_split"] in {"train", "val", "test"}
+    assert approved["split_reason"] == "trainable_hash_80_10_10"
+    assert manifest["decisions"]["mixed-1:0"]["dataset_split"] == approved["dataset_split"]
+    assert manifest["decisions"]["mixed-1:0"]["split_reason"] == "trainable_hash_80_10_10"
+    assert rejected["dataset_split"] == "excluded"
+    assert rejected["split_reason"] == "rejected_review"
+
+
+def test_existing_approved_decision_gets_stable_dataset_split_without_fingerprint_hash(tmp_path):
+    annotations_dir = tmp_path / "annotations"
+    _save(annotations_dir, "legacy-split-1", count=1)
+    store = AnnotationReviewStore(annotations_dir)
+    result = store.set_status("legacy-split-1", 0, "approved")
+    original_split = result["element"]["dataset_split"]
+    assert original_split in {"train", "val", "test"}
+
+    manifest_path = annotations_dir / MANIFEST_FILENAME
+    manifest = json.loads(manifest_path.read_text())
+    legacy_decision = manifest["decisions"]["legacy-split-1:0"]
+    legacy_decision.pop("dataset_split")
+    legacy_decision.pop("split_reason")
+    manifest_path.write_text(json.dumps(manifest))
+
+    queue = AnnotationReviewStore(annotations_dir).list_queue()
+    [element] = queue["analyses"][0]["elements"]
+
+    assert element["review_status"] == "approved"
+    assert element["dataset_split"] == original_split
+    assert element["split_reason"] == "trainable_hash_80_10_10"
 
 
 def test_approved_only_iterator_excludes_rejected_pending_missing_crop_and_orphan(tmp_path):

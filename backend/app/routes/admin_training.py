@@ -8,6 +8,7 @@ from backend.services.training_jobs import (
     AdminTrainingValidationError,
     RequestLaunchContext,
 )
+from backend.security.local_guard import request_launch_context, require_local_request
 
 bp = Blueprint("admin_training", __name__)
 
@@ -21,19 +22,17 @@ def _error(message: str, status_code: int):
 
 
 def _request_context() -> RequestLaunchContext:
-    return RequestLaunchContext(
-        remote_addr=request.remote_addr,
-        host=request.host,
-        origin=request.headers.get("Origin"),
-    )
+    return request_launch_context()
 
 
 @bp.get("/admin/training/summary")
+@require_local_request
 def get_admin_training_summary():
     return jsonify(_services().admin_training_summary(_request_context())), 200
 
 
 @bp.get("/admin/training/jobs/latest")
+@require_local_request
 def get_latest_admin_training_job():
     job = _services().latest_admin_training_job()
     if job is None:
@@ -42,6 +41,7 @@ def get_latest_admin_training_job():
 
 
 @bp.get("/admin/training/jobs/<run_id>")
+@require_local_request
 def get_admin_training_job(run_id: str):
     job = _services().get_admin_training_job(run_id)
     if job is None:
