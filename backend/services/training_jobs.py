@@ -322,7 +322,7 @@ class AdminTrainingService:
             class_name = element.get("class_name") or "Unnamed"
             per_class[class_name] = per_class.get(class_name, 0) + 1
 
-        allowed = self.launch_allowed(context)
+        allowed = self.launch_allowed(context, trainable_count=queue["counts"]["trainable"])
         return {
             "status": "ok",
             "local_only": True,
@@ -347,10 +347,22 @@ class AdminTrainingService:
             "latest_job": self.latest_job(),
         }
 
-    def launch_allowed(self, context: RequestLaunchContext | None) -> dict[str, Any]:
+    def launch_allowed(
+        self,
+        context: RequestLaunchContext | None,
+        *,
+        trainable_count: int | None = None,
+    ) -> dict[str, Any]:
         reasons: list[str] = []
         if not self.settings.enable_admin_training_jobs:
             reasons.append("disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches")
+        if trainable_count is None:
+            try:
+                trainable_count = int(self.review_store.list_queue()["counts"]["trainable"])
+            except Exception:
+                trainable_count = 0
+        if trainable_count <= 0:
+            reasons.append("no_trainable_annotations: approve at least one current annotation before launching retraining")
         if context is not None:
             if not is_loopback_address(context.remote_addr):
                 reasons.append("non_loopback_remote_addr")

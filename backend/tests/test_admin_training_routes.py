@@ -55,6 +55,11 @@ def _client(settings):
     return app, app.test_client()
 
 
+def _approve_one(client, analysis_id: str = "training-ready-1"):
+    assert client.post("/save-annotation", json=_payload(analysis_id)).status_code == 200
+    assert client.post(f"/admin/annotations/{analysis_id}/0/review", json={"status": "approved"}).status_code == 200
+
+
 def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     settings = _settings(tmp_path, enabled=False)
     _app, client = _client(settings)
@@ -87,6 +92,7 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
 def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-enabled-1")
 
     resp = client.get(
         "/admin/training/summary",
@@ -99,6 +105,35 @@ def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     assert body["training_jobs_enabled"] is True
     assert body["launch_allowed_for_request"] is True
     assert body["launch_disabled_reasons"] == []
+
+
+def test_training_summary_enabled_blocks_launch_until_annotation_is_trainable(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.get(
+        "/admin/training/summary",
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["training_jobs_enabled"] is True
+    assert body["launch_allowed_for_request"] is False
+    assert body["launch_disabled_reasons"] == [
+        "no_trainable_annotations: approve at least one current annotation before launching retraining"
+    ]
+
+    start = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8},
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert start.status_code == 403
+    assert "no_trainable_annotations" in start.get_json()["error"]
 
 
 def test_local_helpers_include_ipv6_loopback_and_reject_remote_addresses():
@@ -253,12 +288,15 @@ def test_training_start_disabled_by_default_returns_403(tmp_path):
     resp = client.post("/admin/training/jobs", json={"dry_run": True, "device": "cpu", "batch_size": 8})
 
     assert resp.status_code == 403
-    assert resp.get_json()["error"] == DISABLED_BY_DEFAULT_REASON
+    error = resp.get_json()["error"]
+    assert DISABLED_BY_DEFAULT_REASON in error
+    assert "no_trainable_annotations" in error
 
 
 def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-nonlocal-1")
 
     nonlocal_remote = client.post(
         "/admin/training/jobs",
@@ -296,6 +334,7 @@ def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
 def test_training_start_rejects_malicious_or_invalid_payloads(tmp_path, payload, error):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-payload-1")
 
     resp = client.post("/admin/training/jobs", json=payload, headers={"Host": "localhost"})
 
@@ -305,9 +344,10 @@ def test_training_start_rejects_malicious_or_invalid_payloads(tmp_path, payload,
 
 def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
     settings = _settings(tmp_path, enabled=True)
+    app, client = _client(settings)
+    _approve_one(client, "training-lock-1")
     settings.admin_training_runs_dir.mkdir(parents=True)
     (settings.admin_training_runs_dir / ".launch.lock").write_text('{"pid":999999}\n', encoding="utf-8")
-    _app, client = _client(settings)
 
     resp = client.post("/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"})
 
@@ -318,6 +358,7 @@ def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
 def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)
+    _approve_one(client, "training-start-1")
     calls = []
 
     class FakePopen:
@@ -394,6 +435,7 @@ def test_training_latest_recovers_stale_running_job_after_backend_restart(tmp_pa
         encoding="utf-8",
     )
     _app, client = _client(settings)
+    _approve_one(client, "training-stale-1")
     monkeypatch.setattr("backend.services.training_jobs._process_is_alive", lambda _pid: False)
     calls = []
 
