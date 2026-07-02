@@ -293,6 +293,30 @@ def test_training_start_disabled_by_default_returns_403(tmp_path):
     assert "no_trainable_annotations" in error
 
 
+
+
+def test_training_start_reports_review_store_unavailable_without_downgrading_to_no_data(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    def fail_queue(self):
+        raise RuntimeError("review manifest is corrupt")
+
+    monkeypatch.setattr("backend.services.annotation_review.AnnotationReviewStore.list_queue", fail_queue)
+
+    resp = client.post(
+        "/admin/training/jobs",
+        json={"dry_run": True, "device": "cpu", "batch_size": 8},
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+
+    assert resp.status_code == 403
+    error = resp.get_json()["error"]
+    assert "review_store_unavailable" in error
+    assert "review manifest is corrupt" in error
+    assert "no_trainable_annotations" not in error
+
 def test_training_start_rejects_nonlocal_remote_host_and_origin(tmp_path):
     settings = _settings(tmp_path, enabled=True)
     _app, client = _client(settings)

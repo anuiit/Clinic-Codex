@@ -359,9 +359,10 @@ class AdminTrainingService:
         if trainable_count is None:
             try:
                 trainable_count = int(self.review_store.list_queue()["counts"]["trainable"])
-            except Exception:
-                trainable_count = 0
-        if trainable_count <= 0:
+            except Exception as exc:
+                reasons.append(f"review_store_unavailable: {exc}")
+                trainable_count = None
+        if trainable_count is not None and trainable_count <= 0:
             reasons.append("no_trainable_annotations: approve at least one current annotation before launching retraining")
         if context is not None:
             if not is_loopback_address(context.remote_addr):
