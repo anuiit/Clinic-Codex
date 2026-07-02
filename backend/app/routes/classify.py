@@ -16,12 +16,20 @@ def _invalid_image_response():
     return jsonify(invalid_image_payload()), 400
 
 
+def _image_decode_kwargs():
+    settings = current_app.config["CLINIC_SETTINGS"]
+    return {
+        "max_pixels": settings.max_image_pixels,
+        "max_dimension": settings.max_image_dimension,
+    }
+
+
 @bp.post("/classify")
 def classify():
     if "image" not in request.files:
         return jsonify({"error": "No 'image' file in request"}), 400
     try:
-        img = decode_uploaded_image(request.files["image"])
+        img = decode_uploaded_image(request.files["image"], **_image_decode_kwargs())
     except InvalidImageError:
         return _invalid_image_response()
     return jsonify(_services().classify(img))
@@ -33,7 +41,7 @@ def classify_batch():
     if not files:
         return jsonify({"error": "No 'images' files in request"}), 400
     try:
-        images = [np.array(decode_uploaded_image(file)) for file in files]
+        images = [np.array(decode_uploaded_image(file, **_image_decode_kwargs())) for file in files]
     except InvalidImageError:
         return _invalid_image_response()
     return jsonify(_services().classify_batch(images))

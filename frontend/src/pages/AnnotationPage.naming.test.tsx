@@ -376,6 +376,26 @@ describe("AnnotationPage element naming UX", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows backend validation messages when review send returns VALIDATION_ERROR", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveAnnotation).mockResolvedValueOnce({
+      ok: false,
+      error_code: "VALIDATION_ERROR",
+      message: "annotations[0].bbox width and height must be positive",
+    });
+
+    renderPage({
+      ...BASE_RECORD,
+      annotationStatus: { 0: "validated" },
+    });
+
+    await user.click(await screen.findByText("Envoyer pour revue"));
+
+    expect(
+      await screen.findByText("annotations[0].bbox width and height must be positive"),
+    ).toBeInTheDocument();
+  });
+
   it("does not block review send because a draft element is unnamed", async () => {
     const user = userEvent.setup();
     renderPage({

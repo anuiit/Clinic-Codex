@@ -115,6 +115,28 @@ def test_classify_invalid_upload_returns_client_error_before_service_call():
     assert services.classify_calls == 0
 
 
+def test_classify_rejects_images_above_configured_pixel_limit_before_service_call():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True, max_image_pixels=4, max_image_dimension=100), services=services)
+    with app.test_client() as client:
+        resp = _post_image(client, "/classify")
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.classify_calls == 0
+
+
+def test_classify_rejects_images_above_configured_dimension_before_service_call():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True, max_image_pixels=1_000, max_image_dimension=4), services=services)
+    with app.test_client() as client:
+        resp = _post_image(client, "/classify")
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.classify_calls == 0
+
+
 def test_classify_batch_invalid_upload_returns_client_error_before_service_call():
     services = StubServices()
     app = create_app(settings=Settings(testing=True), services=services)
@@ -165,6 +187,29 @@ def test_segment_invalid_upload_returns_client_error_before_service_calls():
     assert services.segment_calls == 0
     assert services.classify_calls == 0
     assert services.classify_batch_calls == 0
+
+
+def test_segment_rejects_images_above_configured_pixel_limit_before_service_calls():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True, max_image_pixels=4, max_image_dimension=100), services=services)
+    with app.test_client() as client:
+        resp = _post_image(client, "/segment")
+
+    assert resp.status_code == 400
+    assert resp.get_json() == INVALID_IMAGE_RESPONSE
+    assert services.segment_calls == 0
+    assert services.classify_calls == 0
+    assert services.classify_batch_calls == 0
+
+
+def test_segment_rejects_request_bodies_above_configured_content_length_before_service_calls():
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True, max_content_length=64), services=services)
+    with app.test_client() as client:
+        resp = _post_image(client, "/segment")
+
+    assert resp.status_code == 413
+    assert services.segment_calls == 0
 
 
 def test_segment_skips_batch_when_no_valid_crops():

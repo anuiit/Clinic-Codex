@@ -97,6 +97,7 @@ export interface SaveAnnotationResponse {
 }
 
 export type SaveAnnotationErrorCode =
+  | 'VALIDATION_ERROR'
   | 'PERMISSION_DENIED'
   | 'DISK_FULL'
   | 'STORAGE_ERROR'

@@ -17,13 +17,21 @@ def _invalid_image_response():
     return jsonify(invalid_image_payload()), 400
 
 
+def _image_decode_kwargs():
+    settings = current_app.config["CLINIC_SETTINGS"]
+    return {
+        "max_pixels": settings.max_image_pixels,
+        "max_dimension": settings.max_image_dimension,
+    }
+
+
 @bp.post("/segment")
 def segment():
     if "image" not in request.files:
         return jsonify({"error": "No 'image' file in request"}), 400
 
     try:
-        img = np.array(decode_uploaded_image(request.files["image"]))
+        img = np.array(decode_uploaded_image(request.files["image"], **_image_decode_kwargs()))
     except InvalidImageError:
         return _invalid_image_response()
     h, w = img.shape[:2]

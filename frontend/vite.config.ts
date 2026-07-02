@@ -6,7 +6,7 @@ import { configDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 const config: UserConfig & { test: InlineConfig } = {
-  server: { port: 7118, strictPort: false, host: '0.0.0.0' },
+  server: { port: 7118, strictPort: false, host: '127.0.0.1' },
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',

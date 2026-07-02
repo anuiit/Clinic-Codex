@@ -6,6 +6,7 @@ from backend.services.annotation_review import (
     AnnotationReviewNotFoundError,
     AnnotationReviewValidationError,
 )
+from backend.security.local_guard import require_local_request
 
 bp = Blueprint("admin_annotations", __name__)
 
@@ -19,6 +20,7 @@ def _error(message: str, status_code: int):
 
 
 @bp.get("/admin/annotations")
+@require_local_request
 def list_admin_annotations():
     """Local/dev-only admin review queue.
 
@@ -29,6 +31,7 @@ def list_admin_annotations():
 
 
 @bp.get("/admin/annotations/<analysis_id>/image")
+@require_local_request
 def get_admin_annotation_image(analysis_id: str):
     try:
         return send_file(_services().annotation_review_image_path(analysis_id))
@@ -39,6 +42,7 @@ def get_admin_annotation_image(analysis_id: str):
 
 
 @bp.get("/admin/annotations/<analysis_id>/<int:index>/crop")
+@require_local_request
 def get_admin_annotation_crop(analysis_id: str, index: int):
     try:
         return send_file(_services().annotation_review_crop_path(analysis_id, index))
@@ -49,6 +53,7 @@ def get_admin_annotation_crop(analysis_id: str, index: int):
 
 
 @bp.post("/admin/annotations/<analysis_id>/<int:index>/review")
+@require_local_request
 def set_admin_annotation_review(analysis_id: str, index: int):
     data = request.get_json(force=True, silent=True)
     if data is None:
@@ -69,6 +74,7 @@ def set_admin_annotation_review(analysis_id: str, index: int):
 
 
 @bp.post("/admin/annotations/<analysis_id>/<int:index>/modify")
+@require_local_request
 def modify_admin_annotation_element(analysis_id: str, index: int):
     data = request.get_json(force=True, silent=True)
     if data is None:

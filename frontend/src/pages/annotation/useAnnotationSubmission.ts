@@ -112,6 +112,9 @@ export function useAnnotationSubmission({
         let msg = translate("save.networkError");
 
         switch (result.error_code) {
+          case "VALIDATION_ERROR":
+            msg = result.message;
+            break;
           case "PERMISSION_DENIED":
             msg = translate("save.permissionDenied");
             break;

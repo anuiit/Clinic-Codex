@@ -92,7 +92,11 @@ class DefaultServices:
         )
 
     def decode_annotation_image(self, data_url: str):
-        return decode_image_data_url(data_url)
+        return decode_image_data_url(
+            data_url,
+            max_pixels=self.settings.max_image_pixels,
+            max_dimension=self.settings.max_image_dimension,
+        )
 
     def annotation_review_store(self) -> AnnotationReviewStore:
         if self._annotation_review_store is None:

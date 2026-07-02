@@ -24,6 +24,14 @@ export interface ApiRequestOptions {
   signal?: AbortSignal;
 }
 
+type SaveAnnotationErrorBody = Partial<{
+  error_code: SaveAnnotationErrorCode;
+  message: string;
+  error: string | { code?: SaveAnnotationErrorCode | string; message?: string };
+  hint: string | null;
+  trace_id: string;
+}>;
+
 function apiUrl(path: string): string {
   return `${BASE_URL}${path}`;
 }
@@ -131,17 +139,17 @@ export async function saveAnnotation(
     const res = await fetch(apiUrl('/save-annotation'), requestInit);
 
     if (!res.ok) {
-      const errorData = await res.json().catch(() => null) as Partial<{
-        error_code: SaveAnnotationErrorCode;
-        message: string;
-        hint?: string | null;
-        trace_id?: string;
-      }> | null;
+      const errorData = await res.json().catch(() => null) as SaveAnnotationErrorBody | null;
+      const nestedError = typeof errorData?.error === 'object' ? errorData.error : null;
+      const legacyMessage = typeof errorData?.error === 'string' ? errorData.error : nestedError?.message;
+      const errorCode = errorData?.error_code
+        ?? (nestedError?.code as SaveAnnotationErrorCode | undefined)
+        ?? (legacyMessage ? 'VALIDATION_ERROR' : 'NETWORK_ERROR');
 
       return {
         ok: false,
-        error_code: errorData?.error_code ?? 'NETWORK_ERROR',
-        message: errorData?.message ?? `save-annotation failed: ${res.status}`,
+        error_code: errorCode,
+        message: errorData?.message ?? legacyMessage ?? `save-annotation failed: ${res.status}`,
         hint: errorData?.hint ?? undefined,
         trace_id: errorData?.trace_id,
       };

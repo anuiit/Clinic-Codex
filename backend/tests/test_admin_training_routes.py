@@ -101,6 +101,69 @@ def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     assert body["launch_disabled_reasons"] == []
 
 
+def test_local_helpers_include_ipv6_loopback_and_reject_remote_addresses():
+    assert training_jobs.is_loopback_address("::1") is True
+    assert training_jobs.is_loopback_address("::ffff:127.0.0.1") is True
+    assert training_jobs.is_loopback_address("[::1]:7117") is True
+    assert training_jobs.is_loopback_address("127.0.0.1") is True
+    assert training_jobs.is_loopback_address("192.0.2.10") is False
+    assert training_jobs.is_local_origin(None) is True
+    assert training_jobs.is_local_origin("http://[::1]:7118") is True
+    assert training_jobs.is_local_origin("http://192.0.2.10:7118") is False
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/admin/training/summary",
+        "/admin/training/jobs/latest",
+        "/admin/training/jobs/some-run",
+    ],
+)
+def test_admin_training_status_routes_reject_non_loopback_requests(tmp_path, path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+
+    resp = client.get(
+        path,
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "192.0.2.10"},
+    )
+
+    assert resp.status_code == 403
+    body = resp.get_json()
+    assert body["error_code"] == "LOCAL_ONLY_FORBIDDEN"
+    assert "non_loopback_remote_addr" in body["reasons"]
+
+
+def test_admin_route_inventory_has_explicit_local_only_policy(tmp_path):
+    settings = _settings(tmp_path, enabled=False)
+    app, _test_client = _client(settings)
+    admin_rules = {
+        (next(iter(rule.methods - {"HEAD", "OPTIONS"})), rule.rule, rule.endpoint)
+        for rule in app.url_map.iter_rules()
+        if rule.rule.startswith("/admin/")
+    }
+
+    assert admin_rules == {
+        ("GET", "/admin/annotations", "admin_annotations.list_admin_annotations"),
+        ("GET", "/admin/annotations/<analysis_id>/image", "admin_annotations.get_admin_annotation_image"),
+        ("GET", "/admin/annotations/<analysis_id>/<int:index>/crop", "admin_annotations.get_admin_annotation_crop"),
+        ("POST", "/admin/annotations/<analysis_id>/<int:index>/review", "admin_annotations.set_admin_annotation_review"),
+        ("POST", "/admin/annotations/<analysis_id>/<int:index>/modify", "admin_annotations.modify_admin_annotation_element"),
+        ("GET", "/admin/training/summary", "admin_training.get_admin_training_summary"),
+        ("GET", "/admin/training/jobs/latest", "admin_training.get_latest_admin_training_job"),
+        ("GET", "/admin/training/jobs/<run_id>", "admin_training.get_admin_training_job"),
+        ("POST", "/admin/training/jobs", "admin_training.start_admin_training_job"),
+    }
+
+    service_guarded = {"admin_training.start_admin_training_job"}
+    for _method, _rule, endpoint in admin_rules:
+        if endpoint in service_guarded:
+            continue
+        assert getattr(app.view_functions[endpoint], "__clinic_local_required__", False), endpoint
+
+
 def test_training_summary_surfaces_model_registry_candidate_health(tmp_path):
     settings = _settings(tmp_path, enabled=False)
     source = tmp_path / "candidate-source"

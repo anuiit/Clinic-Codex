@@ -2,14 +2,14 @@
 
 Flask backend for Clinic Codex. It serves the local codex classifier, MobileSAM segmentation, similarity/trust helpers, class names, submitted annotation persistence, and a local-only admin review gate for retraining eligibility.
 
-Default runtime: `http://localhost:7117` (`HOST=0.0.0.0`, `PORT=7117`).
+Default runtime: `http://localhost:7117` (`HOST=127.0.0.1`, `PORT=7117`).
 
 ## Run
 
 ```bash
 cd backend
 pip install -r requirements.txt
-python -m flask --app backend.wsgi run --host 0.0.0.0 --port 7117
+python -m flask --app backend.wsgi run --host 127.0.0.1 --port 7117
 ```
 
 The repository-level dev helper starts backend and frontend together:
@@ -23,13 +23,15 @@ bash scripts/run-dev.sh
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `7117` | Flask port. |
-| `HOST` | `0.0.0.0` | Flask bind host. |
+| `HOST` | `127.0.0.1` | Flask bind host for the Phase 1 local-only workflow. |
 | `CORS_ORIGINS` | `http://localhost:7118` | Comma-separated browser origins. |
+| `MAX_IMAGE_PIXELS` | `80000000` | Maximum decoded image pixels for upload and base64/data-url paths. |
+| `MAX_IMAGE_DIMENSION` | `10000` | Maximum decoded image width or height in pixels. |
 | `MODEL_DIR` | auto-detected | Optional classifier weights/config directory. |
 | `ENABLE_LEGACY_ENDPOINTS` | `true` | Keep sample/demo endpoints `/sample-image` and `/similar-samples` available during Phase 1 compatibility. |
 | `ENABLE_ADMIN_TRAINING_JOBS` | `false` | Enables the local-only `/admin/training/jobs` launcher when the request also passes loopback Host/Origin guards. |
 
-Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`.
+Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`; decoded images are also capped by `MAX_IMAGE_PIXELS` and `MAX_IMAGE_DIMENSION`.
 
 ## API endpoints
 
@@ -52,7 +54,9 @@ Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`.
 
 Compatibility endpoints `/classify` and `/classify-batch` remain available and tested during Phase 1. Sample/demo endpoints `/sample-image` and `/similar-samples` remain enabled by default (`ENABLE_LEGACY_ENDPOINTS=true`); set `ENABLE_LEGACY_ENDPOINTS=false` to hide only those sample/demo endpoints while retaining active frontend endpoints. `backend/examples/flask_api.py` is now a thin compatibility runner for the modular `backend.wsgi` app, not the primary route implementation.
 
-The `/admin/annotations` and `/admin/training` endpoints are **local/dev-only** and **not production-secured**. They intentionally do not add auth, roles, tokens, or production authorization. Model registry and rollback semantics are local filesystem safety tooling only. The training launcher is disabled by default and is only a loopback-guarded wrapper around the approved-only retrain script.
+The `/admin/annotations` and `/admin/training` endpoints are **Phase 1 local-only** and **not shared-production auth**. Current admin annotation routes, training summary, and training job status routes reject non-loopback/remote Host/Origin requests with `403 LOCAL_ONLY_FORBIDDEN`. `POST /admin/training/jobs` also keeps the disabled-by-default launch guard. Phase 1 intentionally does not add roles, sessions, tokens, reverse-proxy trust, or production authorization. Model registry and rollback semantics are local filesystem safety tooling only.
+
+CORS is allowlist-only: unknown origins and requests without `Origin` do not receive `Access-Control-Allow-Origin`.
 
 ## `/save-annotation` payload
 
@@ -86,7 +90,7 @@ Successful response:
 
 Common errors:
 
-- `400`: invalid JSON, missing field, empty annotations, invalid image data URL, invalid class name, invalid bbox.
+- `400 VALIDATION_ERROR`: invalid JSON, missing field, empty annotations, invalid image data URL, image above configured decode limits, invalid class name, invalid bbox. The response includes both `message` and legacy `error`.
 - `409 PERMISSION_DENIED`: backend cannot write to `backend/annotations/`.
 - `413`: request exceeds 50 MB.
 - `507 DISK_FULL`: no disk space.

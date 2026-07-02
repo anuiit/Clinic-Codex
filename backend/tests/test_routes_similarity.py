@@ -60,6 +60,20 @@ def test_invalid_request_image_and_bbox_shapes(client, route):
     }
 
 
+@pytest.mark.parametrize("route", ["/similar", "/trust"])
+def test_crop_routes_reject_images_above_configured_pixel_limit(route):
+    services = StubServices()
+    app = create_app(settings=Settings(testing=True, max_image_pixels=4, max_image_dimension=100), services=services)
+    with app.test_client() as client:
+        resp = client.post(route, json={"image_base64": _png_base64(size=(8, 6)), "bbox": [0, 0, 4, 4]})
+
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["error"]["code"] == "INVALID_IMAGE"
+    assert "maximum size" in body["error"]["message"]
+    assert services.calls == []
+
+
 def test_similar_happy_path_shape(client):
     resp = client.post("/similar", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4]})
     assert resp.status_code == 200

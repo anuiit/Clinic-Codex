@@ -112,7 +112,7 @@ wait_for_url() {
 
 # --- Launch backend (call python directly, no source activate) ---
 log "starting backend on :$BACKEND_PORT"
-PORT="$BACKEND_PORT" CORS_ORIGINS="$BACKEND_CORS_ORIGINS" "$PY" -m flask --app backend.wsgi run --host 0.0.0.0 --port "$BACKEND_PORT" &
+PORT="$BACKEND_PORT" CORS_ORIGINS="$BACKEND_CORS_ORIGINS" "$PY" -m flask --app backend.wsgi run --host 127.0.0.1 --port "$BACKEND_PORT" &
 PIDS+=($!)
 
 # --- Launch frontend ---

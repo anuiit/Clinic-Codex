@@ -25,8 +25,6 @@ def create_app(settings: Settings | None = None, services=None) -> Flask:
         origin = request.headers.get("Origin", "")
         if origin and origin in settings.cors_origins:
             response.headers["Access-Control-Allow-Origin"] = origin
-        else:
-            response.headers["Access-Control-Allow-Origin"] = settings.cors_origins[0] if settings.cors_origins else ""
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         return response

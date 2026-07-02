@@ -8,34 +8,33 @@ from __future__ import annotations
 
 import hashlib
 import errno
-import ipaddress
 import json
 import os
 import subprocess
 import threading
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import urlparse
 
 import yaml
 
 try:
     from backend.app.config import Settings
+    from backend.security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address
     from backend.services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file
     from backend.services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore
 except ImportError:  # pragma: no cover - compatibility when backend dir is sys.path root
     from app.config import Settings  # type: ignore
+    from security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address  # type: ignore
     from services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file  # type: ignore
     from services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore  # type: ignore
 
 ALLOWED_JOB_FIELDS = {"dry_run", "device", "batch_size", "notes"}
 DEFAULT_ALLOWED_DEVICES = ("auto", "cpu", "mps", "cuda")
 TERMINAL_STATUSES = {"succeeded", "failed", "disabled", "rejected"}
-LAUNCH_GUARD_STALE_SECONDS = 300
+LAUNCH_GUARD_STALE_SECONDS = 3600
 _LAUNCH_GUARD_LOCK = threading.Lock()
 
 
@@ -292,43 +291,6 @@ def _read_lock_pid(path: Path) -> int | None:
     except ValueError:
         return None
     return pid if pid > 0 else None
-
-
-def _host_without_port(host: str | None) -> str:
-    if not host:
-        return ""
-    host = host.strip().lower()
-    if host.startswith("[") and "]" in host:
-        return host[1:host.index("]")]
-    if ":" in host and host.count(":") == 1:
-        return host.split(":", 1)[0]
-    return host
-
-
-def is_loopback_address(value: str | None) -> bool:
-    if not value:
-        return False
-    host = _host_without_port(value)
-    if host == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
-
-
-def is_local_origin(origin: str | None) -> bool:
-    if not origin:
-        return True
-    parsed = urlparse(origin)
-    return is_loopback_address(parsed.hostname)
-
-
-@dataclass(frozen=True)
-class RequestLaunchContext:
-    remote_addr: str | None
-    host: str | None
-    origin: str | None
 
 
 class AdminTrainingService:

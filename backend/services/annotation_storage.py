@@ -15,6 +15,11 @@ from typing import Sequence
 
 from PIL import Image
 
+try:
+    from backend.services.image_limits import ImageSizeLimitError, ensure_image_within_limits
+except ImportError:  # pragma: no cover - compatibility when backend dir is sys.path root
+    from services.image_limits import ImageSizeLimitError, ensure_image_within_limits  # type: ignore
+
 
 class AnnotationStorageError(Exception):
     """Base class for annotation storage errors."""
@@ -43,7 +48,12 @@ def sanitize_class_name(name: str) -> str:
     return name
 
 
-def decode_image_data_url(data_url: str) -> Image.Image:
+def decode_image_data_url(
+    data_url: str,
+    *,
+    max_pixels: int | None = None,
+    max_dimension: int | None = None,
+) -> Image.Image:
     if data_url.startswith("data:"):
         comma = data_url.find(",")
         if comma == -1:
@@ -56,7 +66,16 @@ def decode_image_data_url(data_url: str) -> Image.Image:
     except Exception as exc:
         raise ValueError(f"base64 decode failed: {exc}") from exc
     try:
-        return Image.open(io.BytesIO(raw))
+        with Image.open(io.BytesIO(raw)) as probe:
+            ensure_image_within_limits(probe, max_pixels=max_pixels, max_dimension=max_dimension)
+            probe.verify()
+        with Image.open(io.BytesIO(raw)) as image:
+            ensure_image_within_limits(image, max_pixels=max_pixels, max_dimension=max_dimension)
+            rgb = image.convert("RGB")
+            rgb.load()
+            return rgb
+    except ImageSizeLimitError as exc:
+        raise ValueError(str(exc)) from exc
     except Exception as exc:
         raise ValueError(f"PIL could not open image: {exc}") from exc
 

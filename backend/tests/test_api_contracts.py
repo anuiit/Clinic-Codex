@@ -260,26 +260,37 @@ def test_api_contract_save_annotation_success_and_validation_shapes(client):
 
     invalid_json = client.post("/save-annotation", data="not-json", content_type="application/json")
     assert invalid_json.status_code == 400
-    assert invalid_json.get_json() == {"status": "error", "error": "invalid JSON"}
+    assert invalid_json.get_json() == {
+        "status": "error",
+        "error_code": "VALIDATION_ERROR",
+        "message": "invalid JSON",
+        "error": "invalid JSON",
+    }
 
     for missing_field in ("analysis_id", "image_data_url", "annotations"):
         payload = _valid_save_payload()
         payload.pop(missing_field)
         resp = client.post("/save-annotation", json=payload)
         assert resp.status_code == 400
-        assert resp.get_json() == {"status": "error", "error": f"missing field: {missing_field}"}
+        assert resp.get_json()["error_code"] == "VALIDATION_ERROR"
+        assert resp.get_json()["message"] == f"missing field: {missing_field}"
+        assert resp.get_json()["error"] == f"missing field: {missing_field}"
 
     empty_annotations = _valid_save_payload()
     empty_annotations["annotations"] = []
     resp = client.post("/save-annotation", json=empty_annotations)
     assert resp.status_code == 400
-    assert resp.get_json() == {"status": "error", "error": "annotations must be a non-empty list"}
+    assert resp.get_json()["error_code"] == "VALIDATION_ERROR"
+    assert resp.get_json()["message"] == "annotations must be a non-empty list"
+    assert resp.get_json()["error"] == "annotations must be a non-empty list"
 
     blank_analysis = _valid_save_payload()
     blank_analysis["analysis_id"] = " "
     resp = client.post("/save-annotation", json=blank_analysis)
     assert resp.status_code == 400
-    assert resp.get_json() == {"status": "error", "error": "missing field: analysis_id"}
+    assert resp.get_json()["error_code"] == "VALIDATION_ERROR"
+    assert resp.get_json()["message"] == "missing field: analysis_id"
+    assert resp.get_json()["error"] == "missing field: analysis_id"
 
 
 def test_api_contract_save_annotation_decode_and_storage_error_shapes(client, app_and_services):
@@ -288,7 +299,12 @@ def test_api_contract_save_annotation_decode_and_storage_error_shapes(client, ap
     services.decode_exc = ValueError("bad data url")
     resp = client.post("/save-annotation", json=_valid_save_payload())
     assert resp.status_code == 400
-    assert resp.get_json() == {"status": "error", "error": "bad data url"}
+    assert resp.get_json() == {
+        "status": "error",
+        "error_code": "VALIDATION_ERROR",
+        "message": "bad data url",
+        "error": "bad data url",
+    }
     services.decode_exc = None
 
     services.save_exc = AnnotationPermissionError("denied")

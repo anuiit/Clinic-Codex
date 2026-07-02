@@ -13,7 +13,7 @@ def _services():
 
 
 def _validation_error(message: str):
-    return jsonify({"status": "error", "error": message}), 400
+    return jsonify({"status": "error", "error_code": "VALIDATION_ERROR", "message": message, "error": message}), 400
 
 
 def _validate_annotation_payload(annotations: list[object]) -> str | None:
@@ -80,7 +80,7 @@ def save_annotation_route():
     try:
         image = services.decode_annotation_image(data["image_data_url"])
     except ValueError as exc:
-        return jsonify({"status": "error", "error": str(exc)}), 400
+        return _validation_error(str(exc))
 
     try:
         result = services.save_annotation(data["analysis_id"], image, data["annotations"])
