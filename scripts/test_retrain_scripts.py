@@ -168,5 +168,9 @@ def test_retrain_ps1_rejects_unsafe_model_version_id_when_powershell_is_availabl
         capture_output=True,
         env={**os.environ, "MODEL_VERSION_ID": "..\\..\\codex_model"},
     )
-    assert result.returncode == 2
+    # Windows PowerShell and PowerShell Core can normalize explicit script exit
+    # codes differently after a terminating parameter-validation error. The
+    # stable contract is that the unsafe value is rejected before paths are
+    # used and the process exits non-zero.
+    assert result.returncode in {1, 2}
     assert "invalid MODEL_VERSION_ID" in (result.stderr + result.stdout)

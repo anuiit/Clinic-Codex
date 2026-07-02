@@ -104,6 +104,9 @@ def flask_mod(monkeypatch):
     StubMobileSAMSegmenter.init_calls = 0
     mod = _load_legacy_module()
     mod.app.config["TESTING"] = True
+    services = mod.app.extensions["clinic_services"]
+    monkeypatch.setattr(services, "_raise_for_missing_classifier_assets", lambda: None)
+    monkeypatch.setattr(services, "_raise_for_missing_mobile_sam_checkpoint", lambda: None)
     return mod
 
 
