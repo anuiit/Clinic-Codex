@@ -56,6 +56,12 @@ def _write_spec(path: Path, **overrides: object) -> Path:
     return path
 
 
+def _write_runtime_projection(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(ProjectionHead(384, 128).state_dict(), path)
+    return path
+
+
 def _paths(prefix: str, count: int = 286) -> list[str]:
     return [f"{prefix}-{index:03d}.png" for index in range(count)]
 
@@ -64,7 +70,9 @@ def test_refit_experiment_writes_runtime_compatible_checkpoint_and_provenance(tm
     spec_path = _write_spec(tmp_path / "recipe.json")
     train_cache = _write_cache(tmp_path / "elements_full.pt")
     output_dir = tmp_path / "refit-output"
+    runtime_projection = _write_runtime_projection(tmp_path / "runtime" / "projection.pt")
 
+    monkeypatch.setattr(module, "RUNTIME_PROJECTION", runtime_projection)
     monkeypatch.setattr(module, "train_proxy_or_distillation", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         module,
@@ -112,7 +120,9 @@ def test_refit_experiment_records_distillation_provenance(tmp_path: Path, monkey
     )
     train_cache = _write_cache(tmp_path / "elements_full.pt")
     output_dir = tmp_path / "refit-output"
+    runtime_projection = _write_runtime_projection(tmp_path / "runtime" / "projection.pt")
 
+    monkeypatch.setattr(module, "RUNTIME_PROJECTION", runtime_projection)
     monkeypatch.setattr(module, "train_proxy_or_distillation", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         module,

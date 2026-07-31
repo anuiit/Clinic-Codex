@@ -99,13 +99,22 @@ def _write_checkpoint(path: Path) -> Path:
     return path
 
 
+def _write_runtime_projection(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(ProjectionHead(384, 128).state_dict(), path)
+    return path
+
+
 def test_export_elements_refit_writes_registry_package_and_preserves_abi(tmp_path: Path, monkeypatch) -> None:
     registry_root = tmp_path / "model_registry"
+    runtime_model_dir = tmp_path / "runtime-model"
     runtime_config = _write_runtime_config(tmp_path / "runtime.json")
     runtime_prototypes = _write_runtime_prototypes(tmp_path / "prototypes.pt")
     feature_cache = _write_feature_cache(tmp_path / "cache.pt")
     checkpoint = _write_checkpoint(tmp_path / "checkpoint.pt")
+    _write_runtime_projection(runtime_model_dir / "weights" / "projection.pt")
 
+    monkeypatch.setattr(module, "RUNTIME_MODEL_DIR", runtime_model_dir)
     monkeypatch.setattr(
         module,
         "compute_cache_metrics",
