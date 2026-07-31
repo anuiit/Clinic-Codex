@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { NavigateFunction } from "react-router-dom";
 import { t as translate } from "../../i18n/annotation.fr";
 import { saveAnnotation } from "../../services/api";
 import { updateElements } from "../../services/storage";
@@ -16,7 +15,6 @@ type UseAnnotationSubmissionOptions = {
   record: AnalysisRecord | null;
   elements: DetectedElement[];
   annotationStatus: Record<number, AnnotationStatus>;
-  navigate: NavigateFunction;
   labels: {
     submitBlockedUnnamed: string;
     submitBlockedNone: string;
@@ -28,7 +26,6 @@ export function useAnnotationSubmission({
   record,
   elements,
   annotationStatus,
-  navigate,
   labels,
 }: UseAnnotationSubmissionOptions) {
   const [saving, setSaving] = useState(false);
@@ -46,9 +43,6 @@ export function useAnnotationSubmission({
     }
     setToast({ msg: translate("save.localSuccess"), ok: true });
     setSaving(false);
-    setTimeout(() => {
-      navigate("/");
-    }, 300);
   };
 
   const handleSendSubmittedForReview = async () => {

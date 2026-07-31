@@ -16,9 +16,16 @@ import type {
   AdminTrainingJobResponse,
   AdminTrainingStartPayload,
   AdminTrainingSummary,
+  AuthSession,
+  BootstrapStatus,
+  LoginPayload,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:7117';
+const CSRF_HEADER = 'X-CSRF-Token';
+
+axios.defaults.withCredentials = true;
+let csrfToken: string | null = null;
 
 export interface ApiRequestOptions {
   signal?: AbortSignal;
@@ -61,6 +68,44 @@ async function getData<T>(path: string, options?: ApiRequestOptions): Promise<T>
     ? await axios.get<T>(apiUrl(path), config)
     : await axios.get<T>(apiUrl(path));
   return data;
+}
+
+function storeSession(session: AuthSession): AuthSession {
+  csrfToken = session.csrf_token ?? null;
+  if (csrfToken) {
+    axios.defaults.headers.common[CSRF_HEADER] = csrfToken;
+  } else {
+    delete axios.defaults.headers.common[CSRF_HEADER];
+  }
+  return session;
+}
+
+export async function getAuthSession(options?: ApiRequestOptions): Promise<AuthSession> {
+  return storeSession(await getData<AuthSession>('/auth/me', options));
+}
+
+export async function getBootstrapStatus(options?: ApiRequestOptions): Promise<BootstrapStatus> {
+  return getData<BootstrapStatus>('/auth/bootstrap/status', options);
+}
+
+export async function createFirstAdmin(
+  payload: LoginPayload,
+  options?: ApiRequestOptions,
+): Promise<AuthSession> {
+  return storeSession(await postData<AuthSession>('/auth/bootstrap', payload, options));
+}
+
+export async function login(payload: LoginPayload, options?: ApiRequestOptions): Promise<AuthSession> {
+  return storeSession(await postData<AuthSession>('/auth/login', payload, options));
+}
+
+export async function logout(options?: ApiRequestOptions): Promise<void> {
+  try {
+    await postData('/auth/logout', {}, options);
+  } finally {
+    csrfToken = null;
+    delete axios.defaults.headers.common[CSRF_HEADER];
+  }
 }
 
 function imageForm(file: File): FormData {
@@ -128,7 +173,11 @@ export async function saveAnnotation(
 ): Promise<SaveAnnotationResult> {
   const requestInit: RequestInit = {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+    },
     body: JSON.stringify(payload),
   };
   if (options?.signal) {

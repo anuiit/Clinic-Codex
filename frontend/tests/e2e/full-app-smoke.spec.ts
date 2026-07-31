@@ -159,6 +159,13 @@ const trainingSummary = {
 };
 
 async function mockApi(page: Page) {
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ auth_enabled: false, user: null }),
+    }),
+  );
   await page.route('**/classes', (route) =>
     route.fulfill({
       status: 200,

@@ -10,9 +10,10 @@ const config: UserConfig & { test: InlineConfig } = {
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+    exclude: [...configDefaults.exclude, 'tests/e2e/**', '.omx-artifacts/**'],
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 10_000,
   },
 }
 

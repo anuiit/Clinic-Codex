@@ -20,6 +20,7 @@ const adminModulePaths = [
   'pages/adminAnnotations/AdminHeader.module.css',
   'pages/adminAnnotations/AdminShared.module.css',
   'pages/adminAnnotations/DatasetTab.module.css',
+  'pages/adminAnnotations/ReviewEditor.module.css',
   'pages/adminAnnotations/ReviewTab.module.css',
   'pages/adminAnnotations/TrainingTab.module.css',
 ];

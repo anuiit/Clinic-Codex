@@ -14,11 +14,12 @@ Usage:
 """
 
 import argparse
+import hashlib
+import json
 import sys
 from pathlib import Path
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
@@ -29,34 +30,19 @@ from codex_pipeline.data.cached_dataset import (
     CachedEpisodicSampler,
     collate_cached_episodes,
 )
+from codex_pipeline.determinism import configure_determinism
+from codex_pipeline.models.projection_head import ProjectionHead, get_device
 from codex_pipeline.models.prototypical import PrototypicalLoss, compute_prototypes
 
 
-class ProjectionHead(nn.Module):
-    """Must match the one in train.py."""
-
-    def __init__(self, input_dim: int = 384, embedding_dim: int = 128):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, input_dim),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(input_dim, embedding_dim),
-        )
-
-    def forward(self, x):
-        out = self.net(x)
-        return F.normalize(out, p=2, dim=-1)
 
 
-def get_device(device_cfg: str) -> torch.device:
-    if device_cfg == "auto":
-        if torch.cuda.is_available():
-            return torch.device("cuda")
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return torch.device("mps")
-        return torch.device("cpu")
-    return torch.device(device_cfg)
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @torch.no_grad()
@@ -136,7 +122,7 @@ def analyze_prototypes(embeddings, labels, class_names):
 def main():
     parser = argparse.ArgumentParser(description="Evaluate projection head")
     parser.add_argument("--checkpoint", type=str, default="./checkpoints/best.pt")
-    parser.add_argument("--features", type=str, default="./precomputed/features_aug.pt")
+    parser.add_argument("--features", type=str, default="./precomputed/features.pt")
     parser.add_argument("--export-prototypes", action="store_true")
     parser.add_argument(
         "--prototype-dir",
@@ -148,13 +134,14 @@ def main():
     args = parser.parse_args()
 
     # Load checkpoint
-    ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     cfg = ckpt["config"]
     train_cfg = cfg["training"]
     model_cfg = cfg["model"]
     paths_cfg = cfg["paths"]
     hidden_dim = ckpt["hidden_dim"]
 
+    configure_determinism(int(train_cfg["seed"]))
     device = get_device(train_cfg["device"])
     print(f"Device: {device}")
     print(f"Checkpoint: epoch {ckpt['epoch']+1}")
@@ -243,7 +230,7 @@ def main():
         for label in analysis["class_labels"].tolist():
             name = class_names.get(label, str(label))
             count = (labels == label).sum().item()
-            var = analysis["class_variances"].get(label, 0.0)
+            var = analysis["class_variances"].get(label)
             class_meta[label] = {"name": name, "count": count, "variance": var}
 
         proto_data = {
@@ -257,6 +244,20 @@ def main():
         }
         proto_path = proto_dir / "prototypes.pt"
         torch.save(proto_data, proto_path)
+        provenance = {
+            "schema_version": "baseline-prototypes.v1",
+            "checkpoint_path": str(Path(args.checkpoint).resolve()),
+            "checkpoint_sha256": sha256_file(args.checkpoint),
+            "features_path": str(Path(args.features).resolve()),
+            "features_sha256": sha256_file(args.features),
+            "prototypes_path": str(proto_path.resolve()),
+            "prototypes_sha256": sha256_file(proto_path),
+            "seed": int(train_cfg["seed"]),
+            "class_count": len(analysis["class_labels"]),
+        }
+        (proto_dir / "provenance.json").write_text(
+            json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         print(f"\nPrototypes exported to {proto_path}")
         print(f"  {len(analysis['class_labels'])} class prototypes ({model_cfg['embedding_dim']}-dim)")
         print(f"  Includes projection head weights for inference")

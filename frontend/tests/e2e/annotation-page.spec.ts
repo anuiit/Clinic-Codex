@@ -32,6 +32,13 @@ async function seedAndNavigate(page: Page, record = TEST_RECORD) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ auth_enabled: false, user: null }),
+    }),
+  );
   await page.route('**/classes', async (route) => {
     await route.fulfill({
       status: 200,

@@ -6,6 +6,7 @@ from backend.services.annotation_review import (
     AnnotationReviewNotFoundError,
     AnnotationReviewValidationError,
 )
+from backend.security.auth import current_user, require_csrf, require_permission
 from backend.security.local_guard import require_local_request
 
 bp = Blueprint("admin_annotations", __name__)
@@ -21,6 +22,7 @@ def _error(message: str, status_code: int):
 
 @bp.get("/admin/annotations")
 @require_local_request
+@require_permission("annotation.queue.read")
 def list_admin_annotations():
     """Local/dev-only admin review queue.
 
@@ -32,6 +34,7 @@ def list_admin_annotations():
 
 @bp.get("/admin/annotations/<analysis_id>/image")
 @require_local_request
+@require_permission("annotation.queue.read")
 def get_admin_annotation_image(analysis_id: str):
     try:
         return send_file(_services().annotation_review_image_path(analysis_id))
@@ -43,6 +46,7 @@ def get_admin_annotation_image(analysis_id: str):
 
 @bp.get("/admin/annotations/<analysis_id>/<int:index>/crop")
 @require_local_request
+@require_permission("annotation.queue.read")
 def get_admin_annotation_crop(analysis_id: str, index: int):
     try:
         return send_file(_services().annotation_review_crop_path(analysis_id, index))
@@ -54,8 +58,10 @@ def get_admin_annotation_crop(analysis_id: str, index: int):
 
 @bp.post("/admin/annotations/<analysis_id>/<int:index>/review")
 @require_local_request
+@require_permission("annotation.review")
+@require_csrf
 def set_admin_annotation_review(analysis_id: str, index: int):
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(silent=True)
     if data is None:
         return _error("invalid JSON", 400)
 
@@ -64,9 +70,13 @@ def set_admin_annotation_review(analysis_id: str, index: int):
         return _error("missing field: status", 400)
 
     try:
-        result = _services().set_annotation_review_status(analysis_id, index, status)
+        actor = current_user()
+        if actor is None:
+            result = _services().set_annotation_review_status(analysis_id, index, status)
+        else:
+            result = _services().set_annotation_review_status(analysis_id, index, status, reviewer_id=actor["id"])
     except AnnotationReviewValidationError as exc:
-        return _error(str(exc), 400)
+        return _error(str(exc), 403 if str(exc) == "self-review is not permitted" else 400)
     except AnnotationReviewNotFoundError as exc:
         return _error(str(exc), 404)
 
@@ -75,8 +85,10 @@ def set_admin_annotation_review(analysis_id: str, index: int):
 
 @bp.post("/admin/annotations/<analysis_id>/<int:index>/modify")
 @require_local_request
+@require_permission("annotation.review")
+@require_csrf
 def modify_admin_annotation_element(analysis_id: str, index: int):
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(silent=True)
     if data is None:
         return _error("invalid JSON", 400)
 
@@ -102,9 +114,10 @@ def modify_admin_annotation_element(analysis_id: str, index: int):
             class_name=class_name,
             bbox=bbox,
             status=status,
+            **({"reviewer_id": current_user()["id"]} if current_user() else {}),
         )
     except AnnotationReviewValidationError as exc:
-        return _error(str(exc), 400)
+        return _error(str(exc), 403 if str(exc) == "self-review is not permitted" else 400)
     except AnnotationReviewNotFoundError as exc:
         return _error(str(exc), 404)
 

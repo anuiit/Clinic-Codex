@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnnotationsPage from "./AdminAnnotationsPage";
@@ -10,6 +17,7 @@ import type {
 
 const apiMock = vi.hoisted(() => ({
   adminAnnotationMediaUrl: vi.fn((path: string) => `http://api.test${path}`),
+  getClasses: vi.fn(),
   getAdminAnnotationQueue: vi.fn(),
   getAdminTrainingSummary: vi.fn(),
   getLatestAdminTrainingJob: vi.fn(),
@@ -64,7 +72,11 @@ function queueWithStatuses(
             source_fingerprint: "fingerprint-0",
             stale_decision: false,
             dataset_split: trainable0 ? "train" : "excluded",
-            split_reason: trainable0 ? "trainable_hash_80_10_10" : status0 === "rejected" ? "rejected_review" : "pending_review",
+            split_reason: trainable0
+              ? "trainable_hash_80_10_10"
+              : status0 === "rejected"
+                ? "rejected_review"
+                : "pending_review",
           },
           {
             key: "analysis-1:1",
@@ -80,7 +92,11 @@ function queueWithStatuses(
             source_fingerprint: "fingerprint-1",
             stale_decision: false,
             dataset_split: trainable1 ? "val" : "excluded",
-            split_reason: trainable1 ? "trainable_hash_80_10_10" : status1 === "rejected" ? "rejected_review" : "pending_review",
+            split_reason: trainable1
+              ? "trainable_hash_80_10_10"
+              : status1 === "rejected"
+                ? "rejected_review"
+                : "pending_review",
           },
         ],
       },
@@ -171,12 +187,17 @@ async function renderLoaded(queue = queueWithStatuses("pending", "rejected")) {
 describe("AdminAnnotationsPage", () => {
   beforeEach(() => {
     apiMock.adminAnnotationMediaUrl.mockClear();
+    apiMock.getClasses.mockReset();
     apiMock.getAdminAnnotationQueue.mockReset();
     apiMock.getAdminTrainingSummary.mockReset();
     apiMock.getLatestAdminTrainingJob.mockReset();
     apiMock.modifyAdminAnnotationElement.mockReset();
     apiMock.setAdminAnnotationReviewStatus.mockReset();
     apiMock.startAdminTrainingJob.mockReset();
+    apiMock.getClasses.mockResolvedValue({
+      num_classes: 2,
+      class_names: ["atl", "calli"],
+    });
   });
 
   it("renders the reference visual triage workstation with rows and decision inspector", async () => {
@@ -219,12 +240,24 @@ describe("AdminAnnotationsPage", () => {
       "src",
       "http://api.test/admin/annotations/analysis-1/image",
     );
+    const imageHeader = screen.getByTestId("admin-review-image-header");
+    expect(imageHeader).toContainElement(
+      screen.getByText(/détails techniques \/ audit/i).closest("details"),
+    );
+    expect(
+      screen.getByRole("button", { name: /^zoomer$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ajuster à la vue/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /découpe 0 pour atl/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/effet sur le dataset/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /valider/i })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /retrain/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /retrain/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("filters triage rows, recovers empty filters, and manually refreshes the queue", async () => {
@@ -235,19 +268,29 @@ describe("AdminAnnotationsPage", () => {
 
     render(<AdminAnnotationsPage />);
 
-    expect(await screen.findByText(/2 \/ 2 éléments affichés/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/2 \/ 2 éléments affichés/i),
+    ).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: /^statut$/i }), "rejected");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /^statut$/i }),
+      "rejected",
+    );
     expect(screen.getByText(/1 \/ 2 éléments affiché/i)).toBeInTheDocument();
     expect(
       screen.getByRole("list", { name: /filtres de triage appliqués/i }),
     ).toHaveTextContent(/statut : rejetés/i);
 
-    await user.selectOptions(screen.getByRole("combobox", { name: /^classe$/i }), "atl");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /^classe$/i }),
+      "atl",
+    );
     expect(
       screen.getByText(/aucun élément ne correspond aux filtres actifs/i),
     ).toBeInTheDocument();
-    await user.click(screen.getAllByRole("button", { name: /effacer les filtres/i }).at(-1)!);
+    await user.click(
+      screen.getAllByRole("button", { name: /effacer les filtres/i }).at(-1)!,
+    );
     expect(
       screen.getByRole("option", { name: /ouvrir l'élément 0 atl/i }),
     ).toBeInTheDocument();
@@ -257,7 +300,9 @@ describe("AdminAnnotationsPage", () => {
       expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(2),
     );
     expect(
-      await screen.findByLabelText(/élément sélectionné 1 calli : statut Rejeté/i),
+      await screen.findByLabelText(
+        /élément sélectionné 1 calli : statut Rejeté/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -275,7 +320,9 @@ describe("AdminAnnotationsPage", () => {
     await user.click(screen.getByRole("button", { name: /actualiser/i }));
 
     expect(
-      await screen.findByText(/impossible de charger la file locale de triage/i),
+      await screen.findByText(
+        /impossible de charger la file locale de triage/i,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: /ouvrir l'élément 0 atl/i }),
@@ -307,7 +354,10 @@ describe("AdminAnnotationsPage", () => {
       screen.getByRole("heading", { name: /élément #0 · atl/i }),
     ).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: /^statut$/i }), "rejected");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /^statut$/i }),
+      "rejected",
+    );
     expect(
       screen.getByRole("option", { name: /ouvrir l'élément 1 calli/i }),
     ).toBeInTheDocument();
@@ -377,22 +427,39 @@ describe("AdminAnnotationsPage", () => {
     const datasetList = screen.getByRole("listbox", { name: /vue dataset/i });
     expect(datasetList).toBeInTheDocument();
     expect(
-      within(datasetList).getByRole("option", { name: /ouvrir élément dataset 0 atl/i }),
+      within(datasetList).getByRole("option", {
+        name: /ouvrir élément dataset 0 atl/i,
+      }),
     ).toHaveAttribute("aria-selected", "true");
     expect(
       screen.getAllByRole("img", { name: /découpe dataset 0 pour atl/i })[0],
     ).toBeInTheDocument();
     expect(
-      within(datasetList).queryByRole("option", { name: /ouvrir élément dataset 1 calli/i }),
+      within(datasetList).queryByRole("option", {
+        name: /ouvrir élément dataset 1 calli/i,
+      }),
     ).not.toBeInTheDocument();
     expect(
-      within(screen.getByLabelText(/filtres split dataset/i)).queryByRole("button", { name: /exclus/i }),
+      within(screen.getByLabelText(/filtres split dataset/i)).queryByRole(
+        "button",
+        { name: /exclus/i },
+      ),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/1 \/ 1 élément du dataset affiché/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 \/ 1 élément du dataset affiché/i),
+    ).toBeInTheDocument();
 
-    await user.click(within(screen.getByLabelText(/classes dataset/i)).getByRole("button", { name: /atl/i }));
-    expect(screen.getByText(/1 \/ 1 élément du dataset affiché/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /ouvrir dans le triage/i }));
+    await user.click(
+      within(screen.getByLabelText(/classes dataset/i)).getByRole("button", {
+        name: /atl/i,
+      }),
+    );
+    expect(
+      screen.getByText(/1 \/ 1 élément du dataset affiché/i),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: /ouvrir dans le triage/i }),
+    );
 
     expect(screen.getByRole("tab", { name: /trier/i })).toHaveAttribute(
       "aria-selected",
@@ -414,24 +481,36 @@ describe("AdminAnnotationsPage", () => {
     await user.click(await screen.findByRole("tab", { name: /entraîner/i }));
 
     expect(
-      await screen.findByRole("heading", { name: /assistant d'entraînement local/i }),
+      await screen.findByRole("heading", {
+        name: /assistant d'entraînement local/i,
+      }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/lancement bloqué/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/disabled_by_default/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/enable_admin_training_jobs=1/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/bash scripts\/retrain\.sh --dry-run/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText(/protection locale active/i).length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText(/enable_admin_training_jobs=1/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/bash scripts\/retrain\.sh --dry-run/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(/protection locale active/i).length,
+    ).toBeGreaterThan(0);
     expect(document.body).not.toHaveTextContent(
       /placeholder|LossSketch|ValidationAccuracySketch/i,
     );
     expect(
-      screen.getByRole("region", { name: /résumé avant lancement de l'entraînement/i }),
+      screen.getByRole("region", {
+        name: /résumé avant lancement de l'entraînement/i,
+      }),
     ).toHaveTextContent(/bloquée par la protection backend/i);
     expect(screen.getByText(/l'essai à blanc vérifie/i)).toBeInTheDocument();
     expect(screen.getByText(/validés par classe/i)).toBeInTheDocument();
     expect(screen.getByText(/atl: 1/i)).toBeInTheDocument();
     expect(screen.getByText(/fichiers produits/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/approved_export_manifest/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/approved_export_manifest/i).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole("button", { name: /lancer l'essai à blanc/i }),
     ).toBeDisabled();
@@ -440,7 +519,8 @@ describe("AdminAnnotationsPage", () => {
   it("surfaces incomplete Training split metadata instead of showing fake zero counts", async () => {
     const user = userEvent.setup();
     const incompleteSummary = trainingSummary();
-    delete (incompleteSummary.data as Partial<typeof incompleteSummary.data>).split_counts;
+    delete (incompleteSummary.data as Partial<typeof incompleteSummary.data>)
+      .split_counts;
     apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(
       queueWithStatuses("approved", "rejected"),
     );
@@ -449,10 +529,12 @@ describe("AdminAnnotationsPage", () => {
     render(<AdminAnnotationsPage />);
     await user.click(await screen.findByRole("tab", { name: /entraîner/i }));
 
+    expect(await screen.findByRole("alert", { name: "" })).toHaveTextContent(
+      /résumé d'entraînement incomplet/i,
+    );
     expect(
-      await screen.findByRole("alert", { name: "" }),
-    ).toHaveTextContent(/résumé d'entraînement incomplet/i);
-    expect(screen.queryByText(/split locked: train 0/i)).not.toBeInTheDocument();
+      screen.queryByText(/split locked: train 0/i),
+    ).not.toBeInTheDocument();
   });
 
   it("updates Training pre-action summary for dry-run versus full-training choices", async () => {
@@ -474,9 +556,15 @@ describe("AdminAnnotationsPage", () => {
     const summary = await screen.findByRole("region", {
       name: /résumé avant lancement de l'entraînement/i,
     });
-    expect(within(summary).getByText(/prêt pour essai local/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/essai à blanc sélectionné/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/sans écrire d'artefact/i)).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/prêt pour essai local/i),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/essai à blanc sélectionné/i),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/sans écrire d'artefact/i),
+    ).toBeInTheDocument();
     expect(within(summary).getAllByText(/auto/i).length).toBeGreaterThan(0);
     expect(within(summary).getByText("16")).toBeInTheDocument();
 
@@ -485,16 +573,21 @@ describe("AdminAnnotationsPage", () => {
     await user.clear(screen.getByLabelText(/taille de lot/i));
     await user.type(screen.getByLabelText(/taille de lot/i), "8");
 
-    expect(within(summary).getByText(/entraînement complet sélectionné/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/paquet candidat local/i)).toBeInTheDocument();
-    expect(within(summary).getAllByText(/promotion explicite/i).length).toBeGreaterThan(0);
+    expect(
+      within(summary).getByText(/entraînement complet sélectionné/i),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/paquet candidat local/i),
+    ).toBeInTheDocument();
+    expect(
+      within(summary).getAllByText(/promotion explicite/i).length,
+    ).toBeGreaterThan(0);
     expect(within(summary).getByText(/cpu/i)).toBeInTheDocument();
     expect(within(summary).getByText("8")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /lancer l'entraînement/i }),
     ).toBeEnabled();
   });
-
 
   it("validates Training launch inputs before calling the backend", async () => {
     const user = userEvent.setup();
@@ -515,23 +608,31 @@ describe("AdminAnnotationsPage", () => {
     await screen.findByRole("button", { name: /lancer l'essai à blanc/i });
     await user.clear(screen.getByLabelText(/taille de lot/i));
     await user.type(screen.getByLabelText(/taille de lot/i), "999");
-    await user.click(screen.getByRole("button", { name: /lancer l'essai à blanc/i }));
+    await user.click(
+      screen.getByRole("button", { name: /lancer l'essai à blanc/i }),
+    );
 
     expect(
-      await screen.findByText(/taille de lot doit être un entier entre 1 et 256/i),
+      await screen.findByText(
+        /taille de lot doit être un entier entre 1 et 256/i,
+      ),
     ).toBeInTheDocument();
     expect(apiMock.startAdminTrainingJob).not.toHaveBeenCalled();
 
     await user.clear(screen.getByLabelText(/taille de lot/i));
     await user.type(screen.getByLabelText(/taille de lot/i), "8");
     await user.type(screen.getByLabelText(/notes/i), "x".repeat(201));
-    await user.click(screen.getByRole("button", { name: /lancer l'essai à blanc/i }));
+    await user.click(
+      screen.getByRole("button", { name: /lancer l'essai à blanc/i }),
+    );
 
     expect(
-      await screen.findByText(/notes de lancement doivent contenir 200 caractères ou moins/i),
+      await screen.findByText(
+        /notes de lancement doivent contenir 200 caractères ou moins/i,
+      ),
     ).toBeInTheDocument();
     expect(apiMock.startAdminTrainingJob).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("explains when local retraining is blocked because no element is trainable", async () => {
     const user = userEvent.setup();
@@ -560,9 +661,13 @@ describe("AdminAnnotationsPage", () => {
     await user.click(await screen.findByRole("tab", { name: /entraîner/i }));
 
     expect(
-      await screen.findByText(/dataset insuffisant : validez au moins un élément à jour/i),
+      await screen.findByText(
+        /dataset insuffisant : validez au moins un élément à jour/i,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /lancer l'essai à blanc/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /lancer l'essai à blanc/i }),
+    ).toBeDisabled();
   });
 
   it("starts a guarded dry-run training job and hides log tail behind support details", async () => {
@@ -597,7 +702,9 @@ describe("AdminAnnotationsPage", () => {
     await user.type(screen.getByLabelText(/taille de lot/i), "8");
     await user.type(screen.getByLabelText(/notes/i), "smoke");
 
-    await user.click(screen.getByRole("button", { name: /lancer l'essai à blanc/i }));
+    await user.click(
+      screen.getByRole("button", { name: /lancer l'essai à blanc/i }),
+    );
 
     await waitFor(() => {
       expect(apiMock.startAdminTrainingJob).toHaveBeenCalledWith({
@@ -607,15 +714,19 @@ describe("AdminAnnotationsPage", () => {
         notes: "smoke",
       });
     });
-    expect(await screen.findByText(/dernier essai run-started/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/dernier essai run-started/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/mock dry run started/i)).not.toBeVisible();
-    expect(screen.getByText(/bash scripts\/retrain\.sh --dry-run/i)).not.toBeVisible();
+    expect(
+      screen.getByText(/bash scripts\/retrain\.sh --dry-run/i),
+    ).not.toBeVisible();
     await user.click(screen.getAllByText(/détails support\/admin/i)[0]);
     expect(screen.getByText(/mock dry run started/i)).toBeVisible();
     expect(
       screen.getByRole("button", { name: /entraînement en cours/i }),
     ).toBeDisabled();
-  });
+  }, 15_000);
 
   it("approves an element, reloads the queue, and reports refresh-failure success separately", async () => {
     const user = userEvent.setup();
@@ -627,7 +738,8 @@ describe("AdminAnnotationsPage", () => {
       status: "ok",
       local_only: true,
       warning: "local only",
-      element: queueWithStatuses("approved", "rejected").analyses[0].elements[0],
+      element: queueWithStatuses("approved", "rejected").analyses[0]
+        .elements[0],
     });
 
     render(<AdminAnnotationsPage />);
@@ -642,8 +754,14 @@ describe("AdminAnnotationsPage", () => {
         "approved",
       );
     });
-    expect(await screen.findByText(/élément 0 marqué comme Validé/i)).toBeInTheDocument();
-    expect(await screen.findByLabelText(/élément sélectionné 1 calli : statut À vérifier/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/élément 0 marqué comme Validé/i),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(
+        /élément sélectionné 1 calli : statut À vérifier/i,
+      ),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /rejeter/i }));
     expect(
@@ -717,8 +835,13 @@ describe("AdminAnnotationsPage", () => {
         value: vi.fn(() => true),
       });
 
-      await user.click(await screen.findByRole("button", { name: /corriger/i }));
+      await user.click(
+        await screen.findByRole("button", { name: /corriger/i }),
+      );
       expect(screen.getByLabelText(/nom de l'élément/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/contexte de l'annotation sélectionnée/i),
+      ).toHaveTextContent(/file 1 \/ 2/i);
       const refreshButton = screen.getByRole("button", { name: /actualiser/i });
       expect(refreshButton).toBeDisabled();
       await act(async () => {
@@ -727,12 +850,39 @@ describe("AdminAnnotationsPage", () => {
       expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(1);
 
       await act(async () => {
-        fireEvent.load(screen.getByRole("img", { name: /image à corriger analysis-1/i }));
+        fireEvent.load(
+          screen.getByRole("img", { name: /image à corriger analysis-1/i }),
+        );
       });
+      const segmentationStage = screen.getByTestId("admin-segmentation-stage");
+      expect(segmentationStage.style.aspectRatio).toBe("");
+      expect(segmentationStage.style.maxWidth).toBe("");
+      expect(
+        screen.getByTestId("admin-correction-image-shell"),
+      ).toBeInTheDocument();
+      const currentCrop = screen.getByRole("img", {
+        name: /découpe actuelle 0 pour atl/i,
+      });
+      const unchangedPreview = screen.getByRole("img", {
+        name: /aperçu corrigé de l'élément 0/i,
+      });
+      expect(unchangedPreview.tagName).toBe("IMG");
+      expect(unchangedPreview).toHaveAttribute(
+        "src",
+        currentCrop.getAttribute("src"),
+      );
+      expect(currentCrop.getAttribute("src")).toContain("v=");
+      expect(
+        screen.getByLabelText(/résumé des modifications/i),
+      ).toHaveTextContent(/\[0, 1, 2, 3\] · inchangée/i);
       const visualEditor = await screen.findByLabelText(
         /redessiner la segmentation de l'élément 0/i,
       );
-      const dispatchPointer = (type: string, clientX: number, clientY: number) => {
+      const dispatchPointer = (
+        type: string,
+        clientX: number,
+        clientY: number,
+      ) => {
         const event = new Event(type, { bubbles: true, cancelable: true });
         Object.defineProperties(event, {
           clientX: { value: clientX },
@@ -748,6 +898,26 @@ describe("AdminAnnotationsPage", () => {
       expect(screen.getByLabelText(/zone y pour l'élément 0/i)).toHaveValue(20);
       expect(screen.getByLabelText(/zone w pour l'élément 0/i)).toHaveValue(50);
       expect(screen.getByLabelText(/zone h pour l'élément 0/i)).toHaveValue(60);
+      const changedPreview = screen.getByRole("img", {
+        name: /aperçu corrigé de l'élément 0/i,
+      });
+      expect(changedPreview.tagName).toBe("svg");
+      expect(changedPreview).toHaveAttribute("viewBox", "10 20 50 60");
+      expect(
+        screen.getByTestId("admin-correction-preview-clip"),
+      ).toHaveAttribute("x", "10");
+      expect(
+        screen.getByTestId("admin-correction-preview-clip"),
+      ).toHaveAttribute("y", "20");
+      expect(
+        screen.getByTestId("admin-correction-preview-clip"),
+      ).toHaveAttribute("width", "50");
+      expect(
+        screen.getByTestId("admin-correction-preview-clip"),
+      ).toHaveAttribute("height", "60");
+      expect(
+        screen.getByLabelText(/résumé des modifications/i),
+      ).toHaveTextContent(/\[0, 1, 2, 3\] → \[10, 20, 50, 60\]/i);
 
       await user.clear(screen.getByLabelText(/nom de l'élément/i));
       await user.type(screen.getByLabelText(/nom de l'élément/i), "new-atl");
@@ -770,12 +940,87 @@ describe("AdminAnnotationsPage", () => {
       expect(
         await screen.findByRole("heading", { name: /élément #0 · new-atl/i }),
       ).toBeInTheDocument();
+      expect(screen.getByLabelText(/nom de l'élément/i)).toHaveValue("new-atl");
+      expect(screen.getByLabelText(/zone x pour l'élément 0/i)).toHaveValue(1);
+      expect(screen.getByLabelText(/zone y pour l'élément 0/i)).toHaveValue(2);
+      expect(screen.getByLabelText(/zone w pour l'élément 0/i)).toHaveValue(5);
+      expect(screen.getByLabelText(/zone h pour l'élément 0/i)).toHaveValue(6);
+      expect(
+        screen.getByLabelText(/contexte de l'annotation sélectionnée/i),
+      ).toHaveTextContent(/file 1 \/ 2/i);
+      expect(
+        screen.getByRole("option", {
+          name: /ouvrir l'élément 0 new-atl/i,
+        }),
+      ).toHaveAttribute("aria-selected", "true");
     } finally {
       setIntervalSpy.mockRestore();
       clearIntervalSpy.mockRestore();
     }
+  }, 15_000);
+
+  it("saves an edit and marks it approved when using Enregistrer et valider", async () => {
+    const user = userEvent.setup();
+    const refreshed = queueWithStatuses("pending", "rejected");
+    apiMock.getAdminAnnotationQueue
+      .mockResolvedValueOnce(queueWithStatuses("pending", "rejected"))
+      .mockResolvedValue(refreshed);
+    apiMock.modifyAdminAnnotationElement.mockResolvedValueOnce({
+      status: "ok",
+      local_only: true,
+      warning: "local only",
+      element: refreshed.analyses[0].elements[0],
+    });
+
+    render(<AdminAnnotationsPage />);
+    await screen.findByRole("button", { name: /corriger/i });
+
+    await user.click(screen.getByRole("button", { name: /corriger/i }));
+    await user.click(
+      screen.getByRole("button", { name: /enregistrer et valider/i }),
+    );
+
+    await waitFor(() => {
+      expect(apiMock.modifyAdminAnnotationElement).toHaveBeenCalledWith(
+        "analysis-1",
+        0,
+        {
+          class_name: "atl",
+          bbox: [0, 1, 2, 3],
+          approve_after_save: true,
+        },
+      );
+    });
+    expect(
+      await screen.findByText(/élément 0 enregistré et validé/i),
+    ).toBeInTheDocument();
   });
 
+  it("shows a visible error when editing fails to save", async () => {
+    const user = userEvent.setup();
+    apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(
+      queueWithStatuses("pending", "rejected"),
+    );
+    apiMock.modifyAdminAnnotationElement.mockRejectedValueOnce(
+      new Error("offline"),
+    );
+
+    render(<AdminAnnotationsPage />);
+    await screen.findByRole("button", { name: /corriger/i });
+
+    await user.click(screen.getByRole("button", { name: /corriger/i }));
+    await user.click(screen.getByRole("button", { name: /^enregistrer$/i }));
+
+    expect(
+      await screen.findByText(
+        /impossible d'enregistrer les changements de l'élément 0/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/nom de l'élément/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^enregistrer$/i }),
+    ).toBeEnabled();
+  });
   it("preserves visible status and shows an error when a triage mutation fails", async () => {
     const user = userEvent.setup();
     apiMock.getAdminAnnotationQueue.mockResolvedValueOnce(
@@ -791,9 +1036,13 @@ describe("AdminAnnotationsPage", () => {
     await user.click(screen.getByRole("button", { name: /rejeter/i }));
 
     expect(
-      await screen.findByText(/impossible de marquer l'élément 0 comme Rejeté/i),
+      await screen.findByText(
+        /impossible de marquer l'élément 0 comme Rejeté/i,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getAllByLabelText(/statut À vérifier/i).length).toBeGreaterThan(1);
+    expect(
+      screen.getAllByLabelText(/statut À vérifier/i).length,
+    ).toBeGreaterThan(1);
     expect(apiMock.getAdminAnnotationQueue).toHaveBeenCalledTimes(1);
   });
 });

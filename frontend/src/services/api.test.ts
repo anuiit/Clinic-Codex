@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const axiosMock = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
+  defaults: { withCredentials: false, headers: { common: {} as Record<string, string> } },
 }));
 
 vi.mock("axios", () => ({
@@ -23,6 +24,8 @@ describe("API client contract", () => {
     axiosMock.get.mockReset();
     axiosMock.post.mockReset();
     vi.unstubAllGlobals();
+    axiosMock.defaults.withCredentials = false;
+    axiosMock.defaults.headers.common = {};
     vi.unstubAllEnvs();
   });
 
@@ -118,6 +121,7 @@ describe("API client contract", () => {
 
     expect(fetch).toHaveBeenCalledWith("http://localhost:7117/save-annotation", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -345,6 +349,84 @@ describe("API client contract", () => {
     await expect(api.startAdminTrainingJob(payload)).resolves.toEqual(response);
 
     expect(axiosMock.post).toHaveBeenCalledWith("http://api.test/admin/training/jobs", payload);
+  });
+
+  it("stores the session CSRF token for Axios calls and removes it on logout", async () => {
+    const session = {
+      user: { id: "u1", email: "user@example.test", roles: ["contributor"], permissions: ["analysis.submit"] },
+      csrf_token: "csrf-token",
+    };
+    axiosMock.post.mockResolvedValueOnce({ data: session }).mockResolvedValueOnce({ data: { status: "ok" } });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.login({ email: "user@example.test", password: "secret" })).resolves.toEqual(session);
+    expect(axiosMock.post).toHaveBeenCalledWith("http://api.test/auth/login", { email: "user@example.test", password: "secret" });
+    expect(axiosMock.defaults.withCredentials).toBe(true);
+    expect(axiosMock.defaults.headers.common["X-CSRF-Token"]).toBe("csrf-token");
+
+    await api.logout();
+    expect(axiosMock.post).toHaveBeenLastCalledWith("http://api.test/auth/logout", {});
+    expect(axiosMock.defaults.headers.common["X-CSRF-Token"]).toBeUndefined();
+  });
+
+  it("checks and completes the local first-admin bootstrap", async () => {
+    const bootstrapStatus = {
+      status: "ok",
+      auth_enabled: true,
+      bootstrap_available: true,
+    };
+    const session = {
+      status: "ok",
+      auth_enabled: true,
+      user: {
+        id: "admin-1",
+        email: "admin@example.test",
+        role: "org_admin",
+        roles: ["org_admin"],
+        permissions: ["member.manage"],
+      },
+      csrf_token: "bootstrap-csrf-token",
+    };
+    axiosMock.get.mockResolvedValueOnce({ data: bootstrapStatus });
+    axiosMock.post.mockResolvedValueOnce({ data: session });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.getBootstrapStatus()).resolves.toEqual(bootstrapStatus);
+    expect(axiosMock.get).toHaveBeenCalledWith("http://api.test/auth/bootstrap/status");
+
+    await expect(
+      api.createFirstAdmin({
+        email: "admin@example.test",
+        password: "a-secure-local-password",
+      }),
+    ).resolves.toEqual(session);
+    expect(axiosMock.post).toHaveBeenCalledWith("http://api.test/auth/bootstrap", {
+      email: "admin@example.test",
+      password: "a-secure-local-password",
+    });
+    expect(axiosMock.defaults.headers.common["X-CSRF-Token"]).toBe("bootstrap-csrf-token");
+  });
+
+  it("hydrates the CSRF token from /auth/me and sends it with credentialed saves", async () => {
+    const session = {
+      user: { id: "u1", email: "user@example.test", roles: ["contributor"], permissions: ["analysis.submit"] },
+      csrf_token: "csrf-token",
+    };
+    axiosMock.get.mockResolvedValueOnce({ data: session });
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(jsonResponse({ status: "ok", analysis_id: "a1", saved_count: 1, classes: [] }))));
+    const api = await loadApi("http://api.test");
+
+    await expect(api.getAuthSession()).resolves.toEqual(session);
+    expect(axiosMock.get).toHaveBeenCalledWith("http://api.test/auth/me");
+    await api.saveAnnotation(makeSavePayload());
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://api.test/save-annotation",
+      expect.objectContaining({
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": "csrf-token" },
+      }),
+    );
   });
 
   it("builds backend media URLs for local admin images", async () => {

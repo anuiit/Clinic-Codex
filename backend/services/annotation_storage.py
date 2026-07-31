@@ -118,6 +118,7 @@ def save_annotation(
     annotations: list[dict],
     base_dir: Path,
     elements_dir: Path,  # kept for backward compat — not used
+    author_id: str | None = None,
 ) -> dict:
     if not _SAFE_ID.match(analysis_id):
         raise ValueError(
@@ -161,6 +162,7 @@ def save_annotation(
         metadata = {
             "analysis_id": analysis_id,
             "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "submitted_by": author_id,
             "annotations": saved_annotations,
         }
         (tmp_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))

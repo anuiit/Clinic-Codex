@@ -204,7 +204,7 @@ describe("MainImagePanel shared boundary", () => {
     expect(imports).toEqual(["react", "./MainImagePanel.module.css"]);
     expect(imports).not.toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/react-router-dom/),
+        expect.stringMatching(/react-router/),
         expect.stringMatching(/services\/(api|storage)/),
         expect.stringMatching(
           /utils\/(imageCoords|segmentationBoxes|fuzzyClasses)/,
@@ -242,7 +242,7 @@ describe("MainImagePanel shared boundary", () => {
       "lucide-react",
       "react",
       "react-dom",
-      "react-router-dom",
+      "react-router",
     ]);
   });
 });

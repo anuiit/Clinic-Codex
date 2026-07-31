@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from flask import Blueprint, current_app, jsonify, request
 
+from backend.security.auth import current_user, require_csrf, require_permission
+
 from backend.app.errors import annotation_error_response
 from backend.services.annotation_storage import sanitize_class_name
 
@@ -57,6 +59,8 @@ def _validate_annotation_payload(annotations: list[object]) -> str | None:
 
 
 @bp.post("/save-annotation")
+@require_permission("analysis.submit")
+@require_csrf
 def save_annotation_route():
     data = request.get_json(force=True, silent=True)
     if data is None:
@@ -83,7 +87,11 @@ def save_annotation_route():
         return _validation_error(str(exc))
 
     try:
-        result = services.save_annotation(data["analysis_id"], image, data["annotations"])
+        actor = current_user()
+        if actor is None:
+            result = services.save_annotation(data["analysis_id"], image, data["annotations"])
+        else:
+            result = services.save_annotation(data["analysis_id"], image, data["annotations"], author_id=actor["id"])
         return jsonify(result), 200
     except Exception as exc:  # Preserve Phase 0 storage/internal mappings.
         return annotation_error_response(exc)

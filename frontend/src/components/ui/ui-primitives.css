@@ -8,6 +8,14 @@
   box-shadow: none;
 }
 
+.ui-class-name-menu.ui-panel {
+  z-index: 2147483647;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  opacity: 1;
+  box-shadow: var(--shadow-soft);
+}
+
 .ui-section {
   border: 0;
   border-radius: 0;

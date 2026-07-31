@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { deleteAnalysis, getHistory } from "../../services/storage";
 import type { AnalysisRecord } from "../../types";
 import {

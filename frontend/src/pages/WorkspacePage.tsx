@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Edit3 } from "lucide-react";
+import type { ReactNode } from "react";
 import { appText } from "../i18n/text";
 import { ImageBBoxStage } from "../components/ImageBBoxStage";
 import WorkspaceHistoryPanel from "../components/WorkspaceHistoryPanel";
@@ -21,11 +22,13 @@ import {
 type WorkspacePageProps = {
   themeMode?: ThemeMode;
   onToggleTheme?: () => void;
+  authSlot?: ReactNode;
 };
 
 export default function WorkspacePage({
   themeMode = "dark",
   onToggleTheme = () => undefined,
+  authSlot,
 }: WorkspacePageProps = {}) {
   const navigate = useNavigate();
   const t = appText.workspace;
@@ -153,6 +156,7 @@ export default function WorkspacePage({
         onAnalyze={upload.analyze}
         themeMode={themeMode}
         onToggleTheme={onToggleTheme}
+        authSlot={authSlot}
       />
 
       {upload.preview && upload.file && (

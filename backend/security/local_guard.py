@@ -82,7 +82,7 @@ def require_local_request(fn: F) -> F:
                     {
                         "status": "error",
                         "error_code": "LOCAL_ONLY_FORBIDDEN",
-                        "error": "local-only admin endpoint",
+                        "error": "; ".join(["local-only admin endpoint", *reasons]),
                         "message": "This admin endpoint is only available from a local loopback browser or tool.",
                         "reasons": reasons,
                     }

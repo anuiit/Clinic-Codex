@@ -16,15 +16,25 @@ Output:
         "features":  (N, 384) float32 tensor
         "labels":    (N,) int64 tensor
         "image_paths": list of N strings
+        "source_groups": list of N strings
         "class_names": dict {class_label: element_name}
+        "backbone": str
+        "hidden_dim": int
+        "image_size": int
+    ./precomputed/features.pt.prov.json  — provenance for the cached features
 """
 
+from __future__ import annotations
+
 import argparse
+import hashlib
+import json
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 import yaml
 from PIL import Image
@@ -33,7 +43,89 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from codex_pipeline.data.class_order import class_order_sha256, load_runtime_class_order, validate_metadata_class_order
 from codex_pipeline.data.metadata import filter_classes, load_metadata
+
+
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _normalise_optional_text(value) -> str | None:
+    if value is None:
+        return None
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    return text
+
+
+def build_source_groups(metadata) -> list[str]:
+    source_groups: list[str] = []
+    for row in metadata.itertuples(index=False):
+        codex = _normalise_optional_text(getattr(row, "codex", None))
+        folio = _normalise_optional_text(getattr(row, "folio", None))
+        page = _normalise_optional_text(getattr(row, "page", None))
+        if codex is not None and folio is not None and page is not None:
+            source_groups.append(f"page:{codex}:{folio}:{page}")
+        else:
+            image_path = _normalise_optional_text(getattr(row, "image_path", None))
+            if image_path is None:
+                raise ValueError("metadata row is missing both page coordinates and image_path")
+            source_groups.append(f"image:{image_path}")
+    return source_groups
+
+
+def load_backbone(backbone_name: str, device: torch.device, backbone_manifest: str | Path | None = None):
+    if backbone_manifest is None:
+        print("Loading DINOv2-S/14 backbone from torch.hub...")
+        backbone = torch.hub.load(
+            "facebookresearch/dinov2",
+            backbone_name,
+            pretrained=True,
+        )
+        return backbone.to(device).eval(), {
+            "mode": "torch_hub_pretrained",
+            "backbone": backbone_name,
+        }
+
+    manifest_path = Path(backbone_manifest)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError(f"backbone manifest must be a JSON object: {manifest_path}")
+    if manifest.get("backbone") != backbone_name:
+        raise ValueError(
+            f"backbone manifest targets {manifest.get('backbone')!r}, expected {backbone_name!r}"
+        )
+
+    repository_path = Path(manifest["repository_path"])
+    weights_path = Path(manifest["weights_path"])
+    if not repository_path.exists():
+        raise FileNotFoundError(f"backbone repository path missing: {repository_path}")
+    if not weights_path.is_file():
+        raise FileNotFoundError(f"backbone weights file missing: {weights_path}")
+
+    print("Loading DINOv2-S/14 backbone from local pin...")
+    backbone = torch.hub.load(str(repository_path), backbone_name, source="local", pretrained=False)
+    state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
+    backbone.load_state_dict(state_dict, strict=True)
+    backbone = backbone.to(device).eval()
+    return backbone, {
+        "mode": "local_pin",
+        "backbone": backbone_name,
+        "manifest_path": str(manifest_path.resolve()),
+        "manifest_sha256": sha256_file(manifest_path),
+        "repository_path": str(repository_path),
+        "repository_sha256": manifest.get("source_tree_sha256"),
+        "weights_path": str(weights_path),
+        "weights_sha256": sha256_file(weights_path),
+    }
 
 
 class SimpleImageDataset(Dataset):
@@ -92,9 +184,19 @@ def main():
     parser = argparse.ArgumentParser(description="Pre-compute DINOv2 features")
     parser.add_argument("--config", default="codex_pipeline/config/default.yaml")
     parser.add_argument(
+        "--runtime-config",
+        default=None,
+        help="Runtime class-order contract. Validates the metadata label order before feature export.",
+    )
+    parser.add_argument(
         "--metadata-csv",
         default=None,
         help="Explicit metadata CSV path. Overrides paths.metadata_csv from config.",
+    )
+    parser.add_argument(
+        "--backbone-manifest",
+        default=None,
+        help="Optional local pin manifest for the DINOv2 backbone.",
     )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--device", default="auto")
@@ -110,13 +212,20 @@ def main():
     # Load metadata
     metadata_csv = args.metadata_csv or cfg["paths"]["metadata_csv"]
     metadata = load_metadata(metadata_csv)
-    metadata = filter_classes(metadata, min_images=cfg["data"]["min_images_per_class"])
+    # Retain sparse classes for prototype export; the episodic sampler skips thin classes.
+    runtime_config = args.runtime_config or cfg.get("paths", {}).get("runtime_config")
+    runtime_class_order = None
+    if runtime_config:
+        runtime_class_order = load_runtime_class_order(runtime_config)
+        validate_metadata_class_order(metadata, runtime_class_order)
+        print(f"Runtime class-order hash: {class_order_sha256(runtime_class_order)}")
     print(f"Images: {len(metadata)} across {metadata['class_label'].nunique()} classes")
 
     # Class name mapping
     class_names = {}
     for _, row in metadata.drop_duplicates("class_label").iterrows():
         class_names[row["class_label"]] = row["element_name"]
+    source_groups = build_source_groups(metadata)
 
     # Dataset + loader
     dataset = SimpleImageDataset(metadata, image_size=cfg["data"]["image_size"])
@@ -129,14 +238,11 @@ def main():
     )
 
     # Load frozen DINOv2 backbone
-    print("Loading DINOv2-S/14 backbone...")
-    backbone = torch.hub.load(
-        "facebookresearch/dinov2",
+    backbone, backbone_info = load_backbone(
         cfg["model"]["backbone"],
-        pretrained=True,
+        device,
+        backbone_manifest=args.backbone_manifest,
     )
-    backbone = backbone.to(device)
-    backbone.eval()
 
     hidden_dim = backbone.embed_dim
     print(f"Backbone embed_dim: {hidden_dim}")
@@ -172,13 +278,33 @@ def main():
         "features": features,
         "labels": labels,
         "image_paths": all_paths,
+        "source_groups": source_groups,
         "class_names": class_names,
         "backbone": cfg["model"]["backbone"],
         "hidden_dim": hidden_dim,
         "image_size": cfg["data"]["image_size"],
     }, out_path)
 
+    provenance = {
+        "schema_version": "features-cache.v1",
+        "config_path": str(Path(args.config).resolve()),
+        "config_sha256": sha256_file(args.config),
+        "metadata_csv_path": str(Path(metadata_csv).resolve()),
+        "metadata_csv_sha256": sha256_file(metadata_csv),
+        "runtime_config_path": str(Path(runtime_config).resolve()) if runtime_config else None,
+        "runtime_class_order_sha256": class_order_sha256(runtime_class_order) if runtime_class_order else None,
+        "backbone": backbone_info,
+        "class_count": len(class_names),
+        "image_count": len(metadata),
+        "hidden_dim": hidden_dim,
+        "image_size": cfg["data"]["image_size"],
+        "torch_version": str(torch.__version__),
+    }
+    prov_path = Path(str(out_path) + ".prov.json")
+    prov_path.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
     print(f"Saved to {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+    print(f"Saved provenance to {prov_path}")
 
 
 if __name__ == "__main__":

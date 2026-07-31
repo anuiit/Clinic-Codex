@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from codex_pipeline.data.augmentation import get_train_transform_numpy
 from codex_pipeline.data.metadata import filter_classes, load_metadata
+from codex_pipeline.determinism import configure_determinism
 
 
 def get_device(device_str):
@@ -107,6 +108,12 @@ def main():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output-dir", default="./precomputed")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Deterministic seed for augmentation; defaults to training.seed",
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -114,7 +121,11 @@ def main():
 
     device = get_device(args.device)
     image_size = cfg["data"]["image_size"]
+    seed = int(args.seed if args.seed is not None else cfg["training"]["seed"])
     print(f"Device: {device}")
+    print(f"Deterministic seed: {seed}")
+
+    configure_determinism(seed)
 
     # Load metadata
     metadata = load_metadata(cfg["paths"]["metadata_csv"])
@@ -145,7 +156,7 @@ def main():
     print(f"Will produce: {len(metadata)} originals + {total_aug} augmented = {total_images} total")
 
     # Load augmentation transform
-    transform = get_train_transform_numpy(cfg, image_size)
+    transform = get_train_transform_numpy(cfg, image_size, seed=seed)
 
     # Load DINOv2 backbone
     print("Loading DINOv2-S/14 backbone...")
@@ -247,6 +258,7 @@ def main():
         "image_size": image_size,
         "multiplier": args.multiplier,
         "adaptive": args.adaptive,
+        "augmentation_seed": seed,
     }, out_path)
 
     print(f"\nSaved to {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")

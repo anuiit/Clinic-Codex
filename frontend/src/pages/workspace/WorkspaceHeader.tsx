@@ -1,4 +1,4 @@
-import type { KeyboardEvent, RefObject } from "react";
+import type { KeyboardEvent, RefObject, ReactNode } from "react";
 import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
 import { ThemeToggle, type ThemeMode } from "../../components/ThemeToggle";
 import styles from "./WorkspaceChrome.module.css";
@@ -19,6 +19,7 @@ type WorkspaceHeaderProps = {
   loading: boolean;
   error: string | null;
   labels: WorkspaceHeaderLabels;
+  authSlot?: ReactNode;
   onFileSelected: (file: File) => void;
   onAnalyze: () => void;
   themeMode: ThemeMode;
@@ -33,6 +34,7 @@ export default function WorkspaceHeader({
   loading,
   error,
   labels,
+  authSlot,
   onFileSelected,
   onAnalyze,
   themeMode,
@@ -57,17 +59,18 @@ export default function WorkspaceHeader({
         </span>
       </div>
 
-      <div className="flex flex-1 items-center justify-end gap-3">
+      <div className="flex flex-1 flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+        {authSlot}
         <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
         {error && (
-          <div className="ui-alert ui-alert--danger flex items-center gap-2 px-3 py-1.5 text-xs">
+          <div className="ui-alert ui-alert--danger order-3 flex basis-full items-center gap-2 px-3 py-1.5 text-xs sm:order-none sm:basis-auto">
             <AlertCircle size={14} className="shrink-0" />
-            <span className="max-w-[300px] truncate">{error}</span>
+            <span className="min-w-0 max-w-full truncate sm:max-w-[300px]">{error}</span>
           </div>
         )}
 
         <div
-          className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-2 transition-colors ${dragging ? "border-[color:var(--border-strong)] bg-[var(--accent-soft)]" : "border-[color:var(--field-border)] bg-[var(--field-bg)] hover:border-[color:var(--border-strong)]"}`}
+          className={`flex min-w-0 items-center gap-3 rounded-xl border border-dashed px-4 py-2 transition-colors ${dragging ? "border-[color:var(--border-strong)] bg-[var(--accent-soft)]" : "border-[color:var(--field-border)] bg-[var(--field-bg)] hover:border-[color:var(--border-strong)]"}`}
           onClick={() => inputRef.current?.click()}
           onKeyDown={handleUploadKeyDown}
           role="button"
@@ -84,14 +87,14 @@ export default function WorkspaceHeader({
             }}
           />
           {preview ? (
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <img
                 src={preview}
                 alt={labels.previewAlt}
                 className="h-8 w-8 rounded object-cover"
               />
               <div className="flex flex-col">
-                <span className="ui-text-meta max-w-[120px] truncate font-medium">
+                <span className="ui-text-meta max-w-[45vw] truncate font-medium sm:max-w-[220px]">
                   {file?.name}
                 </span>
               </div>
@@ -102,7 +105,7 @@ export default function WorkspaceHeader({
                   onAnalyze();
                 }}
                 disabled={loading}
-                className="ui-action-primary ml-2 h-8 gap-2 rounded-lg px-3 text-xs disabled:opacity-50"
+                className="ui-action-primary ml-auto h-8 shrink-0 gap-2 rounded-lg px-3 text-xs disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -114,7 +117,7 @@ export default function WorkspaceHeader({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
+            <div className="flex min-w-0 items-center gap-2 text-sm text-[color:var(--text-muted)]">
               <Upload size={16} />
               <span>{labels.uploadPrompt}</span>
             </div>

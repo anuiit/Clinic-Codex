@@ -184,7 +184,7 @@ requires-dist = [
     { name = "albumentations", specifier = ">=1.4,<2.0" },
     { name = "flask", specifier = ">=3.0,<4.0" },
     { name = "flask-cors", specifier = ">=4.0" },
-    { name = "mobile-sam", git = "https://github.com/ChaoningZhang/MobileSAM.git" },
+    { name = "mobile-sam", git = "https://github.com/ChaoningZhang/MobileSAM.git?rev=b01a9ccef3b9e10b099b544efe004d0871802c3b" },
     { name = "numpy", specifier = ">=1.24,<2.5" },
     { name = "pandas", specifier = ">=2.0" },
     { name = "pillow", specifier = ">=10.0" },
@@ -423,7 +423,7 @@ wheels = [
 [[package]]
 name = "mobile-sam"
 version = "1.0"
-source = { git = "https://github.com/ChaoningZhang/MobileSAM.git#b01a9ccef3b9e10b099b544efe004d0871802c3b" }
+source = { git = "https://github.com/ChaoningZhang/MobileSAM.git?rev=b01a9ccef3b9e10b099b544efe004d0871802c3b#b01a9ccef3b9e10b099b544efe004d0871802c3b" }
 
 [[package]]
 name = "mpmath"

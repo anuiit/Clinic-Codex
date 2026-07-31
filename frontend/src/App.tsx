@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import './styles/app-theme.css';
 import './components/ui/ui-primitives.css';
 import appChromeStyles from './components/AppChrome.module.css';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router';
+import { AuthProvider, AuthStatusMenu, useAuth } from './auth/AuthContext';
+import { RouteGuard } from './auth/RouteGuard';
+import LoginPage from './pages/LoginPage';
 import AdminAnnotationsPage from './pages/AdminAnnotationsPage';
 import AnnotationPage from './pages/AnnotationPage';
 import WorkspacePage from './pages/WorkspacePage';
@@ -26,6 +29,24 @@ function getInitialTheme(): ThemeMode {
 
 function isAdminTab(value: string | undefined): value is AdminTab {
   return value === 'review' || value === 'dataset' || value === 'training';
+}
+function AdminAnnotationsLanding() {
+  const { authEnabled, hasPermission } = useAuth();
+  if (!authEnabled) return <Navigate to="/admin/annotations/review" replace />;
+
+  return (
+    <RouteGuard>
+      {hasPermission('annotation.queue.read') ? (
+        <Navigate to="/admin/annotations/review" replace />
+      ) : hasPermission('training.read') ? (
+        <Navigate to="/admin/annotations/training" replace />
+      ) : (
+        <div role="alert" className="ui-alert ui-alert--danger m-6 p-4">
+          Accès refusé : aucun onglet d’administration ne vous est attribué.
+        </div>
+      )}
+    </RouteGuard>
+  );
 }
 
 function LegacyAnalysisRedirect() {
@@ -54,19 +75,20 @@ function AdminAnnotationsRoute({
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
 
-  useEffect(() => {
-    if (tab && !isAdminTab(tab)) {
-      navigate('/admin/annotations/review', { replace: true });
-    }
-  }, [navigate, tab]);
+  if (!isAdminTab(tab)) {
+    return <Navigate to="/admin/annotations/review" replace />;
+  }
 
   return (
-    <AdminAnnotationsPage
-      themeMode={themeMode}
-      onToggleTheme={onToggleTheme}
-      initialTab={isAdminTab(tab) ? tab : 'review'}
-      onNavigateTab={(nextTab) => navigate(`/admin/annotations/${nextTab}`)}
-    />
+    <RouteGuard permission={tab === 'training' ? 'training.read' : 'annotation.queue.read'}>
+      <AdminAnnotationsPage
+        themeMode={themeMode}
+        onToggleTheme={onToggleTheme}
+        initialTab={tab}
+        onNavigateTab={(nextTab) => navigate(`/admin/annotations/${nextTab}`)}
+        authSlot={<AuthStatusMenu />}
+      />
+    </RouteGuard>
   );
 }
 
@@ -84,25 +106,46 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className={`${appChromeStyles.owner} app-shell h-screen w-screen overflow-hidden flex flex-col`} data-theme={themeMode}>
-        <main className="flex-1 overflow-hidden">
-          <Routes>
-            <Route path="/" element={<WorkspacePage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
-            <Route path="/admin/annotation" element={<Navigate to="/admin/annotations" replace />} />
-            <Route
-              path="/admin/annotations"
-              element={<Navigate to="/admin/annotations/review" replace />}
-            />
-            <Route
-              path="/admin/annotations/:tab"
-              element={<AdminAnnotationsRoute themeMode={themeMode} onToggleTheme={toggleTheme} />}
-            />
-            <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/analysis/:id" element={<LegacyAnalysisRedirect />} />
-            <Route path="/annotate/:id" element={<AnnotationPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
-          </Routes>
-        </main>
-      </div>
+      <AuthProvider>
+        <div className={`${appChromeStyles.owner} app-shell flex h-screen w-screen flex-col overflow-hidden max-md:h-auto max-md:min-h-[100dvh] max-md:overflow-y-auto`} data-theme={themeMode}>
+          <main className="flex-1 overflow-hidden max-md:flex-none max-md:overflow-visible">
+            <Routes>
+              <Route path="/login" element={<LoginPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
+              <Route
+                path="/"
+                element={(
+                  <RouteGuard>
+                    <WorkspacePage themeMode={themeMode} onToggleTheme={toggleTheme} authSlot={<AuthStatusMenu />} />
+                  </RouteGuard>
+                )}
+              />
+              <Route path="/admin/annotation" element={<Navigate to="/admin/annotations" replace />} />
+              <Route
+                path="/admin/annotations"
+                element={<AdminAnnotationsLanding />}
+              />
+              <Route
+                path="/admin/annotations/:tab"
+                element={(
+                  <RouteGuard>
+                    <AdminAnnotationsRoute themeMode={themeMode} onToggleTheme={toggleTheme} />
+                  </RouteGuard>
+                )}
+              />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              <Route path="/analysis/:id" element={<LegacyAnalysisRedirect />} />
+              <Route
+                path="/annotate/:id"
+                element={(
+                  <RouteGuard>
+                    <AnnotationPage themeMode={themeMode} onToggleTheme={toggleTheme} authSlot={<AuthStatusMenu />} />
+                  </RouteGuard>
+                )}
+              />
+            </Routes>
+          </main>
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -9,9 +9,16 @@ Tier 3: Mixup / CutMix within the same class
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from typing import Optional
 
 
-def get_train_transform(cfg: dict, image_size: int = 224) -> A.Compose:
+def _compose(transforms, seed: Optional[int] = None):
+    if seed is None:
+        return A.Compose(transforms)
+    return A.Compose(transforms, seed=seed)
+
+
+def get_train_transform(cfg: dict, image_size: int = 224, seed: Optional[int] = None) -> A.Compose:
     """
     Build training augmentation pipeline from config.
     Uses Albumentations v2.0 API.
@@ -90,10 +97,10 @@ def get_train_transform(cfg: dict, image_size: int = 224) -> A.Compose:
         ToTensorV2(),
     ]
 
-    return A.Compose(transforms)
+    return _compose(transforms, seed=seed)
 
 
-def get_train_transform_numpy(cfg: dict, image_size: int = 224) -> A.Compose:
+def get_train_transform_numpy(cfg: dict, image_size: int = 224, seed: Optional[int] = None) -> A.Compose:
     """
     Training augmentation that returns numpy array (no ToTensor/Normalize).
     Used for augmented precomputation where we handle normalization separately.
@@ -103,7 +110,7 @@ def get_train_transform_numpy(cfg: dict, image_size: int = 224) -> A.Compose:
     scale_lo = aug_cfg.get("scale_range", [0.85, 1.15])[0]
     scale_hi = aug_cfg.get("scale_range", [0.85, 1.15])[1]
 
-    return A.Compose([
+    transforms = [
         A.LongestMaxSize(max_size=image_size),
         A.PadIfNeeded(
             min_height=image_size,
@@ -150,7 +157,9 @@ def get_train_transform_numpy(cfg: dict, image_size: int = 224) -> A.Compose:
             val_shift_limit=10,
             p=0.3,
         ),
-    ])
+    ]
+
+    return _compose(transforms, seed=seed)
 
 
 def get_val_transform(image_size: int = 224) -> A.Compose:

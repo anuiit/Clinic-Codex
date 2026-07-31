@@ -84,6 +84,16 @@ def test_retrain_sh_dry_run_uses_approved_only_explicit_paths():
     assert " --config-out backend/codex_model/config.json" not in output
 
 
+def test_retrain_defaults_to_cuda_with_an_explicit_cpu_override():
+    shell = (REPO_ROOT / "scripts/retrain.sh").read_text()
+    powershell = (REPO_ROOT / "scripts/retrain.ps1").read_text()
+
+    assert 'DEVICE="${DEVICE:-cuda}"' in shell
+    assert "require_cuda" in shell
+    assert "$Device = if ($env:DEVICE) { $env:DEVICE } else { 'cuda' }" in powershell
+    assert "Assert-CudaAvailable" in powershell
+
+
 def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     result = subprocess.run(
         ["bash", "scripts/retrain.sh", "--dry-run"],
@@ -96,6 +106,34 @@ def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     assert result.returncode == 2
     assert "invalid MODEL_VERSION_ID" in result.stderr
     assert "model_registry/versions/../../codex_model" not in result.stdout
+
+
+def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance():
+    result = subprocess.run(
+        [
+            "bash",
+            "scripts/retrain.sh",
+            "--dry-run",
+            "--elements-dir",
+            "/tmp/external-snapshot/Elements",
+            "--approved-manifest",
+            "/tmp/external-snapshot/import_snapshot.json",
+            "--config",
+            "/tmp/external-snapshot/training_config.yaml",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "20260527T010203Z-test-external"},
+    )
+    assert "[1/6] use_prepared_elements_snapshot" in result.stdout
+    assert "scripts/export_approved_annotations.py" not in result.stdout
+    assert "/tmp/external-snapshot/Elements" in result.stdout
+    assert "/tmp/external-snapshot/import_snapshot.json" in result.stdout
+    assert "/tmp/external-snapshot/training_config.yaml" in result.stdout
+    assert "--absolute-paths" in result.stdout
+    assert "model_registry/versions/20260527T010203Z-test-external/training_data/metadata.csv" in result.stdout
 
 
 def test_retrain_ps1_contains_matching_approved_only_stage_contract():

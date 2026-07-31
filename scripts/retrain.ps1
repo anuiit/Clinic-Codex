@@ -15,7 +15,10 @@ to activate a candidate.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$ElementsDirOverride,
+    [string]$ApprovedManifestOverride,
+    [string]$TrainingConfigOverride
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,7 +66,31 @@ $ClassifierConfig = Join-Path $VersionDir 'runtime/config.json'
 $ExportManifest = Join-Path $VersionDir 'export_model_manifest.json'
 $Config = Join-Path $BackendDir 'codex_pipeline/config/default.yaml'
 $BatchSize = if ($env:BATCH_SIZE) { $env:BATCH_SIZE } else { '16' }
-$Device = if ($env:DEVICE) { $env:DEVICE } else { 'auto' }
+# Training is GPU-first. Set DEVICE=cpu only for an intentional CPU fallback.
+$Device = if ($env:DEVICE) { $env:DEVICE } else { 'cuda' }
+
+if ($ApprovedManifestOverride -and -not $ElementsDirOverride) {
+    Write-Error 'ERROR: -ApprovedManifestOverride requires -ElementsDirOverride.'
+    exit 2
+}
+if ($ElementsDirOverride -and -not $ApprovedManifestOverride) {
+    Write-Error 'ERROR: -ElementsDirOverride requires -ApprovedManifestOverride for candidate provenance.'
+    exit 2
+}
+if ($ElementsDirOverride) {
+    $ElementsDir = [System.IO.Path]::GetFullPath($ElementsDirOverride)
+    $ApprovedManifest = [System.IO.Path]::GetFullPath($ApprovedManifestOverride)
+    $TrainingWorkDir = Join-Path $VersionDir 'training_data'
+    $MetadataCsv = Join-Path $TrainingWorkDir 'metadata.csv'
+    $PrecomputedDir = Join-Path $TrainingWorkDir 'precomputed'
+    $FeaturesFile = Join-Path $PrecomputedDir 'features.pt'
+} else {
+    $ApprovedManifest = Join-Path $ElementsDir '_approved_export_manifest.json'
+    $TrainingWorkDir = $ApprovedRoot
+}
+if ($TrainingConfigOverride) {
+    $Config = [System.IO.Path]::GetFullPath($TrainingConfigOverride)
+}
 
 function Write-Step([string]$Message) {
     Write-Host $Message
@@ -117,10 +144,28 @@ function Invoke-PipelineStep([string]$Label, [string[]]$CommandParts) {
     }
 }
 
+function Assert-CudaAvailable([string]$PythonPath, [string]$RequestedDevice) {
+    if ($RequestedDevice -notmatch '^cuda(:[0-9]+)?$') {
+        return
+    }
+
+    & $PythonPath -c @'
+import sys
+import torch
+if not torch.cuda.is_available():
+    sys.exit("ERROR: DEVICE=cuda was requested, but this Python environment cannot use CUDA. Install the CUDA PyTorch build with scripts/install_gpu_training.sh, or explicitly override with DEVICE=cpu.")
+print(f"CUDA training device: {torch.cuda.get_device_name(0)}")
+'@
+    if ($LASTEXITCODE -ne 0) {
+        throw 'CUDA preflight failed.'
+    }
+}
+
 Set-Location $RepoRoot
 $Python = Get-PythonPath
 
 if (-not $DryRun -and -not $WhatIfPreference) {
+    Assert-CudaAvailable $Python $Device
     if (Test-Path $LockFile) {
         $oldPidText = (Get-Content $LockFile -Raw).Trim()
         $oldPid = 0
@@ -133,21 +178,37 @@ if (-not $DryRun -and -not $WhatIfPreference) {
     }
 
     Set-Content -Path $LockFile -Value $PID -Encoding ascii
+    New-Item -ItemType Directory -Force -Path $TrainingWorkDir | Out-Null
 }
 
 try {
-    Invoke-PipelineStep '[1/6] export_approved_annotations' @(
-        $Python,
-        (Join-Path $RepoRoot 'scripts/export_approved_annotations.py'),
-        '--annotations-dir', $AnnotationsDir,
-        '--output', $ElementsDir
-    )
-    Invoke-PipelineStep '[2/6] build_metadata' @(
+    if ($ElementsDirOverride) {
+        Write-Step '=== [1/6] use_prepared_elements_snapshot ==='
+        Write-Host ("+ prepared Elements: " + $ElementsDir)
+        Write-Host ("+ approved manifest: " + $ApprovedManifest)
+        if (-not $DryRun) {
+            if (-not (Test-Path -Path $ElementsDir -PathType Container)) { throw "Elements directory does not exist: $ElementsDir" }
+            if (-not (Test-Path -Path $ApprovedManifest -PathType Leaf)) { throw "Approved manifest does not exist: $ApprovedManifest" }
+            if (-not (Test-Path -Path $Config -PathType Leaf)) { throw "Training config does not exist: $Config" }
+        }
+    } else {
+        Invoke-PipelineStep '[1/6] export_approved_annotations' @(
+            $Python,
+            (Join-Path $RepoRoot 'scripts/export_approved_annotations.py'),
+            '--annotations-dir', $AnnotationsDir,
+            '--output', $ElementsDir
+        )
+    }
+    $MetadataCommand = @(
         $Python,
         (Join-Path $Pipeline 'build_metadata.py'),
         '--elements-dir', $ElementsDir,
         '--output', $MetadataCsv
     )
+    if ($ElementsDirOverride) {
+        $MetadataCommand += '--absolute-paths'
+    }
+    Invoke-PipelineStep '[2/6] build_metadata' $MetadataCommand
     Invoke-PipelineStep '[3/6] precompute_embeddings' @(
         $Python,
         (Join-Path $Pipeline 'precompute_embeddings.py'),
@@ -183,7 +244,7 @@ try {
         '--registry-dir', $ModelRegistryDir,
         '--version-id', $ModelVersionId,
         '--metadata-csv', $MetadataCsv,
-        '--approved-manifest', (Join-Path $ElementsDir '_approved_export_manifest.json')
+        '--approved-manifest', $ApprovedManifest
     )
     Write-Step "=== Candidate model version created: $ModelVersionId ==="
     Write-Step "=== Inspect: $VersionDir ==="

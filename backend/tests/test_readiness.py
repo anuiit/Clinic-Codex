@@ -192,7 +192,10 @@ def test_segment_returns_offline_friendly_missing_asset_error_from_segmentation(
 
 
 def test_unrelated_segment_runtime_errors_are_not_labeled_missing_assets():
-    app = create_app(settings=Settings(testing=False), services=RuntimeBoomServices())
+    app = create_app(
+        settings=Settings(testing=False, auth_required=False),
+        services=RuntimeBoomServices(),
+    )
     with app.test_client() as client:
         resp = _post_image(client, "/segment")
 

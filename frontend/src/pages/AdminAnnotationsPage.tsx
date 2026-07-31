@@ -9,6 +9,7 @@ import { PanelSkeleton } from "./adminAnnotations/shared";
 import { ADMIN_QUEUE_AUTO_REFRESH_MS, ADMIN_TABS, STATUS_LABEL, type AdminAnnotationsPageProps, type AdminTab } from "./adminAnnotations/model";
 import {
   getAdminAnnotationQueue,
+  getClasses,
   modifyAdminAnnotationElement,
   setAdminAnnotationReviewStatus,
 } from "../services/api";
@@ -24,6 +25,7 @@ function AdminAnnotationsPage({
   onToggleTheme,
   initialTab = "review",
   onNavigateTab,
+  authSlot,
 }: AdminAnnotationsPageProps) {
   const [queue, setQueue] = useState<AdminAnnotationQueue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,7 @@ function AdminAnnotationsPage({
   const [mutatingKey, setMutatingKey] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [classNames, setClassNames] = useState<string[]>([]);
   const [localActiveTab, setLocalActiveTab] = useState<AdminTab>(initialTab);
   const activeTab = onNavigateTab ? initialTab : localActiveTab;
   const [queueRefreshing, setQueueRefreshing] = useState(false);
@@ -87,6 +90,26 @@ function AdminAnnotationsPage({
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [loadQueue]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const classes = await getClasses();
+        if (!cancelled) {
+          setClassNames(classes.class_names);
+        }
+      } catch {
+        if (!cancelled) {
+          setClassNames([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const canRefreshQueue =
     !loading && !queueRefreshing && !mutatingKey && !editingKey;
@@ -178,7 +201,9 @@ function AdminAnnotationsPage({
           `${successMessage} La file n'a pas pu être actualisée ; utilisez Actualiser pour resynchroniser.`,
         );
       }
-      setEditingKey(null);
+      if (payload.approve_after_save) {
+        setEditingKey(null);
+      }
     } catch {
       setActionError(
         `Impossible d'enregistrer les changements de l'élément ${element.index}. L'annotation visible n'a pas été modifiée.`,
@@ -215,6 +240,7 @@ function AdminAnnotationsPage({
         onRefresh={handleManualRefresh}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
+        authSlot={authSlot}
       />
 
       <div className="admin-alert-stack">
@@ -241,7 +267,9 @@ function AdminAnnotationsPage({
       </div>
 
       {queue ? (
-        <div className="admin-tab-content">
+        <div
+          className={`admin-tab-content ${activeTab === "review" ? "admin-tab-content--review" : ""}`}
+        >
           {ADMIN_TABS.map((tab) => (
             <section
               key={tab.id}
@@ -257,6 +285,7 @@ function AdminAnnotationsPage({
                   mutatingKey={mutatingKey}
                   editingKey={effectiveEditingKey}
                   onSelect={handleSelectElement}
+                  classNames={classNames}
                   onReview={handleReview}
                   onModify={handleModify}
                   onEdit={(element) => {

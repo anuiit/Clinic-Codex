@@ -1,6 +1,6 @@
 import { render, fireEvent, act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AnalysisRecord } from "../types";
 
@@ -110,6 +110,27 @@ beforeEach(() => {
 });
 
 describe("AnnotationPage element naming UX", () => {
+  it("stays on the current annotation after saving", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => {
+      expect(updateElements).toHaveBeenCalledWith(
+        "test-id",
+        BASE_RECORD.result.elements,
+        {},
+      );
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+
+    expect(screen.queryByText("home")).not.toBeInTheDocument();
+    expect(screen.getByTestId("annotation-page-chrome")).toBeInTheDocument();
+  });
+
   it("renames from fuzzy suggestions while preserving the bbox", async () => {
     const user = userEvent.setup();
     const { container } = renderPage();

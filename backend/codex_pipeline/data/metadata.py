@@ -40,6 +40,7 @@ def build_metadata(
     elements_dir: str,
     read_image_sizes: bool = False,
     base_dir: str = None,
+    absolute_paths: bool = False,
 ) -> pd.DataFrame:
     """
     Scan Elements directory and build a metadata DataFrame.
@@ -49,6 +50,9 @@ def build_metadata(
         read_image_sizes: if True, open each image to read width/height (slow)
         base_dir: root directory used to compute relative image paths.
                   Defaults to the parent of elements_dir (i.e., project root).
+        absolute_paths: write absolute image paths instead of paths relative to
+                        ``base_dir``. Useful when metadata is written outside
+                        the Elements tree, such as a candidate model directory.
 
     Returns DataFrame with columns:
         image_path, element_id, element_name, class_label,
@@ -86,7 +90,7 @@ def build_metadata(
             file_info = parse_filename(img_path.name)
 
             record = {
-                "image_path": str(os.path.relpath(img_path, project_root)),
+                "image_path": str(img_path) if absolute_paths else str(os.path.relpath(img_path, project_root)),
                 "element_id": parsed["element_id"],
                 "element_name": parsed["element_name"],
                 "class_label": class_map[key],

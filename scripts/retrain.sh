@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # retrain.sh — approved-only classifier retraining with explicit repo-root paths.
-# Usage: bash scripts/retrain.sh [--dry-run]
+# Usage: bash scripts/retrain.sh [--dry-run] [--elements-dir <Elements>] [--approved-manifest <snapshot.json>] [--config <training.yaml>]
 
 set -euo pipefail
 
@@ -39,12 +39,16 @@ CLASSIFIER_CONFIG="$VERSION_DIR/runtime/config.json"
 EXPORT_MANIFEST="$VERSION_DIR/export_model_manifest.json"
 CONFIG="$BACKEND_DIR/codex_pipeline/config/default.yaml"
 BATCH_SIZE="${BATCH_SIZE:-16}"
-DEVICE="${DEVICE:-auto}"
+# Training is GPU-first. Set DEVICE=cpu only for an intentional CPU fallback.
+DEVICE="${DEVICE:-cuda}"
 DRY_RUN=0
+ELEMENTS_DIR_OVERRIDE=""
+APPROVED_MANIFEST_OVERRIDE=""
+CONFIG_OVERRIDE=""
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/retrain.sh [--dry-run]
+Usage: bash scripts/retrain.sh [--dry-run] [--elements-dir <Elements>] [--approved-manifest <snapshot.json>] [--config <training.yaml>]
 
 Runs approved-only classifier/prototype retraining:
   1. export approved annotation crops to backend/training_data/approved/Elements
@@ -56,6 +60,12 @@ Runs approved-only classifier/prototype retraining:
 
 No segmentation/MobileSAM retraining is performed.
 No runtime backend/codex_model artifacts are modified; run scripts/promote_model.py to activate a candidate.
+
+CUDA is required by default. Set DEVICE=cpu only for an intentional CPU run.
+
+--elements-dir uses an already materialized training snapshot instead of
+exporting admin annotations. When used, --approved-manifest must point to that
+snapshot's provenance manifest (for example import_snapshot.json).
 EOF
 }
 
@@ -64,6 +74,21 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       DRY_RUN=1
       shift
+      ;;
+    --elements-dir)
+      [[ $# -ge 2 ]] || { echo "ERROR: --elements-dir requires a path" >&2; exit 2; }
+      ELEMENTS_DIR_OVERRIDE="$2"
+      shift 2
+      ;;
+    --approved-manifest)
+      [[ $# -ge 2 ]] || { echo "ERROR: --approved-manifest requires a path" >&2; exit 2; }
+      APPROVED_MANIFEST_OVERRIDE="$2"
+      shift 2
+      ;;
+    --config)
+      [[ $# -ge 2 ]] || { echo "ERROR: --config requires a path" >&2; exit 2; }
+      CONFIG_OVERRIDE="$2"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -77,6 +102,32 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -n "$APPROVED_MANIFEST_OVERRIDE" && -z "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  echo "ERROR: --approved-manifest requires --elements-dir" >&2
+  exit 2
+fi
+
+if [[ -n "$CONFIG_OVERRIDE" ]]; then
+  CONFIG_DIR="$(cd "$(dirname "$CONFIG_OVERRIDE")" 2>/dev/null && pwd -P || printf '%s' "$(dirname "$CONFIG_OVERRIDE")")"
+  CONFIG="$CONFIG_DIR/$(basename "$CONFIG_OVERRIDE")"
+fi
+
+if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  ELEMENTS_DIR="$(cd "$ELEMENTS_DIR_OVERRIDE" 2>/dev/null && pwd -P || printf '%s' "$ELEMENTS_DIR_OVERRIDE")"
+  APPROVED_MANIFEST="$APPROVED_MANIFEST_OVERRIDE"
+  if [[ -z "$APPROVED_MANIFEST" ]]; then
+    echo "ERROR: --elements-dir requires --approved-manifest for candidate provenance" >&2
+    exit 2
+  fi
+  TRAINING_WORK_DIR="$VERSION_DIR/training_data"
+  METADATA_CSV="$TRAINING_WORK_DIR/metadata.csv"
+  PRECOMPUTED_DIR="$TRAINING_WORK_DIR/precomputed"
+  FEATURES_FILE="$PRECOMPUTED_DIR/features.pt"
+else
+  APPROVED_MANIFEST="$ELEMENTS_DIR/_approved_export_manifest.json"
+  TRAINING_WORK_DIR="$APPROVED_ROOT"
+fi
+
 run_step() {
   local label="$1"
   shift
@@ -89,7 +140,25 @@ run_step() {
   fi
 }
 
+require_cuda() {
+  [[ "$DEVICE" =~ ^cuda(:[0-9]+)?$ ]] || return 0
+  "$PYTHON" - <<'PY'
+import sys
+import torch
+
+if not torch.cuda.is_available():
+    sys.exit(
+        "ERROR: DEVICE=cuda was requested, but this Python environment cannot use CUDA. "
+        "Install the CUDA PyTorch build with scripts/install_gpu_training.sh, "
+        "or explicitly override with DEVICE=cpu."
+    )
+
+print(f"CUDA training device: {torch.cuda.get_device_name(0)}")
+PY
+}
+
 if [[ "$DRY_RUN" -eq 0 ]]; then
+  require_cuda
   if [[ -f "$LOCKFILE" ]]; then
     OLD_PID="$(cat "$LOCKFILE")"
     if kill -0 "$OLD_PID" 2>/dev/null; then
@@ -102,17 +171,37 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
 
   echo $$ > "$LOCKFILE"
   trap 'rm -f "$LOCKFILE"' EXIT INT TERM
+  mkdir -p "$TRAINING_WORK_DIR"
 fi
 
-run_step "[1/6] export_approved_annotations" \
-  "$PYTHON" "$REPO_ROOT/scripts/export_approved_annotations.py" \
-  --annotations-dir "$ANNOTATIONS_DIR" \
-  --output "$ELEMENTS_DIR"
+if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  echo "=== [1/6] use_prepared_elements_snapshot ==="
+  printf '+ prepared Elements: %q\n' "$ELEMENTS_DIR"
+  printf '+ approved manifest: %q\n' "$APPROVED_MANIFEST"
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    [[ -d "$ELEMENTS_DIR" ]] || { echo "ERROR: Elements directory does not exist: $ELEMENTS_DIR" >&2; exit 2; }
+    [[ -f "$APPROVED_MANIFEST" ]] || { echo "ERROR: approved manifest does not exist: $APPROVED_MANIFEST" >&2; exit 2; }
+    [[ -f "$CONFIG" ]] || { echo "ERROR: training config does not exist: $CONFIG" >&2; exit 2; }
+  fi
+else
+  run_step "[1/6] export_approved_annotations" \
+    "$PYTHON" "$REPO_ROOT/scripts/export_approved_annotations.py" \
+    --annotations-dir "$ANNOTATIONS_DIR" \
+    --output "$ELEMENTS_DIR"
+fi
 
-run_step "[2/6] build_metadata" \
-  "$PYTHON" "$PIPELINE/build_metadata.py" \
-  --elements-dir "$ELEMENTS_DIR" \
-  --output "$METADATA_CSV"
+if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  run_step "[2/6] build_metadata" \
+    "$PYTHON" "$PIPELINE/build_metadata.py" \
+    --elements-dir "$ELEMENTS_DIR" \
+    --output "$METADATA_CSV" \
+    --absolute-paths
+else
+  run_step "[2/6] build_metadata" \
+    "$PYTHON" "$PIPELINE/build_metadata.py" \
+    --elements-dir "$ELEMENTS_DIR" \
+    --output "$METADATA_CSV"
+fi
 
 run_step "[3/6] precompute_embeddings" \
   "$PYTHON" "$PIPELINE/precompute_embeddings.py" \
@@ -145,7 +234,7 @@ run_step "[6/6] export_model" \
   --registry-dir "$MODEL_REGISTRY_DIR" \
   --version-id "$MODEL_VERSION_ID" \
   --metadata-csv "$METADATA_CSV" \
-  --approved-manifest "$ELEMENTS_DIR/_approved_export_manifest.json"
+  --approved-manifest "$APPROVED_MANIFEST"
 
 echo "=== Candidate model version created: $MODEL_VERSION_ID ==="
 echo "=== Inspect: $VERSION_DIR ==="

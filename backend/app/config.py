@@ -40,6 +40,21 @@ class Settings:
     admin_training_max_batch_size: int = 256
     admin_training_allowed_devices: tuple[str, ...] = ("auto", "cpu", "mps", "cuda")
 
+    auth_required: bool | None = None
+    auth_secret_key: str = ""
+    auth_session_hours: int = 24 * 7
+    auth_cookie_secure: bool = True
+    auth_bootstrap_email: str = ""
+    auth_bootstrap_password: str = ""
+    auth_bootstrap_role: str = "org_admin"
+
+    @property
+    def authentication_enabled(self) -> bool:
+        return self.auth_required if self.auth_required is not None else not self.testing
+
+    @property
+    def auth_database_path(self) -> Path:
+        return self.backend_root / "clinic_auth.sqlite3"
     @property
     def class_config_path(self) -> Path:
         return self.backend_root / "codex_model" / "config.json"
@@ -92,5 +107,12 @@ class Settings:
             max_image_dimension=_positive_int(os.environ.get("MAX_IMAGE_DIMENSION"), 10_000),
             enable_legacy_endpoints=_truthy(os.environ.get("ENABLE_LEGACY_ENDPOINTS"), True),
             enable_admin_training_jobs=_truthy(os.environ.get("ENABLE_ADMIN_TRAINING_JOBS"), False),
+            auth_required=None if "AUTH_REQUIRED" not in os.environ else _truthy(os.environ.get("AUTH_REQUIRED"), False),
+            auth_secret_key=os.environ.get("AUTH_SECRET_KEY", ""),
+            auth_session_hours=_positive_int(os.environ.get("AUTH_SESSION_HOURS"), 24 * 7),
+            auth_cookie_secure=_truthy(os.environ.get("AUTH_COOKIE_SECURE"), not _truthy(os.environ.get("FLASK_DEBUG"), False)),
+            auth_bootstrap_email=os.environ.get("AUTH_BOOTSTRAP_EMAIL", ""),
+            auth_bootstrap_password=os.environ.get("AUTH_BOOTSTRAP_PASSWORD", ""),
+            auth_bootstrap_role=os.environ.get("AUTH_BOOTSTRAP_ROLE", "org_admin"),
             testing=_truthy(os.environ.get("FLASK_TESTING"), False),
         )

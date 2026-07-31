@@ -1,5 +1,6 @@
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { ImageBBoxStage } from "../components/ImageBBoxStage";
 import type { ThemeMode } from "../components/ThemeToggle";
 import { appText } from "../i18n/text";
@@ -41,14 +42,15 @@ function resizeHandle(
 type AnnotationPageProps = {
   themeMode?: ThemeMode;
   onToggleTheme?: () => void;
+  authSlot?: ReactNode;
 };
 
 export default function AnnotationPage({
   themeMode = "dark",
   onToggleTheme = () => undefined,
+  authSlot,
 }: AnnotationPageProps = {}) {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = appText.annotation;
 
@@ -112,7 +114,6 @@ export default function AnnotationPage({
     record: annotation.record,
     elements: annotation.elements,
     annotationStatus: annotation.annotationStatus,
-    navigate,
     labels: {
       submitBlockedUnnamed: t.submitBlockedUnnamed,
       submitBlockedNone: t.submitBlockedNone,
@@ -153,6 +154,7 @@ export default function AnnotationPage({
         onSendSubmittedForReview={submission.handleSendSubmittedForReview}
         themeMode={themeMode}
         onToggleTheme={onToggleTheme}
+        authSlot={authSlot}
       />
 
       <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)] 2xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.45fr)]">

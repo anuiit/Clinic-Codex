@@ -1,0 +1,33 @@
+# CPU-only, deterministic smoke recipe.  It retains the 286-class runtime
+# contract while keeping the projection-head training stage bounded.
+paths:
+  elements_dir: "./Elements"
+  metadata_csv: "./metadata.csv"
+  checkpoint_dir: "./checkpoints"
+  prototype_dir: "./prototypes"
+data:
+  image_size: 224
+  min_images_per_class: 1
+  val_fraction: 0.15
+  num_workers: 0
+model:
+  backbone: "dinov2_vits14"
+  embedding_dim: 128
+  freeze_blocks: 9
+  pretrained: true
+training:
+  episodes_per_epoch: 2
+  num_epochs: 1
+  n_way: 3
+  k_shot: 1
+  q_queries: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  lr_scheduler: "cosine"
+  warmup_epochs: 0
+  temperature: 0.1
+  device: "cpu"
+  seed: 42
+evaluation:
+  k_shot_values: [1]
+  num_eval_episodes: 2

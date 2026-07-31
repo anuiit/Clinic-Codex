@@ -8,6 +8,7 @@ from backend.app.config import Settings
 
 def register_routes(app: Flask, settings: Settings, services) -> None:
     from .admin_annotations import bp as admin_annotations_bp
+    from .auth import bp as auth_bp
     from .annotations import bp as annotations_bp
     from .admin_training import bp as admin_training_bp
     from .classes import bp as classes_bp
@@ -17,6 +18,7 @@ def register_routes(app: Flask, settings: Settings, services) -> None:
     from .similarity import legacy_bp, bp as similarity_bp
 
     app.register_blueprint(health_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(classes_bp)
     app.register_blueprint(annotations_bp)
     app.register_blueprint(admin_annotations_bp)

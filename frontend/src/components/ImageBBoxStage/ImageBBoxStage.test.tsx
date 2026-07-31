@@ -422,7 +422,7 @@ describe("ImageBBoxStage shared image/bbox boundary", () => {
 
     expect(imports).not.toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/react-router-dom/),
+        expect.stringMatching(/react-router/),
         expect.stringMatching(/services\/(api|storage)/),
         expect.stringMatching(/pages\/(workspace|annotation)/),
       ]),

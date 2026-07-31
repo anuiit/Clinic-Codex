@@ -11,6 +11,8 @@ import json
 import os
 import re
 import uuid
+from functools import wraps
+from threading import RLock
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -217,12 +219,20 @@ def _split_payload_for_element(
     }
 
 
+def _serialized_mutation(fn):
+    @wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        with self._mutation_lock:
+            return fn(self, *args, **kwargs)
+    return wrapper
+
 class AnnotationReviewStore:
     """File-backed element-level review manifest over submitted annotations."""
 
     def __init__(self, annotations_dir: Path, manifest_path: Path | None = None):
         self.annotations_dir = Path(annotations_dir)
         self.manifest_path = Path(manifest_path) if manifest_path else self.annotations_dir / MANIFEST_FILENAME
+        self._mutation_lock = RLock()
 
     def list_queue(self) -> dict[str, Any]:
         manifest = self._load_manifest()
@@ -270,8 +280,10 @@ class AnnotationReviewStore:
             "diagnostics": diagnostics,
         }
 
-    def set_status(self, analysis_id: str, index: int, status: str) -> dict[str, Any]:
+    @_serialized_mutation
+    def set_status(self, analysis_id: str, index: int, status: str, *, reviewer_id: str | None = None) -> dict[str, Any]:
         _validate_analysis_id(analysis_id)
+        self._assert_not_submitter(analysis_id, reviewer_id)
         _validate_index(index)
         _validate_status(status)
 
@@ -298,6 +310,7 @@ class AnnotationReviewStore:
             "index": index,
             "status": status,
             "reviewed_at": utc_now_iso(),
+            "reviewed_by": reviewer_id,
             "source_fingerprint": element["source_fingerprint"],
             "class_name": element["class_name"],
             "bbox": element["bbox"],
@@ -312,6 +325,7 @@ class AnnotationReviewStore:
             "element": refreshed,
         }
 
+    @_serialized_mutation
     def modify_element(
         self,
         analysis_id: str,
@@ -320,6 +334,7 @@ class AnnotationReviewStore:
         class_name: str,
         bbox: Sequence[int | float],
         status: str = "pending",
+        reviewer_id: str | None = None,
     ) -> dict[str, Any]:
         """Modify canonical class/bbox data and record a fresh review decision.
 
@@ -331,6 +346,7 @@ class AnnotationReviewStore:
         is available.
         """
         _validate_analysis_id(analysis_id)
+        self._assert_not_submitter(analysis_id, reviewer_id)
         _validate_index(index)
         _validate_status(status)
 
@@ -438,6 +454,7 @@ class AnnotationReviewStore:
             "index": index,
             "status": status,
             "reviewed_at": utc_now_iso(),
+            "reviewed_by": reviewer_id,
             "source_fingerprint": element["source_fingerprint"],
             "class_name": element["class_name"],
             "bbox": element["bbox"],
@@ -559,6 +576,7 @@ class AnnotationReviewStore:
             )
             return None
         uploaded_at = metadata.get("uploaded_at")
+        submitted_by = metadata.get("submitted_by")
         image_path = analysis_dir / "image.png"
         annotations = metadata.get("annotations", [])
         if not isinstance(annotations, list):
@@ -686,6 +704,20 @@ class AnnotationReviewStore:
             "image_exists": image_path.is_file(),
             "elements": elements,
         }
+
+    def _assert_not_submitter(self, analysis_id: str, reviewer_id: str | None) -> None:
+        """Legacy submissions without an author remain reviewable; known authors do not self-review."""
+        if reviewer_id is None:
+            return
+        metadata_path = self.annotations_dir / analysis_id / "metadata.json"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise AnnotationReviewNotFoundError(f"annotation metadata not found: {analysis_id}") from exc
+        except json.JSONDecodeError as exc:
+            raise AnnotationReviewValidationError(f"metadata.json is invalid JSON: {exc}") from exc
+        if metadata.get("submitted_by") == reviewer_id:
+            raise AnnotationReviewValidationError("self-review is not permitted")
 
     @staticmethod
     def _find_element(

@@ -31,6 +31,17 @@ case "$PYVER" in
 esac
 log "Using $PYTHON ($PYVER)"
 
+command -v node >/dev/null 2>&1 || fail "Need Node.js 22.22 or newer. Install Node.js, reopen the shell, then re-run this script."
+command -v npm >/dev/null 2>&1 || fail "Need npm on PATH. Install Node.js 22.22 or newer, reopen the shell, then re-run this script."
+NODE_VERSION=$(node -p 'process.versions.node' 2>/dev/null) || fail "Unable to read the Node.js version."
+"$PYTHON" - "$NODE_VERSION" <<'PY' || fail "Need Node.js 22.22 or newer. Found $NODE_VERSION."
+import sys
+
+parts = tuple(int(part) for part in sys.argv[1].split(".")[:3])
+raise SystemExit(0 if parts >= (22, 22, 0) else 1)
+PY
+log "Using Node.js $NODE_VERSION"
+
 # Disk space check (need ~2GB)
 AVAIL_KB=$(df -k . | awk 'NR==2 {print $4}')
 [ "$AVAIL_KB" -gt 2000000 ] || fail "Need >=2GB free disk. Have $((AVAIL_KB/1024))MB."
@@ -44,6 +55,32 @@ else
 fi
 PIP="backend/.venv/bin/pip"
 PY="backend/.venv/bin/python"
+
+# --- Local authentication configuration (idempotent, no default credentials) ---
+log "Local authentication: backend/.env"
+ENV_FILE="backend/.env"
+[ ! -e "$ENV_FILE" ] || [ -f "$ENV_FILE" ] || fail "$ENV_FILE exists but is not a regular file"
+
+ENV_ENTRIES=()
+grep -Eq '^[[:space:]]*AUTH_REQUIRED[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
+  || ENV_ENTRIES+=("AUTH_REQUIRED=true")
+grep -Eq '^[[:space:]]*AUTH_SECRET_KEY[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
+  || ENV_ENTRIES+=("AUTH_SECRET_KEY=$($PY -c 'import secrets; print(secrets.token_urlsafe(48))')")
+grep -Eq '^[[:space:]]*AUTH_COOKIE_SECURE[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
+  || ENV_ENTRIES+=("AUTH_COOKIE_SECURE=false")
+
+if [ "${#ENV_ENTRIES[@]}" -gt 0 ]; then
+  if [ ! -e "$ENV_FILE" ]; then
+    (umask 077 && : > "$ENV_FILE") || fail "Could not create $ENV_FILE"
+  elif [ -s "$ENV_FILE" ]; then
+    printf '\n' >> "$ENV_FILE" || fail "Could not update $ENV_FILE"
+  fi
+  printf '%s\n' "${ENV_ENTRIES[@]}" >> "$ENV_FILE" || fail "Could not update $ENV_FILE"
+  chmod 600 "$ENV_FILE" 2>/dev/null || true
+  log "  added missing local auth settings; existing values were preserved"
+else
+  log "  configuration already complete — preserving existing values"
+fi
 
 # Best-effort pip upgrade (don't fail install if this fails)
 "$PIP" install --quiet --upgrade pip 2>/dev/null || log "  pip upgrade skipped (network or permission)"
@@ -76,7 +113,7 @@ log "Stage 5/5: segment-anything, mobile-sam, albumentations, timm"
 # mobile-sam is not on PyPI — install from GitHub source
 "$PIP" install --no-cache-dir --prefer-binary \
   "segment-anything==1.0" \
-  "git+https://github.com/ChaoningZhang/MobileSAM.git" \
+  "git+https://github.com/ChaoningZhang/MobileSAM.git@b01a9ccef3b9e10b099b544efe004d0871802c3b" \
   "albumentations>=1.4,<2.0" "timm>=0.9" \
   || fail "Stage 5 failed — SAM/augmentation"
 

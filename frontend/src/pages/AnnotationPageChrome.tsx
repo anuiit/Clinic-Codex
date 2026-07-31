@@ -1,5 +1,6 @@
 import { ArrowLeft, Loader2, Save, Upload } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
+import type { ReactNode } from "react";
 import { appText } from "../i18n/text";
 import { ThemeToggle, type ThemeMode } from "../components/ThemeToggle";
 import { ActionButton } from "../components/ui/Primitives";
@@ -17,6 +18,7 @@ type AnnotationPageChromeProps = {
   onSendSubmittedForReview: () => void;
   themeMode: ThemeMode;
   onToggleTheme: () => void;
+  authSlot?: ReactNode;
 };
 
 export function AnnotationPageChrome({
@@ -29,10 +31,11 @@ export function AnnotationPageChrome({
   onSendSubmittedForReview,
   themeMode,
   onToggleTheme,
+  authSlot,
 }: AnnotationPageChromeProps) {
   return (
     <div className={annotationStyles.owner} data-testid="annotation-page-chrome">
-      <div className="annotation-topbar flex shrink-0 items-center justify-between rounded-2xl px-3 py-2">
+      <div className="annotation-topbar flex shrink-0 flex-wrap items-center gap-2 rounded-2xl px-3 py-2 md:flex-nowrap md:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <Link
             to="/"
@@ -50,7 +53,8 @@ export function AnnotationPageChrome({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto md:flex-nowrap">
+          {authSlot}
           <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
           <ActionButton
             type="button"

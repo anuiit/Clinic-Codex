@@ -11,7 +11,69 @@ cd "$REPO_ROOT"
 log()  { printf '[run-dev] %s\n' "$*"; }
 fail() { printf '[run-dev] ERROR: %s\n' "$*" >&2; exit 1; }
 
+SMOKE=false
+SMOKE_TIMEOUT_SECONDS=30
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --smoke)
+      SMOKE=true
+      shift
+      ;;
+    --smoke-timeout-seconds)
+      [ "$#" -ge 2 ] || fail "--smoke-timeout-seconds requires a positive integer"
+      [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] \
+        || fail "--smoke-timeout-seconds requires a positive integer, got: $2"
+      SMOKE_TIMEOUT_SECONDS="$2"
+      shift 2
+      ;;
+    -h|--help)
+      printf 'Usage: bash scripts/run-dev.sh [--smoke] [--smoke-timeout-seconds N]\n'
+      exit 0
+      ;;
+    *) fail "Unknown argument: $1" ;;
+  esac
+done
+
 is_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
+load_backend_env() {
+  local env_file="backend/.env"
+  local line key value
+  [ -f "$env_file" ] || return 0
+  log "loading backend env from $env_file"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="${key%"${key##*[![:space:]]}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    if [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && -z "${!key+x}" ]]; then
+      export "$key=$value"
+    fi
+  done < "$env_file"
+}
+
+load_backend_env
+
+authentication_enabled() {
+  case "${AUTH_REQUIRED:-true}" in
+    0|false|FALSE|False|no|NO|No|off|OFF|Off|'') return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+if authentication_enabled && [ -z "${AUTH_SECRET_KEY:-}" ]; then
+  fail "Authentication is enabled but AUTH_SECRET_KEY is missing. Run: bash scripts/install.sh"
+fi
+if [ -z "${AUTH_COOKIE_SECURE+x}" ]; then
+  log "AUTH_COOKIE_SECURE is not configured — using false for this loopback HTTP development session"
+  export AUTH_COOKIE_SECURE=false
+fi
 
 # --- Pre-flight: venv ---
 PY="backend/.venv/bin/python"
@@ -39,6 +101,15 @@ fi
 
 # --- Pre-flight: frontend deps ---
 [ -d frontend/node_modules ] || fail "frontend/node_modules missing. Run: bash scripts/install.sh"
+command -v node >/dev/null 2>&1 || fail "Need Node.js 22.22 or newer. Run: bash scripts/install.sh"
+command -v npm >/dev/null 2>&1 || fail "Need npm on PATH. Run: bash scripts/install.sh"
+NODE_VERSION=$(node -p 'process.versions.node' 2>/dev/null) || fail "Unable to read the Node.js version."
+"$PY" - "$NODE_VERSION" <<'PY' || fail "Need Node.js 22.22 or newer. Found $NODE_VERSION."
+import sys
+
+parts = tuple(int(part) for part in sys.argv[1].split(".")[:3])
+raise SystemExit(0 if parts >= (22, 22, 0) else 1)
+PY
 
 # --- Pre-flight: ports ---
 BACKEND_PORT="${BACKEND_PORT:-7117}"
@@ -98,13 +169,16 @@ wait_for_url() {
   local label="$1"
   local url="$2"
   local timeout_seconds="${3:-30}"
-  local i
+  local i status
   for i in $(seq 1 "$timeout_seconds"); do
     sleep 1
-    if curl -sf "$url" >/dev/null 2>&1; then
-      log "$label ready: $url"
-      return 0
-    fi
+    status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 "$url" 2>/dev/null || true)"
+    case "$status" in
+      2??|3??|4??)
+        log "$label ready: $url (HTTP $status)"
+        return 0
+        ;;
+    esac
     ensure_children_running
   done
   fail "$label did not start within ${timeout_seconds}s — see logs above"
@@ -121,8 +195,13 @@ log "starting frontend on :$FRONTEND_PORT"
 PIDS+=($!)
 
 # --- Wait for services ready ---
-wait_for_url "backend" "http://127.0.0.1:$BACKEND_PORT/classes"
-wait_for_url "frontend" "http://127.0.0.1:$FRONTEND_PORT/"
+wait_for_url "backend" "http://127.0.0.1:$BACKEND_PORT/classes" "$SMOKE_TIMEOUT_SECONDS"
+wait_for_url "frontend" "http://127.0.0.1:$FRONTEND_PORT/" "$SMOKE_TIMEOUT_SECONDS"
+
+if [ "$SMOKE" = true ]; then
+  printf '\n[run-dev] smoke PASS: backend and frontend responded successfully.\n'
+  exit 0
+fi
 
 printf '\n[run-dev] both services up.\n'
 printf '[run-dev]   backend:  http://localhost:%s\n' "$BACKEND_PORT"

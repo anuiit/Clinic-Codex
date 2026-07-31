@@ -12,12 +12,13 @@ Epochs take seconds, not hours.
 """
 
 import argparse
+import hashlib
+import json
 import sys
 import time
 from pathlib import Path
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import yaml
 from torch.utils.data import DataLoader
@@ -30,34 +31,19 @@ from codex_pipeline.data.cached_dataset import (
     CachedEpisodicSampler,
     collate_cached_episodes,
 )
-from codex_pipeline.models.prototypical import PrototypicalLoss
+from codex_pipeline.determinism import configure_determinism
+from codex_pipeline.models.projection_head import ProjectionHead, get_device
+from codex_pipeline.models.prototypical import PrototypicalLoss, compute_prototypes
 
 
-class ProjectionHead(nn.Module):
-    """Small MLP that maps frozen DINOv2 features to an embedding space."""
-
-    def __init__(self, input_dim: int = 384, embedding_dim: int = 128):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, input_dim),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(input_dim, embedding_dim),
-        )
-
-    def forward(self, x):
-        out = self.net(x)
-        return F.normalize(out, p=2, dim=-1)
 
 
-def get_device(device_cfg: str) -> torch.device:
-    if device_cfg == "auto":
-        if torch.cuda.is_available():
-            return torch.device("cuda")
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return torch.device("mps")
-        return torch.device("cpu")
-    return torch.device(device_cfg)
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def format_class_counts(dataset, class_names) -> str:
@@ -72,34 +58,29 @@ def format_class_counts(dataset, class_names) -> str:
     return ", ".join(parts)
 
 
-def require_episode_support(dataset, split_name: str, k_shot: int, q_queries: int, class_names) -> None:
-    """
-    Fail early with an actionable message when a split cannot form episodes.
+def require_episode_support(dataset, split_name: str, n_way: int, k_shot: int, q_queries: int, class_names) -> None:
+    """Fail early if a split cannot form leakage-free n-way episodes.
 
-    CachedEpisodicSampler can sample query examples with replacement for very
-    small classes, but each participating class still needs at least k_shot
-    examples for the support set.
+    Sparse classes remain in the feature set and receive prototypes at export
+    time. They are deliberately excluded from episodic head training when
+    they do not have distinct support and query examples.
     """
-    support_classes = [
+    episode_classes = [
         class_label
         for class_label in dataset.classes
-        if len(dataset.class_to_indices[class_label]) >= k_shot
+        if len(dataset.class_to_indices[class_label]) >= k_shot + q_queries
     ]
-    if support_classes:
+    if len(episode_classes) >= n_way:
         return
 
     counts = format_class_counts(dataset, class_names)
     raise SystemExit(
-        "\nERROR: Not enough approved training data for episodic classifier training.\n"
-        f"Split '{split_name}' has no class with at least k_shot={k_shot} examples.\n"
+        "\nERROR: Not enough approved training data for leakage-free episodic training.\n"
+        f"Split '{split_name}' has {len(episode_classes)} classes with at least "
+        f"k_shot + q_queries = {k_shot + q_queries} examples; n_way={n_way} is required.\n"
         f"Class counts in this split: {counts}\n\n"
-        "Current settings require enough examples to create support/query episodes:\n"
-        f"  k_shot={k_shot}, q_queries={q_queries}\n"
-        "  validation split is created per class before training\n\n"
-        "Approve more examples for at least one class, or lower the few-shot "
-        "settings in backend/codex_pipeline/config/default.yaml for a smoke "
-        "test run. Classes with fewer than data.min_images_per_class examples "
-        "are filtered before embedding precompute."
+        "Sparse classes remain prototype-only, so lower n_way/k_shot/q_queries "
+        "for a smoke run or approve more examples for full episodic training."
     )
 
 
@@ -137,45 +118,77 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, n_way, k_sh
 
 
 @torch.no_grad()
-def evaluate(model, dataloader, criterion, device, n_way, k_shot, q_queries):
+def collect_embeddings(model, dataloader, device):
     model.eval()
-    total_loss = 0.0
-    total_acc = 0.0
-    num_episodes = 0
+    embeddings = []
+    labels = []
 
-    for batch in dataloader:
-        s_feats, s_labs, q_feats, q_labs = collate_cached_episodes(
-            batch, n_way, k_shot, q_queries,
+    with torch.no_grad():
+        for feats, batch_labels in dataloader:
+            feats = feats.to(device)
+            batch_embeddings = model(feats).cpu()
+            embeddings.append(batch_embeddings)
+            labels.append(batch_labels.cpu())
+
+    return torch.cat(embeddings, dim=0), torch.cat(labels, dim=0)
+
+
+def evaluate_global_prototype_validation(
+    train_embeddings,
+    train_labels,
+    val_embeddings,
+    val_labels,
+    temperature: float,
+):
+    train_prototype_labels = train_labels.unique(sorted=True)
+    missing_labels = sorted(set(val_labels.tolist()) - set(train_prototype_labels.tolist()))
+    if missing_labels:
+        raise SystemExit(
+            "Validation labels missing from train prototypes: "
+            + ", ".join(str(label) for label in missing_labels)
         )
-        s_feats = s_feats.to(device)
-        q_feats = q_feats.to(device)
-        s_labs = s_labs.to(device)
-        q_labs = q_labs.to(device)
 
-        s_emb = model(s_feats)
-        q_emb = model(q_feats)
+    prototypes = compute_prototypes(train_embeddings, train_labels)
+    label_to_proto_idx = {label.item(): idx for idx, label in enumerate(train_prototype_labels)}
+    target = torch.tensor([label_to_proto_idx[label.item()] for label in val_labels], dtype=torch.long)
+    logits = torch.mm(val_embeddings, prototypes.t()) / temperature
+    loss = F.cross_entropy(logits, target)
+    predictions = logits.argmax(dim=-1)
+    predicted_labels = train_prototype_labels[predictions]
+    accuracy = (predicted_labels == val_labels).float().mean()
+    return loss.item(), accuracy.item()
 
-        result = criterion(s_emb, s_labs, q_emb, q_labs)
-        total_loss += result["loss"].item()
-        total_acc += result["accuracy"].item()
-        num_episodes += 1
 
-    return total_loss / num_episodes, total_acc / num_episodes
+def evaluate_global_validation(model, train_loader, val_loader, device, temperature: float):
+    train_embeddings, train_labels = collect_embeddings(model, train_loader, device)
+    val_embeddings, val_labels = collect_embeddings(model, val_loader, device)
+    return evaluate_global_prototype_validation(
+        train_embeddings,
+        train_labels,
+        val_embeddings,
+        val_labels,
+        temperature,
+    )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Train projection head on cached features")
     parser.add_argument("--config", default="codex_pipeline/config/default.yaml")
-    parser.add_argument("--features", default="./precomputed/features_aug.pt")
+    parser.add_argument("--features", default="./precomputed/features.pt")
+    parser.add_argument(
+        "--validation-features",
+        default=None,
+        help="Optional cache reserved for global validation; disables the generated train/val split.",
+    )
     parser.add_argument(
         "--checkpoint-dir",
         default=None,
         help="Explicit checkpoint output directory. Overrides paths.checkpoint_dir from config.",
     )
     parser.add_argument("--resume", default=None)
-    parser.add_argument("--noise-std", type=float, default=0.02,
+    parser.add_argument("--noise-std", type=float, default=0.0,
                         help="Gaussian noise std for feature augmentation (0=off)")
-    parser.add_argument("--mixup-prob", type=float, default=0.3,
+    parser.add_argument("--mixup-prob", type=float, default=0.0,
                         help="Feature-level mixup probability (0=off)")
     args = parser.parse_args()
 
@@ -189,19 +202,44 @@ def main():
 
     device = get_device(train_cfg["device"])
     print(f"Device: {device}")
-    torch.manual_seed(train_cfg["seed"])
+    configure_determinism(int(train_cfg["seed"]))
 
     # --- Load cached features ---
     print(f"Loading cached features from {args.features}...")
-    train_dataset, data_info = CachedFeatureDataset.from_file(
-        args.features, split="train", val_fraction=data_cfg["val_fraction"],
-        noise_std=args.noise_std,
-        feature_mixup_prob=args.mixup_prob,
-    )
-    val_dataset, _ = CachedFeatureDataset.from_file(
-        args.features, split="val", val_fraction=data_cfg["val_fraction"],
-        # No augmentation on val
-    )
+    if args.validation_features:
+        train_dataset, data_info = CachedFeatureDataset.from_file(
+            args.features,
+            split=None,
+            noise_std=args.noise_std,
+            feature_mixup_prob=args.mixup_prob,
+        )
+        prototype_train_dataset, _ = CachedFeatureDataset.from_file(args.features, split=None)
+        val_dataset, _ = CachedFeatureDataset.from_file(args.validation_features, split=None)
+    else:
+        split_strategy = data_cfg.get("split_strategy", "per_class")
+        train_dataset, data_info = CachedFeatureDataset.from_file(
+            args.features,
+            split="train",
+            split_strategy=split_strategy,
+            val_fraction=data_cfg["val_fraction"],
+            seed=int(train_cfg["seed"]),
+            noise_std=args.noise_std,
+            feature_mixup_prob=args.mixup_prob,
+        )
+        prototype_train_dataset, _ = CachedFeatureDataset.from_file(
+            args.features,
+            split="train",
+            split_strategy=split_strategy,
+            val_fraction=data_cfg["val_fraction"],
+            seed=int(train_cfg["seed"]),
+        )
+        val_dataset, _ = CachedFeatureDataset.from_file(
+            args.features,
+            split="val",
+            split_strategy=split_strategy,
+            val_fraction=data_cfg["val_fraction"],
+            seed=int(train_cfg["seed"]),
+        )
 
     hidden_dim = data_info["hidden_dim"]
     class_names = data_info["class_names"]
@@ -214,18 +252,15 @@ def main():
     k_shot = train_cfg["k_shot"]
     q_queries = train_cfg["q_queries"]
 
-    require_episode_support(train_dataset, "train", k_shot, q_queries, class_names)
-    require_episode_support(val_dataset, "val", k_shot, q_queries, class_names)
+    require_episode_support(train_dataset, "train", n_way, k_shot, q_queries, class_names)
 
     train_sampler = CachedEpisodicSampler(
         train_dataset, n_way, k_shot, q_queries, train_cfg["episodes_per_epoch"],
     )
-    val_sampler = CachedEpisodicSampler(
-        val_dataset, n_way, k_shot, q_queries, cfg["evaluation"]["num_eval_episodes"],
-    )
 
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_sampler=val_sampler, num_workers=0)
+    prototype_train_loader = DataLoader(prototype_train_dataset, batch_size=256, shuffle=False, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False, num_workers=0)
 
     # --- Model (projection head only) ---
     model = ProjectionHead(
@@ -263,7 +298,7 @@ def main():
 
     # --- Resume ---
     start_epoch = 0
-    best_val_acc = 0.0
+    best_val_acc = float("-inf")
 
     if args.resume:
         print(f"Resuming from {args.resume}")
@@ -291,8 +326,12 @@ def main():
             n_way, k_shot, q_queries,
         )
 
-        val_loss, val_acc = evaluate(
-            model, val_loader, criterion, device, n_way, k_shot, q_queries,
+        val_loss, val_acc = evaluate_global_validation(
+            model,
+            prototype_train_loader,
+            val_loader,
+            device,
+            train_cfg["temperature"],
         )
 
         if warmup_scheduler and epoch < warmup_epochs:
@@ -325,16 +364,35 @@ def main():
             "best_val_acc": best_val_acc,
             "config": cfg,
             "hidden_dim": hidden_dim,
+            "validation_mode": "global_286_way_train_prototypes",
         }
 
         torch.save(ckpt_data, ckpt_dir / "latest.pt")
         if is_best:
             torch.save(ckpt_data, ckpt_dir / "best.pt")
-            print(f"  -> New best val accuracy: {val_acc:.3f}")
+            print(f"  -> New best global val accuracy: {val_acc:.3f}")
 
         if (epoch + 1) % 10 == 0:
             torch.save(ckpt_data, ckpt_dir / f"epoch_{epoch+1:03d}.pt")
 
+    manifest = {
+        "schema_version": "baseline-training.v1",
+        "config_path": str(Path(args.config).resolve()),
+        "config_sha256": sha256_file(args.config),
+        "features_path": str(Path(args.features).resolve()),
+        "features_sha256": sha256_file(args.features),
+        "seed": int(train_cfg["seed"]),
+        "noise_std": args.noise_std,
+        "mixup_prob": args.mixup_prob,
+        "best_val_acc": best_val_acc,
+        "checkpoints": {
+            "latest": sha256_file(ckpt_dir / "latest.pt"),
+            "best": sha256_file(ckpt_dir / "best.pt"),
+        },
+    }
+    (ckpt_dir / "training_manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(f"\nDone. Best val accuracy: {best_val_acc:.3f}")
     print(f"Checkpoints: {ckpt_dir}")
 

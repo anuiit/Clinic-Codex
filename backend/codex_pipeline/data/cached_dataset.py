@@ -6,7 +6,7 @@ Training with this is orders of magnitude faster than image-based training.
 """
 
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import torch
 from torch.utils.data import Dataset, Sampler
@@ -77,6 +77,7 @@ class CachedFeatureDataset(Dataset):
         cls,
         path: str,
         split: str = None,
+        split_strategy: str = "per_class",
         val_fraction: float = 0.15,
         seed: int = 42,
         noise_std: float = 0.0,
@@ -88,6 +89,7 @@ class CachedFeatureDataset(Dataset):
         Args:
             path: path to features.pt or features_aug.pt
             split: None (all data), "train", or "val"
+            split_strategy: "per_class" or "source_group"
             val_fraction: fraction of each class held out for val
             seed: random seed for reproducible splits
             noise_std: Gaussian noise for training (only applied to train split)
@@ -98,14 +100,55 @@ class CachedFeatureDataset(Dataset):
         labels = data["labels"]
 
         if split is None:
-            return cls(features, labels), data
+            return cls(
+                features,
+                labels,
+                noise_std=noise_std,
+                feature_mixup_prob=feature_mixup_prob,
+            ), data
 
-        # Deterministic per-class split
+        if split_strategy == "per_class":
+            train_indices, val_indices = cls._split_per_class(labels, val_fraction=val_fraction, seed=seed)
+        elif split_strategy == "source_group":
+            train_indices, val_indices = cls._split_source_group(
+                labels,
+                data,
+                val_fraction=val_fraction,
+            )
+            if not val_indices:
+                # Some approved corpora cannot spare a whole source group while
+                # still keeping at least one train example per class. Fall back
+                # to the per-class split instead of failing the whole recipe.
+                train_indices, val_indices = cls._split_per_class(
+                    labels,
+                    val_fraction=val_fraction,
+                    seed=seed,
+                )
+        else:
+            raise ValueError(f"unsupported split_strategy: {split_strategy!r}")
+
+        if split == "train":
+            idx = torch.tensor(train_indices, dtype=torch.long)
+            return cls(
+                features[idx],
+                labels[idx],
+                noise_std=noise_std,
+                feature_mixup_prob=feature_mixup_prob,
+            ), data
+        else:
+            idx = torch.tensor(val_indices, dtype=torch.long)
+            return cls(features[idx], labels[idx]), data
+
+    @staticmethod
+    def _split_per_class(labels: torch.Tensor, *, val_fraction: float, seed: int) -> tuple[list[int], list[int]]:
+        if not 0 <= val_fraction < 1:
+            raise ValueError("val_fraction must be in [0, 1)")
+
         rng = random.Random(seed)
-        train_indices = []
-        val_indices = []
+        train_indices: list[int] = []
+        val_indices: list[int] = []
 
-        unique_labels = labels.unique().tolist()
+        unique_labels = sorted(labels.unique().tolist())
         for lab in unique_labels:
             indices = (labels == lab).nonzero(as_tuple=True)[0].tolist()
             rng.shuffle(indices)
@@ -114,14 +157,86 @@ class CachedFeatureDataset(Dataset):
             val_indices.extend(indices[:n_val])
             train_indices.extend(indices[n_val:])
 
-        if split == "train":
-            idx = torch.tensor(train_indices, dtype=torch.long)
-            return cls(features[idx], labels[idx],
-                       noise_std=noise_std,
-                       feature_mixup_prob=feature_mixup_prob), data
-        else:
-            idx = torch.tensor(val_indices, dtype=torch.long)
-            return cls(features[idx], labels[idx]), data
+        return train_indices, val_indices
+
+    @staticmethod
+    def _split_source_group(
+        labels: torch.Tensor,
+        data: dict,
+        *,
+        val_fraction: float,
+    ) -> tuple[list[int], list[int]]:
+        if not 0 <= val_fraction < 1:
+            raise ValueError("val_fraction must be in [0, 1)")
+
+        source_groups = data.get("source_groups")
+        if source_groups is None:
+            raise ValueError("source_group split requires source_groups metadata")
+
+        try:
+            source_groups = list(source_groups)
+        except TypeError as exc:
+            raise ValueError("source_groups metadata must be a sequence") from exc
+
+        if len(source_groups) != len(labels):
+            raise ValueError(
+                "source_groups metadata must have the same length as features and labels"
+            )
+
+        group_buckets: dict[str, dict[str, object]] = {}
+        class_counts = Counter(int(label.item()) for label in labels)
+
+        for idx, (label, source_group) in enumerate(zip(labels.tolist(), source_groups)):
+            group_key = str(source_group)
+            if not group_key.strip():
+                raise ValueError(f"source_groups entry at index {idx} must not be empty")
+
+            bucket = group_buckets.setdefault(
+                group_key,
+                {
+                    "indices": [],
+                    "class_counts": Counter(),
+                    "class_labels": set(),
+                },
+            )
+            bucket["indices"].append(idx)
+            bucket["class_counts"][int(label)] += 1
+            bucket["class_labels"].add(int(label))
+
+        group_entries = sorted(
+            group_buckets.items(),
+            key=lambda item: (tuple(sorted(item[1]["class_labels"])), item[0], item[1]["indices"][0]),
+        )
+
+        target_val = max(1, int(len(labels) * val_fraction)) if len(labels) >= 2 else 0
+        remaining_train_counts = Counter(class_counts)
+        train_indices: list[int] = []
+        val_indices: list[int] = []
+
+        for _, group in group_entries:
+            can_hold_out = all(
+                remaining_train_counts[class_label] - count >= 1
+                for class_label, count in group["class_counts"].items()
+            )
+            if can_hold_out and len(val_indices) < target_val:
+                val_indices.extend(group["indices"])
+                for class_label, count in group["class_counts"].items():
+                    remaining_train_counts[class_label] -= count
+            else:
+                train_indices.extend(group["indices"])
+
+        if any(count <= 0 for count in remaining_train_counts.values()):
+            missing = sorted(
+                class_label
+                for class_label, count in remaining_train_counts.items()
+                if count <= 0
+            )
+            raise ValueError(
+                "source_group split removed all train examples for class(es): "
+                + ", ".join(str(class_label) for class_label in missing)
+            )
+
+        return train_indices, val_indices
 
 
 class CachedEpisodicSampler(Sampler):

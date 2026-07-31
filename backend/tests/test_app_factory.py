@@ -30,7 +30,9 @@ def test_create_app_uses_injected_settings_and_services(tmp_path):
     assert {"/classify", "/classify-batch", "/sample-image", "/similar-samples"}.issubset(routes)
 
 
-def test_wsgi_exports_default_app():
+def test_wsgi_exports_default_app(monkeypatch):
+    monkeypatch.setenv("AUTH_REQUIRED", "false")
+    monkeypatch.delitem(__import__("sys").modules, "backend.wsgi", raising=False)
     from backend.wsgi import app
 
     assert app is not None

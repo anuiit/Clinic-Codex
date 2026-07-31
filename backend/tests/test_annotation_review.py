@@ -232,6 +232,13 @@ def test_invalid_or_missing_mutations_raise_clear_errors(tmp_path):
 def test_modify_element_rewrites_metadata_crop_and_resets_to_pending(tmp_path):
     annotations_dir = tmp_path / "annotations"
     _save(annotations_dir, "modify-1", count=1)
+    image_path = annotations_dir / "modify-1" / "image.png"
+    with Image.open(image_path) as source:
+        patterned_source = source.convert("RGB")
+    for y in range(patterned_source.height):
+        for x in range(patterned_source.width):
+            patterned_source.putpixel((x, y), (x * 17, y * 19, (x + y) * 11))
+    patterned_source.save(image_path)
     store = AnnotationReviewStore(annotations_dir)
     approved = store.set_status("modify-1", 0, "approved")["element"]
 
@@ -256,8 +263,10 @@ def test_modify_element_rewrites_metadata_crop_and_resets_to_pending(tmp_path):
     assert annotation["class_name"] == "edited-class"
     assert annotation["bbox"] == [2, 4, 5, 5]
     assert annotation["crop_path"].endswith(".png")
-    with Image.open(annotation["crop_path"]) as crop:
+    with Image.open(image_path) as source, Image.open(annotation["crop_path"]) as crop:
         assert crop.size == (5, 5)
+        expected = source.convert("RGB").crop((2, 4, 7, 9))
+        assert crop.convert("RGB").tobytes() == expected.tobytes()
 
 
 def test_modify_element_can_save_and_approve_with_fresh_fingerprint(tmp_path):

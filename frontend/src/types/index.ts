@@ -1,5 +1,31 @@
 export type ClassLabel = string | number;
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  role?: string;
+  roles: string[];
+  permissions: string[];
+}
+
+export interface AuthSession {
+  auth_enabled: boolean;
+  user: AuthUser | null;
+  status?: string;
+  csrf_token?: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface BootstrapStatus {
+  status: 'ok';
+  auth_enabled: boolean;
+  bootstrap_available: boolean;
+}
+
 export interface TopKItem {
   class_name: string;
   class_label?: ClassLabel | null;

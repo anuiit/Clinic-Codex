@@ -31,7 +31,7 @@ export function ReferenceThumb({ children }: { children?: ReactNode }) {
     <span
       data-reference-art="thumb"
       data-real-media={hasRealMedia ? "true" : "false"}
-      className={`relative flex h-9 w-9 items-center justify-center overflow-hidden border border-[color:var(--border-subtle)] ${hasRealMedia ? "bg-transparent" : `rounded-[0.3rem] ${paper}`}`}
+      className={`relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden border border-[color:var(--border-subtle)] ${hasRealMedia ? "bg-transparent" : `rounded-[0.3rem] ${paper}`}`}
     >
       {!hasRealMedia ? (
         <>

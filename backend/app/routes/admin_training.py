@@ -8,6 +8,7 @@ from backend.services.training_jobs import (
     AdminTrainingValidationError,
     RequestLaunchContext,
 )
+from backend.security.auth import current_user, require_csrf, require_permission
 from backend.security.local_guard import request_launch_context, require_local_request
 
 bp = Blueprint("admin_training", __name__)
@@ -27,12 +28,14 @@ def _request_context() -> RequestLaunchContext:
 
 @bp.get("/admin/training/summary")
 @require_local_request
+@require_permission("training.read")
 def get_admin_training_summary():
     return jsonify(_services().admin_training_summary(_request_context())), 200
 
 
 @bp.get("/admin/training/jobs/latest")
 @require_local_request
+@require_permission("training.read")
 def get_latest_admin_training_job():
     job = _services().latest_admin_training_job()
     if job is None:
@@ -42,6 +45,7 @@ def get_latest_admin_training_job():
 
 @bp.get("/admin/training/jobs/<run_id>")
 @require_local_request
+@require_permission("training.read")
 def get_admin_training_job(run_id: str):
     job = _services().get_admin_training_job(run_id)
     if job is None:
@@ -50,12 +54,16 @@ def get_admin_training_job(run_id: str):
 
 
 @bp.post("/admin/training/jobs")
+@require_local_request
+@require_permission("training.run")
+@require_csrf
 def start_admin_training_job():
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(silent=True)
     if data is None:
         return _error("invalid JSON", 400)
     try:
-        job = _services().start_admin_training_job(data, _request_context())
+        actor = current_user()
+        job = _services().start_admin_training_job(data, _request_context(), **({"actor_id": actor["id"]} if actor else {}))
     except AdminTrainingForbiddenError as exc:
         return _error(str(exc), 403)
     except AdminTrainingValidationError as exc:

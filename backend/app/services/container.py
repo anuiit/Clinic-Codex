@@ -82,13 +82,14 @@ class DefaultServices:
         with self.settings.class_config_path.open() as f:
             return json.load(f)
 
-    def save_annotation(self, analysis_id: str, image, annotations: list[dict]) -> dict[str, Any]:
+    def save_annotation(self, analysis_id: str, image, annotations: list[dict], *, author_id: str | None = None) -> dict[str, Any]:
         return save_annotation(
             analysis_id,
             image,
             annotations,
             base_dir=self.settings.annotations_dir,
             elements_dir=self.settings.elements_dir,
+            author_id=author_id,
         )
 
     def decode_annotation_image(self, data_url: str):
@@ -111,8 +112,9 @@ class DefaultServices:
         analysis_id: str,
         index: int,
         status: str,
+        *, reviewer_id: str | None = None,
     ) -> dict[str, Any]:
-        return self.annotation_review_store().set_status(analysis_id, index, status)
+        return self.annotation_review_store().set_status(analysis_id, index, status, reviewer_id=reviewer_id)
 
     def modify_annotation_review_element(
         self,
@@ -122,6 +124,7 @@ class DefaultServices:
         class_name: str,
         bbox: list[int | float],
         status: str = "pending",
+        reviewer_id: str | None = None,
     ) -> dict[str, Any]:
         return self.annotation_review_store().modify_element(
             analysis_id,
@@ -129,6 +132,7 @@ class DefaultServices:
             class_name=class_name,
             bbox=bbox,
             status=status,
+            reviewer_id=reviewer_id,
         )
 
     def iter_approved_annotations(self):
@@ -157,8 +161,8 @@ class DefaultServices:
     def get_admin_training_job(self, run_id: str):
         return self.admin_training_service().get_job(run_id)
 
-    def start_admin_training_job(self, payload: dict[str, Any], context: RequestLaunchContext):
-        return self.admin_training_service().start_job(payload, context)
+    def start_admin_training_job(self, payload: dict[str, Any], context: RequestLaunchContext, *, actor_id: str | None = None):
+        return self.admin_training_service().start_job(payload, context, actor_id=actor_id)
 
     def sample_index(self) -> dict[str, list[dict[str, str]]]:
         if self._sample_index is None:

@@ -1,6 +1,7 @@
+#requires -Version 5.1
 <#
 .SYNOPSIS
-Clinic Codex installer - staged, CPU-only. Works on Windows and Linux/macOS via pwsh.
+Clinic Codex installer - staged, CPU-only. Works with Windows PowerShell 5.1 and PowerShell 7+.
 Each stage is checkpointed. If interrupted, re-run is safe (idempotent).
 #>
 param()
@@ -21,14 +22,64 @@ function Join-PathParts([string]$Base, [Parameter(ValueFromRemainingArguments = 
     }
     return $path
 }
+function Get-ProviderPath([string]$Path) {
+    return (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+}
+function Get-FreeSpaceGB([string]$Path) {
+    try {
+        $providerPath = Get-ProviderPath $Path
+        $root = [System.IO.Path]::GetPathRoot($providerPath)
+        if ([string]::IsNullOrWhiteSpace($root) -or $root.StartsWith('\\')) { return $null }
+        $drive = New-Object System.IO.DriveInfo -ArgumentList $root
+        return [math]::Round($drive.AvailableFreeSpace / 1GB, 1)
+    } catch {
+        return $null
+    }
+}
+function New-RandomSecret {
+    $bytes = New-Object byte[] 48
+    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $generator.GetBytes($bytes)
+        return [Convert]::ToBase64String($bytes)
+    } finally {
+        $generator.Dispose()
+    }
+}
+function Initialize-BackendEnv([string]$Path) {
+    if (Test-Path -LiteralPath $Path) {
+        Log '  backend/.env present - preserving existing configuration'
+        return
+    }
+
+    $content = @(
+        '# Generated once by scripts/install.ps1 for local development.',
+        'ENABLE_LEGACY_ENDPOINTS=true',
+        'ENABLE_ADMIN_TRAINING_JOBS=false',
+        'AUTH_REQUIRED=true',
+        "AUTH_SECRET_KEY=$(New-RandomSecret)",
+        'AUTH_COOKIE_SECURE=false'
+    ) -join [Environment]::NewLine
+    $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $content + [Environment]::NewLine, $utf8WithoutBom)
+    Log '  created backend/.env with a random local session secret (no default account/password)'
+}
 
 # ---------------------------------------------------------------------------
 # Stage 0: Pre-flight checks
 # ---------------------------------------------------------------------------
 Log 'Stage 0/5: pre-flight checks'
 
-# Detect OS - venv layout differs: Windows uses Scripts\, Unix uses bin/
-$IsWin = $IsWindows -or ($PSVersionTable.PSEdition -eq 'Desktop')
+# Detect OS - venv layout differs: Windows uses Scripts\, Unix uses bin/.
+# $IsWindows only exists in PowerShell Core, so do not reference it directly.
+$IsWin = ($PSVersionTable.PSEdition -eq 'Desktop') -or
+    ($PSVersionTable.Platform -eq 'Win32NT') -or
+    ($env:OS -eq 'Windows_NT')
+
+$RepoProviderPath = Get-ProviderPath $RepoRoot
+if ($IsWin -and $RepoProviderPath.StartsWith('\\')) {
+    Fail 'Windows PowerShell cannot install reliably inside a UNC/WSL path. Open WSL and run: bash scripts/install.sh, or clone the repository to a local Windows drive.'
+}
 
 $Python = $null
 $candidates = if ($IsWin) {
@@ -52,12 +103,32 @@ foreach ($candidate in $candidates) {
 }
 if (-not $Python) { Fail "Need Python 3.10 or 3.11. Install from python.org (Windows) or via your package manager (Linux/macOS)." }
 
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Fail 'Git is required to install MobileSAM. Install Git, reopen PowerShell, then re-run this script.'
+}
+if (-not (Get-Command node -ErrorAction SilentlyContinue) -or -not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    Fail 'Node.js with npm is required for the frontend. Install Node.js 22.22 or newer, reopen PowerShell, then re-run this script.'
+}
+try {
+    $NodeVersion = [version]((& node --version 2>&1).ToString().Trim().TrimStart('v'))
+} catch {
+    Fail "Unable to read the Node.js version: $($_.Exception.Message)"
+}
+if ($NodeVersion -lt [version]'22.22.0') {
+    Fail "Node.js 22.22 or newer is required. Found $NodeVersion."
+}
+
 $verCheck = & $Python.cmd @($Python.args) -c 'import sys; print(str(sys.version_info.major) + "." + str(sys.version_info.minor))' 2>&1
 if ($verCheck -notmatch '^3\.(10|11)$') { Fail "Python reports version $verCheck - need 3.10 or 3.11." }
 
-$drive  = (Get-Item .).PSDrive.Name
-$freeGB = [math]::Round((Get-PSDrive $drive).Free / 1GB, 1)
-if ($freeGB -lt 2) { Fail "Need >=2GB free disk. Have ${freeGB}GB." }
+$freeGB = Get-FreeSpaceGB $RepoRoot
+if ($null -eq $freeGB) {
+    Log '  free disk space could not be measured for this filesystem - continuing'
+} elseif ($freeGB -lt 2) {
+    Fail "Need >=2GB free disk. Have $freeGB GB."
+}
+
+Initialize-BackendEnv (Join-PathParts $RepoRoot 'backend' '.env')
 
 # ---------------------------------------------------------------------------
 # Stage 1: venv
@@ -132,7 +203,7 @@ Log 'Stage 5/5: segment-anything, mobile-sam, albumentations, timm'
 
 $pkgsSam = @(
     'segment-anything==1.0',
-    'git+https://github.com/ChaoningZhang/MobileSAM.git',
+    'git+https://github.com/ChaoningZhang/MobileSAM.git@b01a9ccef3b9e10b099b544efe004d0871802c3b',
     'albumentations>=1.4,<2.0',
     'timm>=0.9'
 )

@@ -63,7 +63,7 @@ training:
   lr_scheduler: "cosine"
   warmup_epochs: 5
   temperature: 0.1            # scaling for cosine similarity
-  device: "auto"              # auto-detect: cuda > mps > cpu
+  device: "cuda"              # GPU-first; use DEVICE=cpu only for an intentional fallback
   seed: 42
 
 # --- Evaluation ---

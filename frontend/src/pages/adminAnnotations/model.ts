@@ -1,11 +1,6 @@
 import type { ThemeMode } from "../../components/ThemeToggle";
-import type {
-  AdminAnnotationAnalysis,
-  AdminAnnotationElement,
-  AdminAnnotationQueue,
-  AdminAnnotationReviewStatus,
-  AdminDatasetSplit,
-} from "../../types";
+import type { AdminAnnotationAnalysis, AdminAnnotationElement, AdminAnnotationQueue, AdminAnnotationReviewStatus, AdminDatasetSplit } from "../../types";
+import type { ReactNode } from "react";
 
 export type AdminTab = "review" | "dataset" | "training";
 
@@ -14,6 +9,7 @@ export type AdminAnnotationsPageProps = {
   onToggleTheme?: () => void;
   initialTab?: AdminTab;
   onNavigateTab?: (tab: AdminTab) => void;
+  authSlot?: ReactNode;
 };
 
 export const ADMIN_TABS: Array<{ id: AdminTab; label: string; description: string }> =

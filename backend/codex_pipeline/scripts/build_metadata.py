@@ -31,6 +31,11 @@ def main():
         default="./metadata.csv",
         help="Output CSV path",
     )
+    parser.add_argument(
+        "--absolute-paths",
+        action="store_true",
+        help="Write absolute image paths; required when metadata is stored outside Elements' parent directory.",
+    )
     args = parser.parse_args()
 
     elements_dir = Path(args.elements_dir).resolve()
@@ -39,7 +44,7 @@ def main():
         sys.exit(1)
 
     print(f"Scanning {elements_dir}...")
-    df = build_metadata(str(elements_dir))
+    df = build_metadata(str(elements_dir), absolute_paths=args.absolute_paths)
 
     # Save
     output_path = Path(args.output).resolve()

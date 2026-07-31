@@ -8,6 +8,8 @@ Thumbs.db
 __MACOSX/
 .sisyphus/
 .omc/
+.omo/
+.omx/
 EMBEDDING-READINESS.md
 
 
@@ -62,6 +64,12 @@ build/
 
 # Misc
 *.log
+*.orig
+*.tmp
+*.sqlite3
+*.sqlite3-*
+*.zip
+*:Zone.Identifier
 .env.local
 .env.*.local
 *.pt
@@ -91,5 +99,14 @@ backend/model_registry/promotion_in_progress.json
 # Test artifacts
 frontend/test-results/
 frontend/playwright-report/
+frontend/.omx-artifacts/
 playwright-report/
 test-results/
+
+# Local datasets, experiments and generated comparison reports
+backend/training_corpus/
+backend/training_runs/
+reports/
+_legacy/frontend_integration/examples/sample_outputs/
+brave_*.png
+triage_dataset_train_proposal.html

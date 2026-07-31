@@ -17,6 +17,7 @@ export function AdminHeader({
   onRefresh,
   activeTab,
   onSelectTab,
+  authSlot,
 }: AdminAnnotationsPageProps & {
   queue: AdminAnnotationQueue | null;
   refreshing: boolean;
@@ -42,8 +43,9 @@ export function AdminHeader({
         <AdminTabs activeTab={activeTab} onSelect={onSelectTab} queue={queue} />
         {queue ? <QueueCounters queue={queue} /> : null}
         <div className="admin-command-actions">
+          {authSlot}
           <span className="admin-timestamp">
-Actualisé {formatTimestamp(lastRefreshedAt)}
+            Actualisé {formatTimestamp(lastRefreshedAt)}
           </span>
           <ActionButton
             tone="ghost"
@@ -66,7 +68,6 @@ Actualisé {formatTimestamp(lastRefreshedAt)}
     </header>
   );
 }
-
 function AdminTabs({
   activeTab,
   onSelect,

@@ -67,7 +67,17 @@ body:has(.admin-console),
   overflow: auto;
 }
 
+.admin-tab-content--review {
+  overflow: hidden;
+}
+
 .admin-tab-content > [role="tabpanel"] {
   min-height: 0;
   height: 100%;
+}
+
+@media (max-width: 760px) {
+  .admin-tab-content--review {
+    overflow: visible;
+  }
 }

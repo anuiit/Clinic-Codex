@@ -4,7 +4,8 @@
     ".app-shell:has(.admin-console)",
     ".admin-chrome",
     ".admin-alert-stack",
-    ".admin-tab-content"
+    ".admin-tab-content",
+    ".admin-tab-content--review"
   ],
   "ownedSelectors": [
     {
@@ -252,58 +253,58 @@
     },
     {
       "selector": ".admin-element-editor",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-element-editor__layout",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-element-editor__header",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-element-editor__actions",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-editor",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-stage",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-overlay",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-rect",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-handle",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-segmentation-side",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-bbox-advanced",
-      "ownerModule": "adminAnnotations/ReviewTab.module.css",
-      "importOwner": "pages/adminAnnotations/ReviewTab.tsx"
+      "ownerModule": "adminAnnotations/ReviewEditor.module.css",
+      "importOwner": "pages/adminAnnotations/ReviewEditor.tsx"
     },
     {
       "selector": ".admin-inspector",

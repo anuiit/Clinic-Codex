@@ -15,9 +15,9 @@ Before installing, you need to have the Clinic Codex files on your computer.
 You'll need three tools installed. They are standard pieces of software used by many applications:
 
 1. **Git**: Used to manage the project files. [Download here](https://git-scm.com/downloads).
-2. **Python (3.10 or 3.11)**: This is the engine that runs our AI. 
+2. **Python (3.10 or 3.11)**: This is the engine that runs our AI.
    - **Important**: Please use version **3.10 or 3.11**. Newer versions (like 3.12 or 3.13) are not yet compatible with the AI libraries we use. [Download Python 3.11 here](https://www.python.org/downloads/release/python-3119/).
-3. **Node.js (version 22.12.0 or newer)**: This runs the visual part of the tool and matches the app's `frontend/package.json` requirement. [Download here](https://nodejs.org/).
+3. **Node.js (version 22.22.0 or newer)**: This runs the visual part of the tool and matches the app's `frontend/package.json` requirement. [Download here](https://nodejs.org/).
 
 The automated installer downloads large/networked dependencies, including CPU PyTorch wheels, MobileSAM from GitHub, and model files used by the analysis pipeline.
 
@@ -37,27 +37,23 @@ The automated installer downloads large/networked dependencies, including CPU Py
 
 1. **Open PowerShell**: Search for "PowerShell" in your Start menu.
 2. **Go to the project folder**: Type `cd ` (with a space) and then drag your `clinic-codex` folder into the PowerShell window. Press Enter.
-3. **Run the installer**: Type the following and press Enter:
+3. **Run the installer** using the command matching the terminal you opened:
+
+   Windows PowerShell 5.1:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
    ```
 
+   PowerShell 7 on Windows:
+   ```powershell
+   pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1
+   ```
+
 ## Step 3: Final Configuration Check
 
-Before you start the tool, we need to make sure one configuration file is correct.
+There is nothing to configure by hand. The installer creates `backend/.env` with authentication enabled, a unique random session secret, and the loopback HTTP cookie setting. Re-running it preserves every existing value and only adds missing settings. It never creates a default email or password.
 
-1. Go into the `frontend` folder inside the project.
-2. Look for a file named `.env`.
-   - **On Mac**: In Finder, press **Cmd + Shift + .** to show hidden files (files starting with a dot).
-   - **On Windows**: In File Explorer, go to View → check "Hidden items".
-   - **On Linux**: In your file manager, press **Ctrl + H** to show hidden files.
-3. If the `.env` file doesn't exist, create a new text file and name it `.env` (no other extension).
-4. Open this file with a text editor (like Notepad or TextEdit).
-5. Make sure it contains exactly this line:
-   ```
-   VITE_API_BASE_URL=http://localhost:7117
-   ```
-6. Save and close the file.
+Do not create `frontend/.env` for the standard local setup. The launchers configure the frontend API address automatically.
 
 ---
 
@@ -74,14 +70,38 @@ Whenever you want to use Clinic Codex, follow these steps:
    bash scripts/run-dev.sh
    ```
 
-   **On Windows** (in PowerShell):
+   **On Windows PowerShell 5.1**:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
    ```
-   Use `scripts/run-dev.ps1` from native Windows PowerShell. On Mac/Linux, use the bash command above rather than `pwsh`.
+
+   **On PowerShell 7 for Windows**:
+   ```powershell
+   pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
+   ```
+
+   Use the `.ps1` scripts only on native Windows. On Mac/Linux/WSL, use the Bash command above.
 4. Wait for the message saying the servers have started.
 5. Open your web browser (like Chrome or Firefox) and go to:
    `http://localhost:7118`
+
+### Create the first local administrator
+
+On a clean installation, the application redirects you to `http://localhost:7118/login`. Because no account exists yet, this page offers to create the first local administrator:
+
+1. Enter the email and password that you want to use locally.
+2. Create the administrator account. This option is available only once.
+3. Sign in with the same email and password.
+
+The account receives access to the administration area. No password is shipped in the project and none is printed by the installer.
+
+If support asks you to check the installation without leaving the application running, use:
+
+- Mac/Linux/WSL: `bash scripts/run-dev.sh --smoke`
+- Windows PowerShell 5.1: `powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke`
+- PowerShell 7 on Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke`
+
+The smoke starts both services, verifies that they answer, prints `smoke PASS`, and shuts them down.
 
 The normal annotation loop is: upload/analyze, open an analysis for annotation, validate named boxes, send them for local admin review, then open `http://localhost:7118/admin/annotations`. The admin page has Review, Dataset, and Training tabs. Only approved items in the Dataset view are eligible for retraining, and the backend must be restarted after a real retrain.
 
@@ -113,9 +133,8 @@ To stop the tool, go back to your Terminal or PowerShell window and press **Ctrl
 
 - **"Python" or "Node" not found**: Ensure you've installed them from their official websites and restarted your Terminal or PowerShell window.
 - **Port already in use**: This usually means the tool is already running in another window. Close that window or stop the process.
-- **Analysis fails or never finishes**: 
-   - Check that your `frontend/.env` file contains the correct line mentioned in Step 3.
-   - Make sure you are using Python 3.10 or 3.11.
+- **Analysis fails or never finishes**: Make sure you are using Python 3.10 or 3.11 and review the backend error shown in the launcher terminal.
+- **Authentication secret is missing**: Re-run the installer. It adds only missing variables to `backend/.env` and preserves existing settings.
 - **Backend won't start, error mentions `prototypes.pt`**:
   The model weights need to be exported once before first use. The launcher script (`scripts/run-dev.sh` or `scripts/run-dev.ps1`) does this automatically. If it fails, the source artefact `backend/prototypes/prototypes.pt` may be missing — re-download the project ZIP from GitHub.
 - **Optional - Pre-downloading AI models**: If you have a slow internet connection and want to download the AI models before starting, Mac/Linux users can run:

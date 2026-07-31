@@ -1,5 +1,10 @@
 import styles from "./ReviewTab.module.css";
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import { ActionButton, PillButton } from "../../components/ui/AdminPrimitives";
 import { ReferenceThumb } from "./ReferenceGlyphArt";
 import { adminAnnotationMediaUrl } from "../../services/api";
@@ -7,6 +12,31 @@ import type { AdminAnnotationElement, AdminAnnotationModifyPayload, AdminAnnotat
 import { formatBbox, reviewRowSignal, reviewRows, REVIEW_STATUS_FILTER_LABEL, STATUS_LABEL, type ReviewRow, type ReviewStatusFilter } from "./model";
 import { StatusBadge } from "./shared";
 import { ReviewElementInspector } from "./ReviewInspector";
+
+function handleReviewQueueKeyDown(
+  event: ReactKeyboardEvent<HTMLUListElement>,
+) {
+  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+
+  const options = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+  );
+  const activeOption =
+    event.target instanceof HTMLElement
+      ? event.target.closest<HTMLButtonElement>('[role="option"]')
+      : null;
+  const currentIndex = options.indexOf(activeOption ?? options[0]);
+  const nextIndex =
+    event.key === "ArrowDown"
+      ? Math.min(currentIndex + 1, options.length - 1)
+      : Math.max(currentIndex - 1, 0);
+  const nextOption = options[nextIndex];
+
+  if (!nextOption || nextIndex === currentIndex) return;
+  event.preventDefault();
+  nextOption.focus();
+  nextOption.click();
+}
 
 function AdminElementRow({
   element,
@@ -48,13 +78,20 @@ function AdminElementRow({
             <span className="sr-only">Découpe manquante</span>
           )}
         </ReferenceThumb>
-        <span className="admin-row-index">#{element.index}</span>
-        <span className="admin-row-title">
-          {element.class_name || "Sans nom"}
+        <span className="min-w-0">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="admin-row-index">#{element.index}</span>
+            <span className="admin-row-title">
+              {element.class_name || "Sans nom"}
+            </span>
+          </span>
+          <span className="admin-row-detail">
+            <span className="shrink-0">{detail}</span>
+            <span aria-hidden="true">·</span>
+            <span className="admin-row-diagnostic">{diagnostic}</span>
+          </span>
         </span>
         <StatusBadge status={element.review_status} label={rowLabel} />
-        <span className="admin-row-detail">{detail}</span>
-        <span className="admin-row-diagnostic">{diagnostic}</span>
       </button>
     </li>
   );
@@ -167,6 +204,7 @@ export function ReviewTab({
   onModify,
   onEdit,
   onAnnulerEdit,
+  classNames,
 }: {
   queue: AdminAnnotationQueue;
   selectedKey: string | null;
@@ -181,6 +219,7 @@ export function ReviewTab({
     element: AdminAnnotationElement,
     payload: AdminAnnotationModifyPayload,
   ) => void;
+  classNames: string[];
   onEdit: (element: AdminAnnotationElement) => void;
   onAnnulerEdit: () => void;
 }) {
@@ -320,6 +359,7 @@ export function ReviewTab({
             role="listbox"
             aria-label="File de triage"
             className="admin-list-scroll"
+            onKeyDown={handleReviewQueueKeyDown}
           >
             {filteredRows.map((row) => (
               <ReviewQueueRow
@@ -346,6 +386,7 @@ export function ReviewTab({
 
       <ReviewElementInspector
         row={selectedRow}
+        classNames={classNames}
         filteredRows={filteredRows}
         selectedIndex={selectedIndex}
         mutating={mutatingKey === selectedRow?.element.key}

@@ -388,7 +388,7 @@ class AdminTrainingService:
             return None
         return self._hydrate_job(self.runs_dir / run_id / "status.json")
 
-    def start_job(self, payload: dict[str, Any], context: RequestLaunchContext) -> dict[str, Any]:
+    def start_job(self, payload: dict[str, Any], context: RequestLaunchContext, *, actor_id: str | None = None) -> dict[str, Any]:
         allowed = self.launch_allowed(context)
         if not allowed["allowed"]:
             raise AdminTrainingForbiddenError("; ".join(allowed["reasons"]))
@@ -398,9 +398,9 @@ class AdminTrainingService:
             latest = self.latest_job()
             if latest and latest.get("status") == "running":
                 raise AdminTrainingConflictError(f"training job already running: {latest.get('run_id')}")
-            return self._start_job_unlocked(request)
+            return self._start_job_unlocked(request, actor_id=actor_id)
 
-    def _start_job_unlocked(self, request: dict[str, Any]) -> dict[str, Any]:
+    def _start_job_unlocked(self, request: dict[str, Any], *, actor_id: str | None = None) -> dict[str, Any]:
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
         model_version_id = self.model_registry.build_version_id(run_id=run_id.rsplit("-", 1)[-1])
         candidate_version_dir = self.model_registry.version_dir(model_version_id)
@@ -430,6 +430,7 @@ class AdminTrainingService:
             "device": request["device"],
             "batch_size": request["batch_size"],
             "notes": request["notes"],
+            "requested_by": actor_id,
             "started_at": utc_now_iso(),
             "finished_at": None,
             "exit_code": None,

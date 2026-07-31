@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-mobile-sam = { git = "https://github.com/ChaoningZhang/MobileSAM.git" }
+mobile-sam = { git = "https://github.com/ChaoningZhang/MobileSAM.git", rev = "b01a9ccef3b9e10b099b544efe004d0871802c3b" }
 torch = [
     { index = "pytorch-cpu" },
 ]
