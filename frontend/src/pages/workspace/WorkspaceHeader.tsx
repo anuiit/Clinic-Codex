@@ -1,6 +1,7 @@
 import type { KeyboardEvent, RefObject, ReactNode } from "react";
 import { AlertCircle, ImagePlus, Loader2, Upload } from "lucide-react";
 import { ThemeToggle, type ThemeMode } from "../../components/ThemeToggle";
+import { RuntimeVersionBadge } from "../../components/RuntimeVersionBadge";
 import styles from "./WorkspaceChrome.module.css";
 
 type WorkspaceHeaderLabels = {
@@ -60,6 +61,7 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="flex flex-1 flex-wrap items-center justify-end gap-3 sm:flex-nowrap">
+        <RuntimeVersionBadge />
         {authSlot}
         <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
         {error && (

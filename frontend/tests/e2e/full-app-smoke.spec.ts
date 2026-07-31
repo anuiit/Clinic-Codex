@@ -159,6 +159,17 @@ const trainingSummary = {
 };
 
 async function mockApi(page: Page) {
+  await page.route('**/version', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        app_name: 'Clinic Codex',
+        app_version: '0.1.0',
+        model_version: '1.0.0',
+      }),
+    }),
+  );
   await page.route('**/auth/me', (route) =>
     route.fulfill({
       status: 200,
@@ -265,6 +276,12 @@ test('full app smoke: workspace, annotation, and admin tabs stay wired', async (
   await page.goto(`/?analysis=${smokeRecord.id}`);
 
   await expect(page.getByText('Analyseur de glyphes Codex')).toBeVisible();
+  await expect(page.getByTestId('runtime-version')).toContainText(
+    'Clinic Codex v0.1.0',
+  );
+  await expect(page.getByTestId('runtime-version')).toContainText(
+    'Modèle v1.0.0',
+  );
   await expect(
     page.getByTestId('workspace-stage').getByRole('img', { name: smokeRecord.imageName }),
   ).toBeVisible();
@@ -278,6 +295,9 @@ test('full app smoke: workspace, annotation, and admin tabs stay wired', async (
   await expect(
     page.getByTestId('annotation-stage').getByRole('img', { name: smokeRecord.imageName }),
   ).toBeVisible();
+  await expect(page.getByTestId('runtime-version')).toContainText(
+    'Modèle v1.0.0',
+  );
   const renameInput = page.getByLabel(/Nommer l’élément 0/);
   await expect(renameInput).toBeVisible();
   await renameInput.fill('gl');
@@ -294,6 +314,9 @@ test('full app smoke: workspace, annotation, and admin tabs stay wired', async (
   await expect(page.getByText('100%')).toBeVisible();
 
   await page.goto('/admin/annotations/review');
+  await expect(page.getByTestId('runtime-version')).toContainText(
+    'Clinic Codex v0.1.0',
+  );
   await expect(page.getByRole('tab', { name: /Trier/i })).toHaveAttribute('aria-selected', 'true');
   const triageList = page.getByRole('listbox', { name: /file de triage/i });
   await expect(triageList).toBeVisible();

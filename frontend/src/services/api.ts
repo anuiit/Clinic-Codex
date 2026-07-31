@@ -19,6 +19,7 @@ import type {
   AuthSession,
   BootstrapStatus,
   LoginPayload,
+  RuntimeVersionInfo,
 } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:7117';
@@ -86,6 +87,12 @@ export async function getAuthSession(options?: ApiRequestOptions): Promise<AuthS
 
 export async function getBootstrapStatus(options?: ApiRequestOptions): Promise<BootstrapStatus> {
   return getData<BootstrapStatus>('/auth/bootstrap/status', options);
+}
+
+export async function getRuntimeVersion(
+  options?: ApiRequestOptions,
+): Promise<RuntimeVersionInfo> {
+  return getData<RuntimeVersionInfo>('/version', options);
 }
 
 export async function createFirstAdmin(

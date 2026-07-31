@@ -5,6 +5,7 @@ import { ActionButton, PageTabs, WorkstationMark } from "../../components/ui/Adm
 import type { AdminAnnotationQueue } from "../../types";
 import { ADMIN_TABS, type AdminAnnotationsPageProps, type AdminTab, formatTimestamp } from "./model";
 import { QueueCounters } from "./shared";
+import { RuntimeVersionBadge } from "../../components/RuntimeVersionBadge";
 
 export function AdminHeader({
   themeMode = "dark",
@@ -43,6 +44,7 @@ export function AdminHeader({
         <AdminTabs activeTab={activeTab} onSelect={onSelectTab} queue={queue} />
         {queue ? <QueueCounters queue={queue} /> : null}
         <div className="admin-command-actions">
+          <RuntimeVersionBadge />
           {authSlot}
           <span className="admin-timestamp">
             Actualisé {formatTimestamp(lastRefreshedAt)}

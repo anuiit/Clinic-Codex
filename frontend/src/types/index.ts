@@ -1,5 +1,11 @@
 export type ClassLabel = string | number;
 
+export interface RuntimeVersionInfo {
+  app_name: string;
+  app_version: string;
+  model_version: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;

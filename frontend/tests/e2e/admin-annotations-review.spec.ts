@@ -91,6 +91,18 @@ async function installAdminRoutes(page: Page) {
         });
         return;
       }
+      if (url.pathname === "/version") {
+        await route.fulfill({
+          status: 200,
+          headers: headers(),
+          body: JSON.stringify({
+            app_name: "Clinic Codex",
+            app_version: "0.1.0",
+            model_version: "1.0.0",
+          }),
+        });
+        return;
+      }
       if (url.pathname === "/admin/annotations") {
         await route.fulfill({
           status: 200,

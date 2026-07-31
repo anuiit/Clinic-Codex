@@ -15,6 +15,9 @@ const apiMock = vi.hoisted(() => ({
 }))
 
 vi.mock('../services/api', () => apiMock)
+vi.mock('../components/RuntimeVersionProvider', () => ({
+  RuntimeVersionProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}))
 
 const AUTH_SESSION = {
   status: 'ok',

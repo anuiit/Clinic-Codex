@@ -11,6 +11,7 @@ import AnnotationPage from './pages/AnnotationPage';
 import WorkspacePage from './pages/WorkspacePage';
 import type { ThemeMode } from './components/ThemeToggle';
 import type { AdminTab } from './pages/adminAnnotations/model';
+import { RuntimeVersionProvider } from './components/RuntimeVersionProvider';
 
 const THEME_STORAGE_KEY = 'clinic-codex-theme';
 
@@ -106,10 +107,11 @@ function App() {
 
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <div className={`${appChromeStyles.owner} app-shell flex h-screen w-screen flex-col overflow-hidden max-md:h-auto max-md:min-h-[100dvh] max-md:overflow-y-auto`} data-theme={themeMode}>
-          <main className="flex-1 overflow-hidden max-md:flex-none max-md:overflow-visible">
-            <Routes>
+      <RuntimeVersionProvider>
+        <AuthProvider>
+          <div className={`${appChromeStyles.owner} app-shell flex h-screen w-screen flex-col overflow-hidden max-md:h-auto max-md:min-h-[100dvh] max-md:overflow-y-auto`} data-theme={themeMode}>
+            <main className="flex-1 overflow-hidden max-md:flex-none max-md:overflow-visible">
+              <Routes>
               <Route path="/login" element={<LoginPage themeMode={themeMode} onToggleTheme={toggleTheme} />} />
               <Route
                 path="/"
@@ -142,10 +144,11 @@ function App() {
                   </RouteGuard>
                 )}
               />
-            </Routes>
-          </main>
-        </div>
-      </AuthProvider>
+              </Routes>
+            </main>
+          </div>
+        </AuthProvider>
+      </RuntimeVersionProvider>
     </BrowserRouter>
   );
 }

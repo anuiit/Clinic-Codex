@@ -38,6 +38,19 @@ describe("API client contract", () => {
     expect(axiosMock.get).toHaveBeenCalledWith("http://localhost:7117/classes");
   });
 
+  it("loads the application and active-model versions", async () => {
+    const versions = {
+      app_name: "Clinic Codex",
+      app_version: "0.1.0",
+      model_version: "1.0.0",
+    };
+    axiosMock.get.mockResolvedValueOnce({ data: versions });
+    const api = await loadApi("http://api.test");
+
+    await expect(api.getRuntimeVersion()).resolves.toEqual(versions);
+    expect(axiosMock.get).toHaveBeenCalledWith("http://api.test/version");
+  });
+
   it("uses VITE_API_BASE_URL overrides and forwards AbortSignal for GET requests", async () => {
     const controller = new AbortController();
     axiosMock.get.mockResolvedValueOnce({ data: { num_classes: 1, class_names: ["atl"] } });

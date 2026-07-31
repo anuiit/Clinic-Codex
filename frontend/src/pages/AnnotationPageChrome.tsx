@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { appText } from "../i18n/text";
 import { ThemeToggle, type ThemeMode } from "../components/ThemeToggle";
 import { ActionButton } from "../components/ui/Primitives";
+import { RuntimeVersionBadge } from "../components/RuntimeVersionBadge";
 import annotationStyles from "./annotation/AnnotationChrome.module.css";
 
 type AnnotationLabels = typeof appText.annotation;
@@ -54,6 +55,7 @@ export function AnnotationPageChrome({
         </div>
 
         <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto md:flex-nowrap">
+          <RuntimeVersionBadge />
           {authSlot}
           <ThemeToggle mode={themeMode} onToggle={onToggleTheme} />
           <ActionButton
