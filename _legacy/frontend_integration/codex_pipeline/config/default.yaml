@@ -1,0 +1,101 @@
+# Codex Element Recognition Pipeline - Default Configuration
+
+# --- Paths ---
+paths:
+  elements_dir: "./Elements"
+  metadata_csv: "./metadata.csv"
+  checkpoint_dir: "./checkpoints"
+  prototype_dir: "./prototypes"
+
+# --- Data ---
+data:
+  image_size: 224           # DINOv2 input size
+  min_images_per_class: 2   # minimum to include class in training
+  val_fraction: 0.15        # fraction held out per class for validation
+  num_workers: 4
+
+# --- Augmentation ---
+augmentation:
+  # Tier 1: geometric + photometric
+  tier1:
+    enabled: true
+    rotation_limit: 15
+    scale_range: [0.85, 1.15]
+    elastic_alpha: 30
+    elastic_sigma: 5
+    brightness_limit: 0.15
+    contrast_limit: 0.15
+    noise_var_limit: 0.02
+    blur_limit: 3
+
+  # Tier 2: copy-paste on backgrounds
+  tier2:
+    enabled: false           # requires background images
+    backgrounds_dir: null
+    max_paste_per_bg: 3
+
+  # Tier 3: mixup / cutmix within class
+  tier3:
+    enabled: true
+    mixup_alpha: 0.3
+    cutmix_prob: 0.5
+
+  # How many augmented copies per original image
+  multiplier: 5
+
+# --- Model ---
+model:
+  backbone: "dinov2_vits14"   # DINOv2-Small (ViT-S/14), 21M params
+  embedding_dim: 128          # projection head output dimension
+  freeze_blocks: 9            # freeze first N of 12 transformer blocks (fine-tune last 3)
+  pretrained: true
+
+# --- Prototypical Network Training ---
+# (operates on cached DINOv2 features — very fast, even on CPU/MPS)
+training:
+  episodes_per_epoch: 500     # cheap now: ~50K vector ops, not image loads
+  num_epochs: 100
+  n_way: 20                   # classes per episode
+  k_shot: 3                   # support examples per class
+  q_queries: 5                # query examples per class
+  learning_rate: 0.001        # higher LR OK for small projection head
+  weight_decay: 0.0001
+  lr_scheduler: "cosine"
+  warmup_epochs: 5
+  temperature: 0.1            # scaling for cosine similarity
+  device: "auto"              # auto-detect: cuda > mps > cpu
+  seed: 42
+
+# --- Evaluation ---
+evaluation:
+  k_shot_values: [1, 3, 5]   # evaluate at different shot counts
+  num_eval_episodes: 200
+
+# --- Inference ---
+inference:
+  distance_metric: "cosine"
+  rejection_threshold: 0.35   # below this similarity → "unknown"
+  top_k: 3                    # return top-k matches
+
+# --- Segmentation (Phase 2) ---
+segmentation:
+  model: "mobile_sam"
+  checkpoint: null              # null = auto-download default
+  points_per_side: 32
+  pred_iou_thresh: 0.86
+  stability_score_thresh: 0.92
+  min_area: 200                 # minimum mask area (pixels)
+  max_area_ratio: 0.25          # max mask area as fraction of page
+  min_stability_score: 0.8
+  iou_threshold: 0.5            # NMS overlap threshold
+
+# --- Pipeline (Phase 3) ---
+pipeline:
+  distance_threshold: 80.0      # max pixel distance to group elements into glyphs
+  min_elements_per_glyph: 1
+  export_formats: ["json", "csv", "png"]
+
+# --- Model Export ---
+export:
+  output_dir: "./codex_model"   # standalone package directory
+  include_backbone_name: true
