@@ -1,0 +1,53 @@
+{
+  "schema_version": "autoresearch-self-supervised-v10.evaluator",
+  "iteration": 7,
+  "name": "c1-readout-query-covariance-regularization",
+  "pass_type": "strict boolean integrity, direct performance, noninferiority and stability",
+  "integrity_gates": {
+    "paired_prediction_rows": 1959,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "candidate_checkpoint_count": 15,
+    "control_state_dict_matches_persisted_v9_C1_count": 15,
+    "control_topk_matches_persisted_v9_C1_rows": 1959,
+    "episode_plan_matches_persisted_v9_C1_count": 15,
+    "v9_summary_and_prediction_hashes_match": true,
+    "v9_cache_hashes_match_count": 5,
+    "candidate_and_control_shared_pretrained_state": true,
+    "candidate_and_control_budget_equal": true,
+    "candidate_episode_oof_row_exposure": 0,
+    "runtime_unchanged": true,
+    "final_test_read": false,
+    "automatic_promotion": false
+  },
+  "efficacy_vs_B0_gates": {
+    "delta_top1_gte": 0.01,
+    "positive_seed_count_gte": 2,
+    "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+    "delta_macro_top1_gte": -0.005,
+    "delta_top3_gte": 0.0,
+    "minimum_fold_delta_top1_gte": -0.05
+  },
+  "noninferiority_vs_C1_gates": {
+    "delta_top1_gte": -0.005,
+    "delta_top3_gte": -0.01,
+    "delta_macro_top1_gte": -0.01
+  },
+  "direct_stability_gates": {
+    "minimum_post_l2_query_batch_mean_std_gte": 0.01,
+    "nan_or_nonfinite_detected": false,
+    "mean_covariance_penalty_gt": 0.0,
+    "mean_weighted_covariance_penalty_gt": 0.0
+  },
+  "descriptive_engagement_outputs": {
+    "mean_weighted_covariance_penalty_over_classification_loss": "required finite diagnostic, not a hard efficacy gate"
+  },
+  "rank_diagnostic": {
+    "hard_gate": false,
+    "council_escalation_if_minimum_candidate_over_persisted_B0_lt": 0.8
+  },
+  "pass_rule": "all integrity, efficacy_vs_B0, noninferiority_vs_C1 and direct_stability gates pass",
+  "promotion_eligible": false,
+  "runtime_promotion": false,
+  "final_test_read_allowed": false
+}

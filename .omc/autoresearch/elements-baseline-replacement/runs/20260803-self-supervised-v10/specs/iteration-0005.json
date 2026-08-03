@@ -1,0 +1,93 @@
+{
+  "schema_version": "autoresearch-self-supervised-v10.spec",
+  "run_id": "20260803-self-supervised-v10",
+  "iteration": 5,
+  "name": "support-aware-episodic-readout-on-vicreg-s14",
+  "status": "preregistered_before_any_iteration_0005_candidate_prediction",
+  "purpose": "Test whether the v9 VICReg representation is masked by a supervised episodic sampler that excludes every class with fewer than eight fold-local training rows.",
+  "council_synthesis_sha256": "09611b6b0e0f0368467666f80c40dd29942ed82ee82915b665d6fd72220a3d9b",
+  "single_factor": {
+    "name": "episodic_class_eligibility_and_scarce_class_sampling_rule",
+    "baseline": "exact v9 C1 VICReg S14 initialization followed by the strict without-replacement 20-way 3-shot 5-query plan; classes require at least 8 training rows",
+    "candidate": "the identical VICReg S14 initialization and supervised recipe, but classes with at least 2 training rows are eligible; classes with 2-7 rows use disjoint support/query pools and resampling only within each pool to retain fixed 3-shot and 5-query tensor shapes",
+    "scarce_class_algorithm": [
+      "shuffle all indices of the selected class without replacement",
+      "assign min(3, n-1) distinct rows to the support pool and every remaining row to the query pool",
+      "fill support to exactly 3 and query to exactly 5 by sampling with replacement only inside the corresponding pool",
+      "never allow the same source row in both support and query for an episode",
+      "construct every support and query pool exclusively from the fold-local train split; candidate episode OOF-row exposure must remain zero",
+      "for n >= 8 preserve the historical without-replacement selection exactly"
+    ],
+    "unchanged": [
+      "official frozen DINOv2-S/14 base features and all five persisted v9 caches",
+      "label-free fold-local VICReg objective, views, coefficients, seed, epochs and optimizer",
+      "ProjectionHead(384,384,128) architecture and initialization",
+      "seeds 17,42,73",
+      "30 supervised epochs, 100 episodes per epoch, 20 ways, 3 support slots and 5 query slots per class",
+      "AdamW, learning rate, weight decay, temperature, schedule and gradient clipping",
+      "fold assignments, OOF rows, prototypes, metrics and 2000-replicate component bootstrap",
+      "no final-test access, runtime write, automatic promotion or parameter sweep"
+    ]
+  },
+  "pretraining_coverage_diagnostic": {
+    "standard_eligible_classes_by_fold": [202, 202, 203, 203, 202],
+    "support_aware_eligible_classes_by_fold": [230, 230, 230, 233, 231],
+    "newly_eligible_classes_by_fold": [28, 28, 27, 30, 29],
+    "affected_oof_rows_by_fold": [27, 22, 32, 225, 109],
+    "affected_oof_rows_total": 415,
+    "diagnostic_used_no_model_predictions": true
+  },
+  "pinned_v9_inputs": {
+    "runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+      "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    },
+    "strict_quarantined_corpus_required": true,
+    "retained_rows": 9990,
+    "conservative_components": 300
+  },
+  "control_reproduction": {
+    "required": true,
+    "control_state_dict_must_match_persisted_v9_C1_for_all_15_fold_seed_pairs": true,
+    "control_topk_must_match_persisted_v9_C1_for_all_1959_prediction_rows": true,
+    "strict_episode_plan_hash_must_match_persisted_v9_C1_for_all_15_fold_seed_pairs": true,
+    "interpret_candidate_only_if_control_reproduction_passes": true
+  },
+  "evaluation": {
+    "primary_evidence": "lower bound of the paired provenance-component cluster-bootstrap interval for support-aware candidate minus exact C1 control pooled OOF top1",
+    "practical_effect_size_gate": "pooled OOF top1 point delta >= 0.01",
+    "bootstrap_replicates": 2000,
+    "efficacy_gates": {
+      "delta_top1_gte": 0.01,
+      "positive_seed_count_gte": 2,
+      "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+      "delta_macro_top1_gte": -0.005,
+      "affected_oof_delta_top1_gt": 0.0,
+      "candidate_over_control_effective_rank_ratio_gte": 0.9,
+      "candidate_over_persisted_B0_effective_rank_ratio_gte": 0.9
+    },
+    "descriptive_non_gating_outputs": [
+      "top1 and top3 by affected versus historically supported OOF strata",
+      "per-fold and per-seed deltas",
+      "per-class train support counts and OOF metrics",
+      "component-bootstrap intervals and exact McNemar result"
+    ],
+    "measurement_limitation": "Only 11 classes and 25 provenance components are independently evaluable OOF; individual rows are not treated as independent evidence, stratum results are descriptive, and the candidate is never promotion-eligible.",
+    "scarce_class_interpretation": "For 2-3-row classes, repeated slots are an intentional class-balanced oversampling intervention. Their stratified result is descriptive only and cannot establish generalization beyond the few observed provenance components.",
+    "rank_guard_interpretation": "The candidate must not only avoid further collapse relative to C1 control; it must also repair the original v9 rank failure relative to persisted B0."
+  },
+  "decision_rule": {
+    "supported": "all integrity and efficacy gates pass",
+    "neutral_or_not_supported": "integrity passes but any efficacy gate fails",
+    "invalid": "any integrity gate fails",
+    "after_failure": "close support-aware sampler branch and retain alpha=0.5 SSL-update interpolation as the next preregistered fallback"
+  },
+  "promotion_eligible": false,
+  "runtime_write_allowed": false,
+  "final_test_read_allowed": false
+}

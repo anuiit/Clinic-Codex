@@ -1,0 +1,32 @@
+{
+  "schema_version": "autoresearch-self-supervised-v10.spec",
+  "run_id": "20260803-self-supervised-v10",
+  "iteration": 6,
+  "name": "persisted-v9-rank-guard-alignment-diagnostic",
+  "status": "preregistered_before_iteration_0006_diagnostic_calculation",
+  "purpose": "Determine descriptively whether the fold with the worst C1/B0 effective-rank ratio also shows a C1 top-1 loss, using only frozen v9 artifacts.",
+  "council_synthesis_sha256": "ccdf0224c01fdcc8f2bbac4bcc488fa0a7b16440919d041b4ea56fb781b25dfe",
+  "inputs": {
+    "v9_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "expected_rows": 1959,
+    "folds": [1, 2, 3, 4, 5],
+    "seeds": [17, 42, 73]
+  },
+  "single_analysis": {
+    "performance": "For each outer fold and seed, compute exact persisted C1 minus B0 top-1, top-3 and macro top-1; then pool the three seeds per fold.",
+    "rank": "For each outer fold, report the minimum and mean persisted C1/B0 effective-rank ratio across the three seeds.",
+    "association": "Report Pearson and Spearman association between the five fold-level top-1 deltas and minimum rank ratios as descriptive values only.",
+    "worst_rank_fold": "Identify the fold with the lowest minimum rank ratio and report its top-1 delta."
+  },
+  "interpretation": {
+    "aligned": "Worst-rank fold has negative C1-B0 top-1 delta; the guard is directionally aligned with measured harm on that fold.",
+    "not_aligned": "Worst-rank fold has non-negative C1-B0 top-1 delta; the guard did not predict measured harm on its worst fold.",
+    "limits": "Five folds are insufficient for inferential correlation; the diagnostic cannot relax or retrospectively alter any existing gate."
+  },
+  "decision_use": "Return to Council after the diagnostic to choose exactly one preregistered model factor: alpha=0.5 interpolation or a C1 readout covariance/orthogonality penalty.",
+  "new_model_predictions_allowed": false,
+  "runtime_write_allowed": false,
+  "final_test_read_allowed": false,
+  "promotion_eligible": false
+}

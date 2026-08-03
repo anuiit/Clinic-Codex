@@ -1,0 +1,29 @@
+{
+  "schema_version": "autoresearch-self-supervised-v10.evaluator",
+  "iteration": 6,
+  "name": "persisted-v9-rank-guard-alignment-diagnostic",
+  "pass_type": "strict integrity only; diagnostic direction is non-gating",
+  "integrity_gates": {
+    "v9_summary_sha256_matches": true,
+    "v9_prediction_rows_sha256_matches": true,
+    "paired_prediction_rows": 1959,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "diagnostic_reuses_only_persisted_predictions": true,
+    "no_new_model_prediction": true,
+    "runtime_unchanged": true,
+    "final_test_read": false,
+    "automatic_promotion": false
+  },
+  "required_outputs": [
+    "per-fold pooled metrics",
+    "per-fold per-seed metrics",
+    "per-fold minimum and mean effective-rank ratios",
+    "worst-rank fold and its top-1 delta",
+    "descriptive Pearson and Spearman associations",
+    "aligned or not_aligned classification"
+  ],
+  "promotion_eligible": false,
+  "runtime_promotion": false,
+  "final_test_read_allowed": false
+}

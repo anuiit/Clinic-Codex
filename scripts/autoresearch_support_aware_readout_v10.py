@@ -880,3 +880,508 @@ def run_fold_seed(
     return records, diagnostics
 
 
+def _fixed_value(values: Sequence[int], expected: int) -> int:
+    return expected if values and all(value == expected for value in values) else -1
+
+
+def _runtime_hashes(projection: Path, prototypes: Path) -> dict[str, str]:
+    hashes = {
+        "projection": v9.sha256_file(projection),
+        "prototypes": v9.sha256_file(prototypes),
+    }
+    if hashes != EXPECTED_RUNTIME_SHA256:
+        raise ValueError("runtime projection/prototype SHA mismatch before research run")
+    return hashes
+
+
+def aggregate_results(
+    records: Sequence[dict[str, Any]],
+    diagnostics: Sequence[dict[str, Any]],
+    cache_validations: Sequence[dict[str, Any]],
+    coverage_reports: Sequence[dict[str, Any]],
+    *,
+    runtime_unchanged: bool,
+    bootstrap_replicates: int = 2000,
+) -> dict[str, Any]:
+    if not records or not diagnostics or not cache_validations or not coverage_reports:
+        raise ValueError("evaluation requires predictions, diagnostics, validated caches, and coverage")
+    seeds = sorted({int(row["seed"]) for row in records})
+    folds = sorted({int(row["outer_fold"]) for row in records})
+    seed_metrics = [
+        {
+            "seed": seed,
+            **_paired_metrics([row for row in records if int(row["seed"]) == seed]),
+        }
+        for seed in seeds
+    ]
+    fold_metrics = [
+        {
+            "fold": fold,
+            **_paired_metrics([row for row in records if int(row["outer_fold"]) == fold]),
+        }
+        for fold in folds
+    ]
+    overall = _paired_metrics(records)
+    bootstrap = v9.paired_component_bootstrap(
+        records,
+        replicates=bootstrap_replicates,
+        seed=20260803,
+    )
+    strata = stratified_metrics(records)
+    affected = strata["by_stratum"]["affected"]
+    if affected is None:
+        raise ValueError("iteration-5 evaluation has no affected OOF rows")
+    coverage = combine_coverage(coverage_reports)
+    positive_seed_count = sum(item["delta_top1"] > 0.0 for item in seed_metrics)
+    minimum_control_rank_ratio = min(
+        float(item["candidate_over_control_effective_rank_ratio"])
+        for item in diagnostics
+    )
+    minimum_b0_rank_ratio = min(
+        float(item["candidate_over_persisted_B0_effective_rank_ratio"])
+        for item in diagnostics
+    )
+
+    integrity_values: dict[str, Any] = {
+        "paired_prediction_rows": len(records),
+        "paired_seed_count": len(seeds),
+        "outer_fold_count": len(folds),
+        "candidate_checkpoint_count": sum(
+            bool(item["candidate_checkpoint_exists"]) for item in diagnostics
+        ),
+        "control_state_dict_matches_persisted_v9_C1_count": sum(
+            bool(item["control_state_dict_matches_persisted_v9_C1"])
+            for item in diagnostics
+        ),
+        "control_topk_matches_persisted_v9_C1_rows": sum(
+            int(item["control_topk_match_count"]) for item in diagnostics
+        ),
+        "strict_episode_plan_matches_persisted_v9_C1_count": sum(
+            bool(item["control_episode_plan_matches_persisted_v9_C1"])
+            for item in diagnostics
+        ),
+        "standard_eligible_classes_by_fold": coverage[
+            "standard_eligible_classes_by_fold"
+        ],
+        "support_aware_eligible_classes_by_fold": coverage[
+            "support_aware_eligible_classes_by_fold"
+        ],
+        "newly_eligible_classes_by_fold": coverage[
+            "newly_eligible_classes_by_fold"
+        ],
+        "affected_oof_rows_by_fold": coverage["affected_oof_rows_by_fold"],
+        "v9_runner_sha256": validate_v9_runner(),
+        "v9_summary_sha256": EXPECTED_V9_SUMMARY_SHA256,
+        "v9_cache_hashes_match_count": sum(
+            bool(item["cache_sha256_matches"]) for item in cache_validations
+        ),
+        "strict_quarantined_corpus_retained_rows": _fixed_value(
+            [
+                int(item["strict_quarantined_corpus_retained_rows"])
+                for item in cache_validations
+            ],
+            EXPECTED_ROWS,
+        ),
+        "strict_quarantined_corpus_components": _fixed_value(
+            [
+                int(item["strict_quarantined_corpus_components"])
+                for item in cache_validations
+            ],
+            EXPECTED_COMPONENTS,
+        ),
+        "candidate_episode_oof_row_exposure": sum(
+            int(item["candidate_episode_oof_row_exposure"])
+            for item in diagnostics
+        ),
+        "candidate_episode_index_out_of_range": sum(
+            int(item["candidate_episode_index_out_of_range"])
+            for item in diagnostics
+        ),
+        "support_query_source_row_overlap": sum(
+            int(item["support_query_source_row_overlap"]) for item in diagnostics
+        ),
+        "fixed_support_slots_per_class": _fixed_value(
+            [int(item["fixed_support_slots_per_class"]) for item in diagnostics],
+            3,
+        ),
+        "fixed_query_slots_per_class": _fixed_value(
+            [int(item["fixed_query_slots_per_class"]) for item in diagnostics],
+            5,
+        ),
+        "baseline_candidate_initial_state_equal": all(
+            bool(item["baseline_candidate_initial_state_equal"])
+            for item in diagnostics
+        ),
+        "baseline_candidate_supervised_budget_equal": all(
+            bool(item["baseline_candidate_supervised_budget_equal"])
+            for item in diagnostics
+        ),
+        "provenance_component_overlap_across_folds": max(
+            int(item["provenance_component_overlap_across_folds"])
+            for item in cache_validations
+        ),
+        "decoded_pixel_hash_overlap_across_folds": max(
+            int(item["decoded_pixel_hash_overlap_across_folds"])
+            for item in cache_validations
+        ),
+        "ssl_outer_fold_row_exposure": max(
+            int(item["ssl_outer_fold_row_exposure"]) for item in cache_validations
+        ),
+        "learned_statistics_outer_fold_exposure": max(
+            int(item["learned_statistics_outer_fold_exposure"])
+            for item in cache_validations
+        ),
+        "nan_or_nonfinite_detected": any(
+            bool(item["nan_or_nonfinite_detected"]) for item in diagnostics
+        ),
+        "runtime_unchanged": runtime_unchanged,
+        "final_test_read": False,
+        "automatic_promotion": False,
+    }
+    integrity_passes = {
+        "paired_prediction_rows": integrity_values["paired_prediction_rows"]
+        == EXPECTED_PAIRED_ROWS,
+        "paired_seed_count": integrity_values["paired_seed_count"]
+        == len(EXPECTED_SEEDS),
+        "outer_fold_count": integrity_values["outer_fold_count"]
+        == len(EXPECTED_FOLDS),
+        "candidate_checkpoint_count": integrity_values["candidate_checkpoint_count"]
+        == len(EXPECTED_FOLDS) * len(EXPECTED_SEEDS),
+        "control_state_dict_matches_persisted_v9_C1_count": integrity_values[
+            "control_state_dict_matches_persisted_v9_C1_count"
+        ]
+        == len(EXPECTED_FOLDS) * len(EXPECTED_SEEDS),
+        "control_topk_matches_persisted_v9_C1_rows": integrity_values[
+            "control_topk_matches_persisted_v9_C1_rows"
+        ]
+        == EXPECTED_PAIRED_ROWS,
+        "strict_episode_plan_matches_persisted_v9_C1_count": integrity_values[
+            "strict_episode_plan_matches_persisted_v9_C1_count"
+        ]
+        == len(EXPECTED_FOLDS) * len(EXPECTED_SEEDS),
+        "standard_eligible_classes_by_fold": integrity_values[
+            "standard_eligible_classes_by_fold"
+        ]
+        == [202, 202, 203, 203, 202],
+        "support_aware_eligible_classes_by_fold": integrity_values[
+            "support_aware_eligible_classes_by_fold"
+        ]
+        == [230, 230, 230, 233, 231],
+        "newly_eligible_classes_by_fold": integrity_values[
+            "newly_eligible_classes_by_fold"
+        ]
+        == [28, 28, 27, 30, 29],
+        "affected_oof_rows_by_fold": integrity_values["affected_oof_rows_by_fold"]
+        == [27, 22, 32, 225, 109],
+        "v9_runner_sha256": integrity_values["v9_runner_sha256"]
+        == EXPECTED_V9_RUNNER_SHA256,
+        "v9_summary_sha256": integrity_values["v9_summary_sha256"]
+        == EXPECTED_V9_SUMMARY_SHA256,
+        "v9_cache_hashes_match_count": integrity_values[
+            "v9_cache_hashes_match_count"
+        ]
+        == len(EXPECTED_FOLDS),
+        "strict_quarantined_corpus_retained_rows": integrity_values[
+            "strict_quarantined_corpus_retained_rows"
+        ]
+        == EXPECTED_ROWS,
+        "strict_quarantined_corpus_components": integrity_values[
+            "strict_quarantined_corpus_components"
+        ]
+        == EXPECTED_COMPONENTS,
+        "candidate_episode_oof_row_exposure": integrity_values[
+            "candidate_episode_oof_row_exposure"
+        ]
+        == 0,
+        "candidate_episode_index_out_of_range": integrity_values[
+            "candidate_episode_index_out_of_range"
+        ]
+        == 0,
+        "support_query_source_row_overlap": integrity_values[
+            "support_query_source_row_overlap"
+        ]
+        == 0,
+        "fixed_support_slots_per_class": integrity_values[
+            "fixed_support_slots_per_class"
+        ]
+        == 3,
+        "fixed_query_slots_per_class": integrity_values[
+            "fixed_query_slots_per_class"
+        ]
+        == 5,
+        "baseline_candidate_initial_state_equal": integrity_values[
+            "baseline_candidate_initial_state_equal"
+        ]
+        is True,
+        "baseline_candidate_supervised_budget_equal": integrity_values[
+            "baseline_candidate_supervised_budget_equal"
+        ]
+        is True,
+        "provenance_component_overlap_across_folds": integrity_values[
+            "provenance_component_overlap_across_folds"
+        ]
+        == 0,
+        "decoded_pixel_hash_overlap_across_folds": integrity_values[
+            "decoded_pixel_hash_overlap_across_folds"
+        ]
+        == 0,
+        "ssl_outer_fold_row_exposure": integrity_values[
+            "ssl_outer_fold_row_exposure"
+        ]
+        == 0,
+        "learned_statistics_outer_fold_exposure": integrity_values[
+            "learned_statistics_outer_fold_exposure"
+        ]
+        == 0,
+        "nan_or_nonfinite_detected": integrity_values["nan_or_nonfinite_detected"]
+        is False,
+        "runtime_unchanged": integrity_values["runtime_unchanged"] is True,
+        "final_test_read": integrity_values["final_test_read"] is False,
+        "automatic_promotion": integrity_values["automatic_promotion"] is False,
+    }
+
+    efficacy_values = {
+        "delta_top1": float(overall["delta_top1"]),
+        "positive_seed_count": positive_seed_count,
+        "delta_top1_component_bootstrap_lower_95": float(
+            bootstrap["delta_top1_95"][0]
+        ),
+        "delta_macro_top1": float(overall["delta_macro_top1"]),
+        "affected_oof_delta_top1": float(affected["delta_top1"]),
+        "minimum_candidate_over_control_effective_rank_ratio": minimum_control_rank_ratio,
+        "minimum_candidate_over_persisted_B0_effective_rank_ratio": minimum_b0_rank_ratio,
+    }
+    efficacy_passes = efficacy_gate_passes(efficacy_values)
+    integrity_ok = all(integrity_passes.values())
+    efficacy_ok = all(efficacy_passes.values())
+    return {
+        "pass": integrity_ok and efficacy_ok,
+        "score": efficacy_values["delta_top1"],
+        "hypothesis_supported": efficacy_ok,
+        "decision": (
+            "supported"
+            if integrity_ok and efficacy_ok
+            else "neutral_or_not_supported"
+            if integrity_ok
+            else "invalid"
+        ),
+        "promotion_eligible": False,
+        "overall_metrics": overall,
+        "seed_metrics": seed_metrics,
+        "fold_metrics": fold_metrics,
+        "bootstrap": bootstrap,
+        "mcnemar": v9.exact_mcnemar(records),
+        "stratified_metrics": strata,
+        "coverage": coverage,
+        "positive_seed_count": positive_seed_count,
+        "minimum_candidate_over_control_effective_rank_ratio": minimum_control_rank_ratio,
+        "minimum_candidate_over_persisted_B0_effective_rank_ratio": minimum_b0_rank_ratio,
+        "integrity_gates": integrity_values,
+        "integrity_gate_passes": integrity_passes,
+        "efficacy_gates": efficacy_values,
+        "efficacy_gate_passes": efficacy_passes,
+        "final_test_read": False,
+        "runtime_promotion": False,
+    }
+
+
+def command_run(args: argparse.Namespace) -> dict[str, Any]:
+    contract = validate_contract(args.spec, args.evaluator)
+    v9_runner_sha256 = validate_v9_runner()
+    persisted = validate_inputs(args.v9_summary, args.v9_predictions)
+    before_runtime = _runtime_hashes(
+        args.runtime_projection,
+        args.runtime_prototypes,
+    )
+    device = v9.resolve_device(args.device)
+    supervised_device = v9.resolve_device(args.supervised_device)
+    if supervised_device.type == "cpu":
+        if args.supervised_cpu_threads < 1:
+            raise ValueError("supervised CPU threads must be positive")
+        torch.set_num_threads(args.supervised_cpu_threads)
+
+    caches: dict[int, dict[str, Any]] = {}
+    cache_validations: list[dict[str, Any]] = []
+    coverage_reports: list[dict[str, Any]] = []
+    for fold in EXPECTED_FOLDS:
+        cache_path = v9.cache_path(args.cache_dir, fold, views=8, max_rows_per_class=None)
+        cache, validation = load_validated_cache(cache_path, fold=fold, views=8)
+        caches[fold] = cache
+        cache_validations.append(validation)
+        coverage_reports.append(coverage_for_fold(cache))
+    coverage = combine_coverage(coverage_reports)
+    expected_coverage = {
+        "standard_eligible_classes_by_fold": [202, 202, 203, 203, 202],
+        "support_aware_eligible_classes_by_fold": [230, 230, 230, 233, 231],
+        "newly_eligible_classes_by_fold": [28, 28, 27, 30, 29],
+        "affected_oof_rows_by_fold": [27, 22, 32, 225, 109],
+        "affected_oof_rows_total": 415,
+        "diagnostic_used_no_model_predictions": True,
+    }
+    if coverage != expected_coverage:
+        raise ValueError("fold-local support coverage differs from preregistration")
+
+    runner_sha256 = v9.sha256_file(Path(__file__).resolve())
+    all_records: list[dict[str, Any]] = []
+    all_diagnostics: list[dict[str, Any]] = []
+    for fold in EXPECTED_FOLDS:
+        cache = caches[fold]
+        cache_sha256 = str(cache["_cache_validation"]["cache_sha256"])
+        for seed in EXPECTED_SEEDS:
+            records, diagnostics = run_fold_seed(
+                cache,
+                fold=fold,
+                seed=seed,
+                persisted=persisted,
+                checkpoint_dir=args.output_dir / "checkpoints",
+                pair_dir=args.output_dir / "pairs",
+                device=device,
+                supervised_device=supervised_device,
+                ssl_epochs=30,
+                ssl_batch_size=256,
+                supervised_epochs=30,
+                episodes_per_epoch=100,
+                n_way=20,
+                k_shot=3,
+                q_queries=5,
+                runner_sha256=runner_sha256,
+                cache_sha256=cache_sha256,
+                contract=contract,
+            )
+            record_provenance = {
+                "runner_sha256": runner_sha256,
+                "v9_runner_sha256": v9_runner_sha256,
+                "v9_summary_sha256": persisted["summary_sha256"],
+                "v9_predictions_sha256": persisted["predictions_sha256"],
+                "spec_sha256": contract["spec_sha256"],
+                "evaluator_sha256": contract["evaluator_sha256"],
+                "runtime_projection_sha256": before_runtime["projection"],
+                "runtime_prototypes_sha256": before_runtime["prototypes"],
+                "candidate_checkpoint_sha256": diagnostics[
+                    "candidate_checkpoint_sha256"
+                ],
+                "ssl_device": str(device),
+                "supervised_device": str(supervised_device),
+            }
+            for record in records:
+                record.update(record_provenance)
+            all_records.extend(records)
+            all_diagnostics.append(diagnostics)
+
+    after_runtime = _runtime_hashes(
+        args.runtime_projection,
+        args.runtime_prototypes,
+    )
+    runtime_unchanged = before_runtime == after_runtime
+    if not runtime_unchanged:
+        raise RuntimeError("runtime projection/prototype artifacts changed during research run")
+
+    fold_assignments = sorted(
+        {
+            (
+                str(record["row_id"]),
+                int(record["outer_fold"]),
+                str(record["provenance_component"]),
+                str(record["decoded_pixel_sha256"]),
+            )
+            for record in all_records
+        }
+    )
+    folds_sha256 = v9.sha256_json(fold_assignments)
+    for record in all_records:
+        record["folds_sha256"] = folds_sha256
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    predictions_path = args.output_dir / "prediction_rows.jsonl"
+    v9.write_jsonl(predictions_path, all_records)
+    result = aggregate_results(
+        all_records,
+        all_diagnostics,
+        cache_validations,
+        coverage_reports,
+        runtime_unchanged=runtime_unchanged,
+        bootstrap_replicates=2000,
+    )
+    result.update(
+        {
+            "schema_version": "autoresearch-self-supervised-v10.evaluation",
+            "iteration": 5,
+            "name": "support-aware-episodic-readout-on-vicreg-s14",
+            "paired_predictions_path": predictions_path.name,
+            "folds": EXPECTED_FOLDS,
+            "seeds": EXPECTED_SEEDS,
+            "folds_sha256": folds_sha256,
+            "cache_sha256": {
+                str(item["fold"]): item["cache_sha256"]
+                for item in cache_validations
+            },
+            "runner_sha256": runner_sha256,
+            "v9_runner_sha256": v9_runner_sha256,
+            "v9_summary_sha256": persisted["summary_sha256"],
+            "v9_predictions_sha256": persisted["predictions_sha256"],
+            "spec_sha256": contract["spec_sha256"],
+            "evaluator_sha256": contract["evaluator_sha256"],
+            "runtime_checkpoint_sha256": before_runtime,
+            "runtime_unchanged": runtime_unchanged,
+            "cache_validations": cache_validations,
+            "diagnostics": all_diagnostics,
+        }
+    )
+    write_json(args.output_dir / "summary.json", result)
+    write_json(args.output_dir / "evaluation.json", result)
+    write_json(
+        args.output_dir / "per_arm_metrics.json",
+        {
+            "overall": result["overall_metrics"],
+            "seeds": result["seed_metrics"],
+            "folds": result["fold_metrics"],
+            "strata": result["stratified_metrics"],
+        },
+    )
+    write_json(
+        args.output_dir / "per_class_metrics.json",
+        per_class_metrics(all_records),
+    )
+    print(v9.canonical_json(result), end="")
+    return result
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    run = subparsers.add_parser(
+        "run",
+        help="execute the preregistered exact-C1 versus support-aware comparison",
+    )
+    run.add_argument("--v9-summary", type=Path, default=DEFAULT_V9_SUMMARY)
+    run.add_argument("--v9-predictions", type=Path, default=DEFAULT_V9_PREDICTIONS)
+    run.add_argument("--spec", type=Path, default=DEFAULT_SPEC)
+    run.add_argument("--evaluator", type=Path, default=DEFAULT_EVALUATOR)
+    run.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
+    run.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    run.add_argument("--device", default="auto")
+    run.add_argument("--supervised-device", default="cpu")
+    run.add_argument("--supervised-cpu-threads", type=int, default=1)
+    run.add_argument(
+        "--runtime-projection",
+        type=Path,
+        default=DEFAULT_RUNTIME_PROJECTION,
+    )
+    run.add_argument(
+        "--runtime-prototypes",
+        type=Path,
+        default=DEFAULT_RUNTIME_PROTOTYPES,
+    )
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    if args.command == "run":
+        command_run(args)
+    else:  # pragma: no cover
+        raise AssertionError(args.command)
+
+
+if __name__ == "__main__":
+    main()

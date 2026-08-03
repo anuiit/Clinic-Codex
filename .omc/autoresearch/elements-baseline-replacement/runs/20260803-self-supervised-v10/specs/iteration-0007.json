@@ -1,0 +1,81 @@
+{
+  "schema_version": "autoresearch-self-supervised-v10.spec",
+  "run_id": "20260803-self-supervised-v10",
+  "iteration": 7,
+  "name": "c1-readout-query-covariance-regularization",
+  "status": "preregistered_revision_after_council_scale_review_before_any_iteration_0007_candidate_prediction",
+  "purpose": "Test whether a covariance penalty during the supervised C1 readout can retain the preregistered VICReg gain against B0 while avoiding unstable geometric concentration.",
+  "council_synthesis_sha256": "a3a18e9b263b2691f911af1d1da67b624554fa655449e5d1ecf8e974eeda5ba1",
+  "single_factor": {
+    "name": "supervised_query_covariance_penalty",
+    "control": "exact replay of v9 C1: fold-local VICReg S14 initialization followed by the historical supervised episodic readout",
+    "candidate": "the identical C1 replay with one additive covariance penalty during supervised readout",
+    "penalty_tensor": "the exact 100 post-L2 query embeddings per episode shared with the prototypical classification loss",
+    "penalty_formula": "L2-normalize query_raw once; center that shared query_normalized tensor by its batch mean; compute sample covariance with divisor n-1; square and sum all off-diagonal covariance entries; divide by embedding dimension 128",
+    "coefficient": 0.04,
+    "coefficient_derivation": "fixed a priori as the 1/25 VICReg covariance-to-invariance weight ratio",
+    "support_embeddings_penalized": false,
+    "query_embeddings_forward_count": 1,
+    "parameter_sweep_allowed": false,
+    "unchanged": [
+      "official frozen DINOv2-S/14 features and five pinned v9 caches",
+      "fold-local VICReg objective, augmentation plan, coefficients, epochs, optimizer and seeds",
+      "ProjectionHead(384,384,128) architecture, C1 initialization and dropout",
+      "historical strict 20-way 3-shot 5-query episode plans",
+      "30 supervised epochs and 100 episodes per epoch",
+      "AdamW, learning rate 0.001, weight decay 0.0001, temperature 0.1, warmup/cosine schedule and gradient clipping",
+      "folds 1-5, seeds 17,42,73, OOF rows, prototypes and 2000-replicate component bootstrap",
+      "no final-test access, runtime write, promotion or post-result coefficient adjustment"
+    ]
+  },
+  "control_reproduction": {
+    "control_state_dict_must_match_persisted_v9_C1_for_all_15_pairs": true,
+    "control_topk_must_match_persisted_v9_C1_for_all_1959_rows": true,
+    "episode_plan_must_match_persisted_v9_C1_for_all_15_pairs": true,
+    "candidate_and_control_share_pretrained_state_plan_budget_and_rng_seed": true
+  },
+  "evaluation": {
+    "primary_comparator": "persisted v9 B0",
+    "replication_comparator": "exact replayed v9 C1",
+    "bootstrap_replicates": 2000,
+    "efficacy_vs_B0_gates": {
+      "delta_top1_gte": 0.01,
+      "positive_seed_count_gte": 2,
+      "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+      "delta_macro_top1_gte": -0.005,
+      "delta_top3_gte": 0.0,
+      "minimum_fold_delta_top1_gte": -0.05
+    },
+    "noninferiority_vs_C1_gates": {
+      "delta_top1_gte": -0.005,
+      "delta_top3_gte": -0.01,
+      "delta_macro_top1_gte": -0.01
+    },
+    "direct_stability_gates": {
+      "minimum_post_l2_query_batch_mean_std_gte": 0.01,
+      "nan_or_nonfinite_detected": false,
+      "mean_covariance_penalty_gt": 0.0,
+      "mean_weighted_covariance_penalty_gt": 0.0
+    },
+    "descriptive_engagement_outputs": {
+      "mean_weighted_covariance_penalty_over_classification_loss": "persisted to distinguish a weakly scaled intervention from a refuted geometric hypothesis; it is not a post-result tuning trigger"
+    },
+    "rank_policy": {
+      "hard_gate": false,
+      "report_candidate_over_B0_and_C1": true,
+      "council_escalation_if_minimum_candidate_over_B0_lt": 0.8,
+      "rationale": "iteration 6 found the old 0.9 proxy non-informative across five folds; it cannot be applied retroactively to C1"
+    },
+    "measurement_limitation": "Only 25 provenance components and 11 classes are independently evaluable OOF; a pass creates a research reference only."
+  },
+  "decision_rule": {
+    "supported": "all integrity, efficacy, noninferiority and direct stability gates pass",
+    "intervention_not_engaged": "integrity passes but the persisted mean covariance penalty is zero or non-finite",
+    "neutral_or_not_supported": "integrity and engagement pass but any performance/stability gate fails",
+    "invalid": "any integrity gate fails",
+    "after_result": "mandatory Council review before any next factor or closure"
+  },
+  "promotion_eligible": false,
+  "runtime_write_allowed": false,
+  "final_test_read_allowed": false
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,6 +23,17 @@ def test_iteration_5_contract_is_hash_pinned_and_valid() -> None:
     contract = module.validate_contract(SPEC, EVALUATOR)
     assert contract["spec_sha256"] == module.EXPECTED_SPEC_SHA256
     assert contract["evaluator_sha256"] == module.EXPECTED_EVALUATOR_SHA256
+
+
+def test_runner_exposes_an_explicit_run_command() -> None:
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT), "--help"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "run" in completed.stdout
+    assert callable(module.main)
 
 
 def test_support_aware_plan_is_deterministic_fixed_shape_and_disjoint() -> None:
