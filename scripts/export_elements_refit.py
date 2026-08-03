@@ -241,8 +241,16 @@ def export_elements_refit(
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state_dict = _load_state_dict(checkpoint)
     _validate_state_dict(state_dict)
+    checkpoint_payload = checkpoint if isinstance(checkpoint, dict) else {}
+    metric_context = str(
+        checkpoint_payload.get(
+            "metric_context",
+            "training_feature_cache_fit_diagnostic_not_holdout_efficacy",
+        )
+    )
+    promotion_eligible = bool(checkpoint_payload.get("promotion_eligible", False))
     runtime_teacher_projection_path = RUNTIME_MODEL_DIR / "weights" / "projection.pt"
-    training_metadata = _build_training_metadata(checkpoint if isinstance(checkpoint, dict) else {}, runtime_teacher_projection_path)
+    training_metadata = _build_training_metadata(checkpoint_payload, runtime_teacher_projection_path)
 
     version_id = version_id or registry.build_version_id(run_id="elements-refit")
     version_dir = registry.version_dir(version_id)
@@ -284,7 +292,6 @@ def export_elements_refit(
     config_path = runtime_dir / "config.json"
     atomic_write_json(config_path, runtime_config_out)
 
-    checkpoint_payload = checkpoint if isinstance(checkpoint, dict) else {}
     provenance = {
         "schema_version": "elements-refit-export.v1",
         "created_at": utc_now_iso(),
@@ -324,6 +331,8 @@ def export_elements_refit(
             "config_path": str(config_path),
         },
         "metrics": metrics,
+        "metrics_context": metric_context,
+        "promotion_eligible": promotion_eligible,
     }
     provenance_path = version_dir / "provenance.json"
     atomic_write_json(provenance_path, provenance)
@@ -353,8 +362,10 @@ def export_elements_refit(
             "prototype_space": "cosine_mean",
         },
         "metrics": metrics,
+        "metrics_context": metric_context,
         "promotion": {
             "requires_manual_review": True,
+            "eligible": promotion_eligible,
         },
     }
     manifest = registry.write_manifest(version_id, status="candidate", artifact_paths=artifacts, metadata=metadata)
@@ -373,6 +384,8 @@ def export_elements_refit(
         "class_count": len(class_names_list),
         "prototype_count": int(prototypes.shape[0]),
         "metrics": metrics,
+        "metrics_context": metric_context,
+        "promotion_eligible": promotion_eligible,
         "manifest": manifest,
     }
 

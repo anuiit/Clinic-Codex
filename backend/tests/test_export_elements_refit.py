@@ -157,6 +157,8 @@ def test_export_elements_refit_writes_registry_package_and_preserves_abi(tmp_pat
     assert set(projection) == set(ProjectionHead(384, 128).state_dict())
     assert provenance["feature_cache"]["feature_count"] == 286
     assert provenance["metrics"]["prototype_top1"] == 0.5
+    assert provenance["metrics_context"] == "training_feature_cache_fit_diagnostic_not_holdout_efficacy"
+    assert provenance["promotion_eligible"] is False
     assert provenance["training"]["teacher_assisted"] is True
     assert provenance["training"]["teacher_weight"] == 1.0
     assert provenance["training"]["hidden_teacher_weight"] == 0.5
@@ -174,6 +176,8 @@ def test_export_elements_refit_writes_registry_package_and_preserves_abi(tmp_pat
     assert manifest["training"]["teacher_projection_path"] == str((module.RUNTIME_MODEL_DIR / "weights" / "projection.pt").resolve())
     assert manifest["training"]["teacher_projection_sha256"] == module.sha256_file(module.RUNTIME_MODEL_DIR / "weights" / "projection.pt")
     assert any(item["path"] == "runtime/weights/prototypes.pt" for item in manifest["artifacts"])
+    assert manifest["metrics_context"] == "training_feature_cache_fit_diagnostic_not_holdout_efficacy"
+    assert manifest["promotion"] == {"requires_manual_review": True, "eligible": False}
     assert any(item["path"] == "runtime/weights/projection.pt" for item in manifest["artifacts"])
     assert any(item["path"] == "runtime/config.json" for item in manifest["artifacts"])
     assert any(item["path"] == "provenance.json" for item in manifest["artifacts"])

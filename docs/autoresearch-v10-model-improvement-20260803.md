@@ -18,7 +18,7 @@ No final-test row was read, no runtime artifact changed and the result is not au
 
 Iteration 7 is a prospective procedural replay under a new contract, not statistically independent evidence: it reuses the same 653 unique OOF rows, folds and seeds as v9, and the candidate differs from C1 by one prediction. It strengthens implementation and contract reproducibility but does not create a second sample against sampling noise.
 
-All seven iterations reused the same 1,959 seed-expanded OOF rows. Iteration-level preregistration controls decision leakage, but the sealed final test remains the only fresh evaluation data in the dossier.
+All seven iterations reused the same 1,959 seed-expanded OOF rows. Iteration-level preregistration controls decision leakage, but no fresh independent evaluation artifact is operationally identifiable in the dossier. The historical 270-row v4/v5 holdout was already read once, covers only 80 classes, and has no audited overlap analysis against the v10 corpus; it is therefore neither fresh nor an available sealed final test for this branch.
 
 The gain is concentrated rather than uniform: folds 1 and 4 are positive, fold 2 is negative by 0.03030 top-1, folds 3 and 5 are structurally near-dead, and seed 42 is negative. This heterogeneity is material to any deployment decision.
 
@@ -77,18 +77,18 @@ Those policies were frozen before any i7 prediction, so the result is valid unde
 
 ## Promotion boundary
 
-The research reference is better than B0 on the strict OOF top-1/top-3 evidence, but the runtime model has not changed. Opening the sealed final test is irreversible and requires a separate preregistered promotion experiment that freezes:
+The research reference is better than B0 on the strict OOF top-1/top-3 evidence, but the runtime model has not changed. V11 subsequently materialized the exact full-data VICReg recipe as a build-only candidate; it did not evaluate or promote it. Promotion first requires acquisition and binding of a new independent instrument, followed by a separate preregistered experiment that freezes:
 
-- the full-data VICReg training recipe;
-- a single deployable seed or a runtime-compatible ensemble;
-- checkpoint selection without final-test feedback;
+- the exact candidate artifact hashes and evaluator implementation;
+- the deployed runtime artifacts as the comparator, not research baseline B0;
+- disjointness and provenance coverage relative to every development and historical holdout corpus;
 - final-test top-1, top-3, macro, rank and regression thresholds;
 - the evaluator generation, especially v9 macro-bootstrap versus i7 macro point-estimate policy, before any final-test observation;
 - rollback rules and runtime artifact hashes.
-- whether a metadata-only count of independent final-test components can be inspected before committing the one-shot read, without exposing rows or labels;
+- whether a metadata-only count of independent components can be inspected before committing the one-shot read, without exposing rows or labels;
 - an explicit rule that a failed one-shot final evaluation closes the VICReg branch without threshold adjustment or a second read.
 
-The alternative is to acquire more independently evaluable provenance components first. The coverage audit estimated about 42 components for a 0.01 top-1 interval half-width and about 166 for 0.005 under its descriptive `1/sqrt(n)` approximation.
+Acquiring independently evaluable provenance components is therefore mandatory rather than optional. The coverage audit estimated about 42 components for a 0.01 top-1 interval half-width and about 166 for 0.005 under its descriptive `1/sqrt(n)` approximation.
 
 ## Verification
 

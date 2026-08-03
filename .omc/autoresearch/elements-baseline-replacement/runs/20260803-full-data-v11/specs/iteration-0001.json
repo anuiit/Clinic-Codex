@@ -1,0 +1,116 @@
+{
+  "schema_version": "autoresearch-full-data-v11.spec",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-full-data-v11",
+  "iteration": 1,
+  "name": "exact-c1-vicreg-full-data-candidate-build",
+  "status": "preregistered_before_cache_or_training",
+  "purpose": "Materialize the supported C1 algorithm as one runtime-compatible registry candidate without making a new efficacy claim.",
+  "council": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 14,
+    "published_synthesis_sha256": "477b9b2eab838e1d8b22cc5afbe37254401537079fc3aec92ff09ec450685c2f"
+  },
+  "scientific_boundary": {
+    "build_only": true,
+    "efficacy_claim": false,
+    "reason": "No fresh independent promotion instrument is operationally bound to v10; the only identifiable 270-row v4/v5 holdout was already consumed.",
+    "future_comparator": "deployed incumbent runtime on the same newly acquired independent instrument",
+    "B0_is_not_the_runtime_comparator": true
+  },
+  "single_factor": {
+    "name": "fold-local research recipe refit on all authorized training rows",
+    "source_algorithm": "v9 C1 VICReg initialization followed by the exact supervised episodic readout",
+    "not_the_measured_C1_checkpoint": true,
+    "reason": "The refit uses all authorized rows and therefore changes the training sample and episodic class eligibility."
+  },
+  "seed": {
+    "rule": "stable_seed(\"v11-full-data-refit\")",
+    "value": 1706649342,
+    "fresh_relative_to_v9": true,
+    "v9_seeds_not_selected": [17, 42, 73],
+    "weight_averaging_allowed": false
+  },
+  "corpus": {
+    "manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl",
+    "manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+    "audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0003/collection-provenance-audit.json",
+    "audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99",
+    "retained_rows": 9990,
+    "components": 300,
+    "classes": 286,
+    "quarantined_rows": 49,
+    "conflicting_rgb_hashes": 22,
+    "full_data_episode_eligible_class_count": 253,
+    "full_data_episode_eligible_class_labels_sha256": "07a4f240abb61080afc7a9904861bf541350d1c92e4a08b3363a60ef4f859c0f",
+    "v4_v5_external_holdout_rows_consumed": 0,
+    "final_test_rows_consumed": 0
+  },
+  "backbone": {
+    "name": "dinov2_vits14",
+    "state": "frozen",
+    "feature_dim": 384,
+    "manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/inputs/dinov2-vits14-local-manifest.json",
+    "manifest_sha256": "bfc72fa2d0fbffc786236d591501ff9dfa23f5c316d619a47e891160316f9ab5"
+  },
+  "cache": {
+    "views_per_row": 8,
+    "view_seed": 20260803,
+    "image_size": 224,
+    "safe_view_contract": "exact v9 scanner-safe transforms",
+    "labels_used_by_ssl": false,
+    "sidecar_and_cache_hash_required": true
+  },
+  "training": {
+    "projection": "ProjectionHead(384,384,128) with runtime-compatible state dict",
+    "ssl": {
+      "objective": "VICReg",
+      "weights": {"invariance": 25.0, "variance": 25.0, "covariance": 1.0},
+      "epochs": 30,
+      "batch_size": 256,
+      "optimizer": "AdamW",
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0001
+    },
+    "supervised": {
+      "epochs": 30,
+      "episodes_per_epoch": 100,
+      "n_way": 20,
+      "k_shot": 3,
+      "q_queries": 5,
+      "optimizer": "AdamW",
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "temperature": 0.1,
+      "warmup_epochs": 5,
+      "episode_seed_rule": "stable_seed(\"supervised-episodes\", \"full\", 1706649342)",
+      "rng_seed_rule": "stable_seed(\"supervised-rng\", \"full\", 1706649342)"
+    }
+  },
+  "reproducibility": {
+    "independent_refit_count": 2,
+    "state_dict_byte_exact": true,
+    "prototypes_byte_exact": true,
+    "checkpoint_file_byte_exact": true,
+    "training_diagnostics_exact": true,
+    "vicreg_plan_hash_exact": true,
+    "episode_plan_hash_exact": true
+  },
+  "registry": {
+    "version_id": "20260803T202104Z-vicreg-full-data-v11",
+    "status": "candidate",
+    "requires_manual_review": true,
+    "promotion_eligible": false,
+    "metrics_context": "full_training_cache_fit_diagnostic_not_efficacy",
+    "exporter_sha256_before_execution": "84224dc73aac075b5fbb227728e6d0c2342a6f99ce6c7f835b0975c8e05c0129"
+  },
+  "runtime_baseline": {
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "must_remain_unchanged": true
+  },
+  "runtime_write_allowed": false,
+  "final_test_read_allowed": false,
+  "automatic_promotion_allowed": false
+}
