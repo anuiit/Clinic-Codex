@@ -1,0 +1,14 @@
+{
+  "claim": "not_evidence_of_a_better_model",
+  "decision": "neutral_preservation",
+  "evaluation_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "iteration": 3,
+  "prediction_rows_sha256": "b2c73a4a991a504127e0865406452d8fe838cafdb9abd14b869e737caf078a90",
+  "replay_normalization_sha256": "03b6b1b3161ea4ec0455c1bd7bc80ec30038fa1e1947941a710d472b6f62238a",
+  "runtime_promotion": false,
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-model-decision-audit-v17.hierarchical-shrinkage-audit",
+  "summary_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01"
+}

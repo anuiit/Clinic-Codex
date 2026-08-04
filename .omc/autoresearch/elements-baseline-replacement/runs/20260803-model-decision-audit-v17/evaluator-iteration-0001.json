@@ -1,0 +1,38 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.evaluator",
+  "iteration": 1,
+  "integrity_gates": {
+    "contract_hashes_match": true,
+    "frozen_input_hashes_match": true,
+    "validated_cache_fold_count": 5,
+    "validated_c1_checkpoint_count": 15,
+    "exact_control_replay_rows": 1959,
+    "unique_oof_rows": 653,
+    "unique_oof_components": 25,
+    "evaluable_labels": 11,
+    "manifest_join_missing_rows": 0,
+    "candidate_prediction_count": 0,
+    "training_operation_count": 0,
+    "final_test_read": false,
+    "runtime_unchanged": true
+  },
+  "factor_eligibility": {
+    "supervised_multiview_readout": {
+      "train_view_coverage_fraction_gte": 1.0,
+      "finite_train_view_fraction_gte": 1.0,
+      "oof_view_feature_count_lte": 0,
+      "cross_source_family_residual_error_share_gte": 0.5
+    },
+    "hierarchical_shrunk_prototypes": {
+      "exact_train_class_counts_available": true,
+      "historical_macro_component_bootstrap_half_width_lte": 0.005
+    }
+  },
+  "decisions": [
+    "select_supervised_multiview_readout",
+    "select_hierarchical_shrunk_prototypes",
+    "select_no_factor"
+  ],
+  "selected_factor_does_not_authorize_execution": true,
+  "promotion_eligible": false
+}

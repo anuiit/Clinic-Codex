@@ -1,0 +1,60 @@
+{
+  "collision_audit_pending": true,
+  "contract_hashes": {
+    "evaluator_sha256": "1d7c5ff14a10726e925afb6e2b051d55e86f6d35b3bfa9a1263562dfad2d66d5",
+    "rules_sha256": "a19db82032dc84c29ddf146fd29cc6efec269b5933d43a7489d2864453a5789a",
+    "spec_sha256": "1ec45f6fc763191c2102ee922ff47c30d9536899679ff068a7289b3d56ebdae0"
+  },
+  "decision": "visual_lexicon_physical_ceiling_corrected_but_insufficient",
+  "execution_integrity_pass": true,
+  "forbidden_operation_counters": {
+    "final_test_reads": 0,
+    "images_read_or_downloaded": 0,
+    "labels_read": 0,
+    "model_predictions": 0,
+    "network_fetches": 0,
+    "record_detail_fetches": 0,
+    "runtime_writes": 0
+  },
+  "gates": {
+    "all_admitted_terms_accounted_exactly_once": true,
+    "all_visual_terms_accounted_exactly_once": true,
+    "direct_authorization_63_gate_pass": false,
+    "minimum_42_gate_pass": false
+  },
+  "historical_41_superseded_for_composite_arithmetic": true,
+  "hypothesis_supported": true,
+  "input_hashes": {
+    "iteration_0001_audit_sha256": "7144f9e615a356cf5f75c51339c0f4b80b3d7a3fbf9928705da214b7931d8cbf",
+    "iteration_0001_evaluation_sha256": "8771ddc73368fdcd9255c5aa70238ae42b11b30ad090e12e9a631d9d538092b3",
+    "iteration_0001_physical_crosswalk_sha256": "a5c971254a939d8a93c3f275114ed675495c95e140f6047134a486629bfde07b",
+    "iteration_0001_visual_crosswalk_sha256": "3236dc7996df420516ceead59922ec9a7c22b2ffb35da156c14060e7043e8efb"
+  },
+  "instrument_acquired": false,
+  "iteration": 2,
+  "metrics": {
+    "admitted_term_count": 39,
+    "all_term_coverage_fraction": 1.0,
+    "historical_no_known_local_overlap_term_count": 41,
+    "new_ambiguity_exclusion_count": 2,
+    "preserved_v12_exclusion_count": 9,
+    "same_component_group_count": 2,
+    "strict_independent_visual_lexicon_component_ceiling": 37,
+    "visual_lexicon_term_count": 50
+  },
+  "next_action": "Submit corrected physical/provenance ceiling to Council before endpoint discovery.",
+  "phase": "visual_lexicon_physical_provenance_deduplication",
+  "promotion_eligible": false,
+  "runtime_after": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_before": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-institutional-inventory-v16.gate-zero-bis-audit"
+}

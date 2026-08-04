@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "included": [
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\authorizations\\phase-2.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 1262
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\decision-log.md",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 5786
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\iteration-0002-contract-freeze-audit.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 4132
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\iteration-0002-phase-2-failure-audit.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 3028
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\specs\\iteration-0002.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 6381
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\state.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 6762
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\045\\synthesis.md",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 7322
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\046\\evidence.json",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 2690
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\046\\prompt.md",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 1450
+    },
+    {
+      "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\scripts\\autoresearch_vicreg_backbone_v19.py",
+      "source": "file",
+      "root": null,
+      "relative_path": null,
+      "chars": 67251
+    }
+  ],
+  "skipped": [],
+  "total_chars": 106064,
+  "limits": {
+    "max_files": 100,
+    "max_file_chars": 75000,
+    "max_total_chars": 180000
+  }
+}

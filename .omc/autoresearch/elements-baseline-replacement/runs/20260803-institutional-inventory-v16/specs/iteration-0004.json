@@ -1,0 +1,90 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.clean-endpoint-validation-spec",
+  "run_id": "20260803-institutional-inventory-v16",
+  "iteration": 4,
+  "phase": "clean_exact_endpoint_validation",
+  "hypothesis": "At least two of six frozen source families expose a compliant, official, structured metadata endpoint suitable for submitting a separately preregistered metadata-snapshot feasibility plan to Council.",
+  "single_factor": "official structured endpoint confirmation under corrected exact-host scope",
+  "inputs": {
+    "iteration_0003_council_correction": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0003-council-correction.json",
+    "iteration_0003_council_correction_sha256": "100703dd1e23a6505fa9b5b92ab9aaf774b7a60b659dd1de8b20aa2036c86dd2",
+    "council_synthesis": ".omx/argos-council/elements-model-improvement/turns/030/synthesis.md",
+    "council_synthesis_sha256": "e2b62a4913ee83898bea05d63875513de0e75bbf29c7610372ce9fb7f436e0a4"
+  },
+  "request_contract": {
+    "source_family_count_equals": 6,
+    "exact_endpoint_candidates_per_source_max": 2,
+    "initial_attempts_per_endpoint_max": 1,
+    "retries_per_endpoint_max": 1,
+    "endpoint_requests_per_source_max": 4,
+    "endpoint_requests_global_max": 24,
+    "compliance_requests_per_source_max": 4,
+    "compliance_requests_global_max": 24,
+    "network_requests_global_max": 48,
+    "budget_pooling_allowed": false,
+    "counter_incremented_and_persisted_before_issue": true,
+    "redirects_followed": false,
+    "timeout_seconds": 20,
+    "response_byte_cap": 1048576,
+    "user_agent": "elements-research-endpoint-audit/1.0"
+  },
+  "validation_gates": {
+    "minimum_validated_structured_sources": 2,
+    "compliance_hard_interlock": true,
+    "exact_host_allowlist_no_implicit_subdomains": true,
+    "https_required": true,
+    "raw_response_bytes_stored": true,
+    "per_request_utc_required": true,
+    "raw_response_sha256_required": true,
+    "record_or_item_content_count_equals": 0,
+    "document_candidate_count_equals": 0,
+    "iiif_canvas_or_image_count_equals": 0,
+    "image_count_equals": 0
+  },
+  "eligible_endpoint_types": [
+    "documented_api",
+    "oai_pmh",
+    "sru",
+    "rest",
+    "iiif_collection_or_presentation_root"
+  ],
+  "ineligible_endpoint_types": [
+    "site_search",
+    "landing_page",
+    "catalogue_record",
+    "record_or_item",
+    "iiif_canvas",
+    "iiif_image"
+  ],
+  "integrity_constraints": {
+    "generic_web_search_allowed": false,
+    "source_or_host_addition_after_first_request_allowed": false,
+    "redirect_follow_allowed": false,
+    "authentication_allowed": false,
+    "record_or_item_content_fetch_allowed": false,
+    "document_counting_allowed": false,
+    "iiif_canvas_or_image_url_open_allowed": false,
+    "image_read_or_download_allowed": false,
+    "model_inference_allowed": false,
+    "labels_or_final_test_read_allowed": false,
+    "runtime_write_allowed": false
+  },
+  "fail_closed": {
+    "any_out_of_scope_or_out_of_budget_request": "invalid_endpoint_validation",
+    "redirect": "probe_closed_unconfirmed",
+    "authentication_or_forbidden": "source_closed_unconfirmed",
+    "missing_or_unresolved_compliance": "source_closed_unconfirmed_without_endpoint_request",
+    "missing_officialness": "source_closed_unconfirmed",
+    "retry_exhausted": "endpoint_unconfirmed_zero_partial_credit",
+    "truncated_response": "endpoint_unconfirmed_zero_partial_credit"
+  },
+  "decision_rule": {
+    "integrity_failure": "invalid_endpoint_validation",
+    "validated_structured_sources_at_least_2": "structured_surface_sufficient_to_submit_snapshot_feasibility_plan_to_council",
+    "validated_structured_sources_below_2": "institutional_lane_viability_review",
+    "snapshot_authorized": false
+  },
+  "promotion_eligible": false,
+  "model_inference_allowed": false,
+  "final_test_read_allowed": false
+}

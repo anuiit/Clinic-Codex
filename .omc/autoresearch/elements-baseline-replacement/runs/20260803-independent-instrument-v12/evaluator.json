@@ -1,0 +1,49 @@
+{
+  "schema_version": "autoresearch-independent-instrument-v12.evaluator",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-independent-instrument-v12",
+  "iteration": 1,
+  "evaluation_mode": "external_instrument_metadata_feasibility_not_model_efficacy",
+  "primary_metric": "strict_admissible_manuscript_component_ceiling",
+  "pass_definition": "The official catalogue contains at least 42 manuscript-level components after all predeclared provenance exclusions, while execution-integrity gates pass.",
+  "thresholds": {
+    "minimum_manuscript_components": 42,
+    "minimum_active_classes_for_later_phase": 10,
+    "expected_catalogue_manuscripts": 50,
+    "expected_excluded_manuscripts": 9
+  },
+  "required_integrity_gates": {
+    "spec_and_evaluator_hash_pinned_by_runner": true,
+    "exclusion_rules_hash_matches": true,
+    "official_select_parsed_once": true,
+    "catalogue_manuscript_count_equals": 50,
+    "excluded_term_count_equals": 9,
+    "excluded_terms_present_and_names_exact": true,
+    "local_codex_rows_equals": 50,
+    "local_archive_count_equals": 49,
+    "local_source_hashes_match": true,
+    "deterministic_replay_same_audit_hash": true,
+    "record_detail_pages_fetched_equals": 0,
+    "images_downloaded_equals": 0,
+    "model_predictions_equals": 0,
+    "holdout_or_final_test_read": false,
+    "runtime_unchanged": true
+  },
+  "decision_rule": {
+    "if_primary_metric_gte_42": "metadata_gate_zero_pass; proceed only to a separately preregistered record-level mapping/rights audit",
+    "if_primary_metric_lt_42": "instrument_not_acquired; keep v11 frozen and runtime unchanged; return to Council",
+    "threshold_relaxation_after_result": false
+  },
+  "required_output": {
+    "pass": "boolean acquisition-feasibility result",
+    "execution_integrity_pass": "boolean",
+    "instrument_acquired": "boolean",
+    "promotion_eligible": "boolean always false in this iteration",
+    "strict_component_ceiling": "integer",
+    "short_circuit_triggered": "boolean",
+    "final_test_read": "boolean",
+    "runtime_unchanged": "boolean"
+  },
+  "promotion_eligible": false,
+  "failure_rule": "Any integrity failure invalidates the audit. A valid strict ceiling below 42 is a complete instrument_not_acquired result, not permission to weaken the gate."
+}

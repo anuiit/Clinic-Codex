@@ -1,0 +1,39 @@
+{
+  "schema_version": "autoresearch-shadow-availability-v15.state",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-shadow-availability-v15",
+  "status": "completed",
+  "phase": "evaluated",
+  "iteration": 1,
+  "current_factor": "qualifying post-freeze shadow capture availability",
+  "promotion_eligible": false,
+  "runtime_write_allowed": false,
+  "model_inference_allowed": false,
+  "user_content_read_allowed": false,
+  "final_test_read": false,
+  "local_provenance_closed": true,
+  "council": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 20,
+    "published_synthesis_sha256": "4171cb71d24b0a5b46b8eb351ffa81ac3e4c000f073f8d238c82d73d449f184d"
+  },
+  "result": {
+    "pass": false,
+    "execution_integrity_pass": true,
+    "hypothesis_supported": false,
+    "shadow_flow_classification": "no_flow",
+    "aggregate_post_freeze_record_count": 0,
+    "document_identity_fields": [],
+    "fallback_identity_fields": ["analysis_id"],
+    "consent_evidence": false,
+    "image_retention_evidence": false,
+    "double_blind_annotation_feasible": false,
+    "privacy_counters_all_zero": true,
+    "evaluation_sha256": "89d52262d86fdb7f9c4c20b872e891a52eb81578ee73bceab6c826ab9fa33383",
+    "audit_sha256": "88aed2c653564bd52a4653fab1b56043388f166faa53247cc0826047bc3490cd",
+    "deterministic_replay": true,
+    "runtime_unchanged": true,
+    "final_test_read": false
+  },
+  "next_action": "Start v16 gate zero: freeze the expanded exclusion crosswalk and recertify the Visual Lexicon ceiling before any institutional metadata fetch."
+}

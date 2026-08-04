@@ -1,0 +1,57 @@
+{
+  "contract_derivation_verified": true,
+  "contract_hashes": {
+    "evaluator_sha256": "4fbcc5484d55274577a2054c4c37e01e7ecd8c79c139db053d3a320f2ec964e5",
+    "manifest_sha256": "675f349e5f4cc7dbd57c2f991dca2fb64c6b1fd4847452b38ae46a47c6796d72",
+    "spec_sha256": "fb6d948883b379792fc9e812132b4bc69b9f1fcde022f9d51b50ac1ba0222a01"
+  },
+  "decision": "not_reached",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "forbidden_operation_counters": {
+    "checkpoint_or_runtime_writes": 0,
+    "final_test_reads": 0,
+    "generic_web_searches_during_execution": 0,
+    "iiif_canvases_or_images_opened": 0,
+    "iiif_manifests_opened": 0,
+    "item_detail_fetches": 0,
+    "labels_read": 0,
+    "model_predictions_or_training_runs": 0,
+    "thumbnails_or_images_read": 0
+  },
+  "hypothesis_supported": false,
+  "image_or_snapshot_extension_authorized": false,
+  "integrity_violations": [],
+  "iteration": 5,
+  "metrics": {
+    "compliance_request_count": 2,
+    "conservatively_net_new_independent_physical_component_count": 3,
+    "near_miss_count": 145,
+    "network_request_count": 10,
+    "query_request_count": 8,
+    "raw_evidence_byte_count": 725533,
+    "raw_record_count": 149,
+    "redirect_count": 0,
+    "retry_count": 0,
+    "source_atomic_pass_count": 2,
+    "stage_1_passing_source_count": 2,
+    "strict_candidates_before_t_tepeuc_reserve_count": 4,
+    "t_tepeuc_unknown_provenance_component_reserve": 1,
+    "unique_metadata_record_count": 138
+  },
+  "minimum_conservatively_net_new_components": 26,
+  "next_action": "Return the bounded metadata-feasibility result to Council before any image or model operation.",
+  "promotion_eligible": false,
+  "runtime_hashes_after": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_hashes_before": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-institutional-inventory-v16.metadata-feasibility-audit"
+}

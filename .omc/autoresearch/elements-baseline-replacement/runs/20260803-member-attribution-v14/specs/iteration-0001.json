@@ -1,0 +1,114 @@
+{
+  "schema_version": "autoresearch-member-attribution-v14.spec",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-member-attribution-v14",
+  "iteration": 1,
+  "mode": "descriptive_build_only",
+  "objective": "Resolve the remaining exact archive collisions at ZIP-member granularity without changing the definitive v13 verdict or claiming efficacy.",
+  "factor": "unanimous exact member-level cote attribution for the frozen unresolved-collision population",
+  "hypothesis": null,
+  "hypothesis_supported": null,
+  "preregistration_amendment": {
+    "reason": "Corrected two source paths copied from the v13 contract after the first v14 invocation stopped with FileNotFoundError before loading any attribution or coverage result.",
+    "previous_spec_sha256": "19a5caffd0bf74e4d4ac58f122f412fc8be3e0d5cd9b9d33818514d251a0dc45",
+    "scientific_rules_changed": false,
+    "result_observed_before_amendment": false
+  },
+  "council_authorization": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 18,
+    "synthesis_path": ".omx/argos-council/elements-model-improvement/turns/025/synthesis.md",
+    "synthesis_sha256": "c09c24495fb5d92b4d67a6bd22611f2c4b0a6c7843798fef8fc8bac3d0d93a91",
+    "override_of_v13_failure_rule": "A final bounded deterministic provenance join is allowed only as preparation for future collision screening; v13 remains permanently partial_recovery."
+  },
+  "inputs": {
+    "v13_attribution": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-archive-attribution-v13/iteration-0001/development-attribution.jsonl",
+    "v13_attribution_sha256": "611b8506e3f795f47d0d435696270bdca715c9359809600a4a400e427ef94c1b",
+    "v13_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-archive-attribution-v13/iteration-0001/archive-attribution-audit.json",
+    "v13_audit_sha256": "cee42ce6420cd3c876afff471e8b67b843c7146bbb0b99fa76c32b73effd3234",
+    "v13_archive_map": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-archive-attribution-v13/iteration-0001/archive-to-codex-map.json",
+    "v13_archive_map_sha256": "68355e21d06fe8fc71aa64aec8d4eb58784029235ac8fdc17fc0b949cdc48a58",
+    "v13_index_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-archive-attribution-v13/archive-index",
+    "v13_index_count": 49,
+    "codex_csv": "/mnt/f/CODEX/AI_clinic/data_csv/codex.csv",
+    "codex_csv_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+    "elements_csv": "/mnt/f/CODEX/AI_clinic/data_csv/elements.csv",
+    "elements_csv_sha256": "163629f1527011404b8865206d64306d580714995d171fb4264f9b8b1e6bc798",
+    "v12_exclusions": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+    "v12_exclusions_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756"
+  },
+  "population_contract": {
+    "source": "v13 attribution rows",
+    "included_statuses": [
+      "ambiguous_archive",
+      "unique_archive_without_unique_codex"
+    ],
+    "population_rows": 487,
+    "status_counts": {
+      "ambiguous_archive": 37,
+      "unique_archive_without_unique_codex": 450
+    },
+    "predeclared_432_subset": "unique_archive_without_unique_codex rows whose unique_archive is not t_tepeuc.zip",
+    "predeclared_432_subset_rows": 432,
+    "excluded_from_reinterpretation": {
+      "already_unique_codex": 4680,
+      "unmatched": 4823
+    }
+  },
+  "attribution_contract": {
+    "member_identity": [
+      "archive_name",
+      "member_index"
+    ],
+    "collision_sources": [
+      "development_byte_sha256 equals member byte_sha256",
+      "decoded_pixel_sha256 equals member decoded_rgb_sha256"
+    ],
+    "member_mapping": "PurePosixPath(member_name).stem.casefold() exact equality with elements.csv cote.casefold(), then codexid",
+    "acceptance_rule": "Attribute only if every exact colliding member maps to exactly one codex and all mapped codex ids are identical.",
+    "unmapped_member_rule": "Any colliding member without an exact cote mapping keeps the row unresolved.",
+    "multi_codex_member_rule": "Any member stem mapping to more than one codex keeps the row unresolved.",
+    "byte_rgb_conflict_rule": "Any divergent codex identity across the union of byte and RGB collisions keeps the row unresolved.",
+    "deduplication": "Deduplicate members by archive_name and member_index before convergence."
+  },
+  "reporting_contract": {
+    "no_numeric_success_threshold": true,
+    "hypothesis_supported": null,
+    "v13_reband_allowed": false,
+    "global_coverage_is_descriptive_only": true,
+    "report_population_resolution": true,
+    "report_predeclared_432_subset_resolution": true,
+    "report_new_codex_ids": true,
+    "report_global_descriptive_coverage": true
+  },
+  "expected_runtime_hashes": {
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "integrity_gates": [
+    "All frozen input hashes match.",
+    "All 49 v13 index JSONL hashes match the v13 audit manifest.",
+    "The selected population is exactly 487 rows with the frozen status counts.",
+    "Every selected line has at least one exact colliding member.",
+    "The first run and replay output hashes are identical.",
+    "The v12 exclusion file and runtime hashes remain unchanged.",
+    "No model inference, holdout access, final-test access, training or promotion occurs."
+  ],
+  "forbidden_actions": [
+    "Re-band or otherwise alter the definitive v13 partial_recovery verdict.",
+    "Use a global or subset coverage number as a v14 success gate.",
+    "Reinterpret the 4680 already attributed or 4823 unmatched v13 rows.",
+    "Use fuzzy matching, title interpretation, manual mapping, majority voting or partial unanimity.",
+    "Ignore an unmapped exact colliding member.",
+    "Modify any v12 exclusion in this iteration.",
+    "Run v11 or runtime inference, train a model, read any consumed holdout or read the final test.",
+    "Use v14 as efficacy or independence evidence.",
+    "Continue local fuzzy provenance work after v14."
+  ],
+  "model_inference_allowed": false,
+  "training_allowed": false,
+  "final_test_read_allowed": false,
+  "automatic_promotion_allowed": false,
+  "next_phase": "Council review, then institutional metadata inventory and local shadow-availability audit."
+}

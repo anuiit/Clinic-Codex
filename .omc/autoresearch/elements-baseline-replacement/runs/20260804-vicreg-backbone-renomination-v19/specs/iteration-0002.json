@@ -1,0 +1,186 @@
+{
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19.spec-v1",
+  "iteration": 2,
+  "status": "frozen_before_thin_runner_implementation_and_any_phase_2_data_operation",
+  "factor": {
+    "name": "v19-A",
+    "changed": "frozen DINOv2-S/14 to frozen DINOv2-B/14 under exact canonical v9 VICReg plus episodic readout",
+    "intrinsic_consequence": "ProjectionHead(input_dim=768, embedding_dim=128), architecture 768->768->128",
+    "prior_branch_disclosure": "B/14 capacity was neutral in v10; v19 tests only its interaction with the replicated v9 mechanism.",
+    "forbidden": [
+      "new loss",
+      "new views",
+      "LoRA",
+      "ensemble",
+      "hyperparameter search",
+      "v9 runner modification",
+      "second candidate"
+    ]
+  },
+  "council_authorization": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 41,
+    "local_turn": 44,
+    "published_synthesis_sha256": "bdbee8f74dde40130a1b5cde83c22c9a4f757a3b8544b6fc30763cb55e8e2bc3",
+    "current_scope": "phase 1 implementation, tests and contract freeze only",
+    "phase_2_authorized": false,
+    "phase_3_authorized": false
+  },
+  "canonical_pins": {
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "v9_runner_recovery_audit_sha256": "8f04000fd14e61e899e05c034fb36ab71dce3fecd7cb423fbba11ba476583cf5",
+    "v9_test_spec_sha256": "cb9f4f65ab1f82b7db9e2a7a0201c8461ea59eca8a6801d4f6474d9432f32803",
+    "v9_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "v17_verdict_runner_sha256": "a1f0fb9e0fae18b0f5fb39dbbfa93361f041980447403eeb6a12f31630bafb08",
+    "b14_manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "b14_checkpoint_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+    "source_inventory_sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2",
+    "runtime_projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "runtime_prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "runtime_config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "canonical_geometry": {
+    "folds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "retained_rows": 9990,
+    "fold_local_train_rows": 39960,
+    "eligible_unique_oof_rows": 653,
+    "paired_prediction_rows": 1959,
+    "candidate_checkpoint_count": 15,
+    "c1_control_checkpoint_count": 15
+  },
+  "cache_contract": {
+    "backbone": "dinov2_vitb14",
+    "device": "cuda",
+    "image_size": 224,
+    "image_batch_size": 32,
+    "num_workers": 2,
+    "view_seed": 20260803,
+    "train_views": 8,
+    "train_base": true,
+    "oof_base": true,
+    "oof_views": false,
+    "dtype": "float16",
+    "expected_tensor_bytes": 552407040,
+    "maximum_total_bytes": 2147483648,
+    "filesystem": "WSL ext4",
+    "format": "torch.save",
+    "atomic_write": true,
+    "overwrite": false,
+    "drvfs": false,
+    "large_memmap": false,
+    "row_order_must_match_canonical_s14": true,
+    "view_generation_imported_from_v9": true,
+    "view_plan_sha256_required": true,
+    "cache_and_sidecar_manifest_required": true,
+    "byte_identical_readback_required": true,
+    "replay_must_reuse_without_reextraction": true
+  },
+  "mechanism_contract": {
+    "projection_head": "ProjectionHead(input_dim=768, embedding_dim=128)",
+    "views": 8,
+    "ssl_epochs": 30,
+    "ssl_batch_size": 256,
+    "ssl_learning_rate": 0.0003,
+    "ssl_weight_decay": 0.0001,
+    "ssl_loss": "exact v9 VICReg: invariance 25, variance 25, covariance 1",
+    "supervised_epochs": 30,
+    "episodes_per_epoch": 100,
+    "n_way": 20,
+    "k_shot": 3,
+    "q_queries": 5,
+    "supervised_learning_rate": 0.001,
+    "supervised_weight_decay": 0.0001,
+    "temperature": 0.1,
+    "warmup_epochs": 5,
+    "ssl_device": "cuda",
+    "supervised_device": "cpu",
+    "supervised_cpu_threads": 1,
+    "secondary_rng_alignment": "After deterministic B/14 head initialization, restore the RNG state that canonical v9 has after initializing ProjectionHead(384,128), so the unchanged VICReg expander initialization is C1-aligned.",
+    "episode_plan_sha256_must_equal_c1_count": 15,
+    "ssl_pair_plan_sha256_must_equal_c1_count": 15
+  },
+  "c1_control_interlock": {
+    "before_candidate_gradient": true,
+    "retrain_c1": false,
+    "reload_c1_checkpoints": 15,
+    "canonical_s14_caches": 5,
+    "exact_topk_matches": 1959,
+    "pair_keys": [
+      "row_id",
+      "outer_fold",
+      "seed",
+      "label",
+      "provenance_component",
+      "decoded_pixel_sha256"
+    ],
+    "runtime_hashes_unchanged": true
+  },
+  "phase_boundaries": {
+    "phase_1": {
+      "authorized": true,
+      "allowed": [
+        "write spec",
+        "write evaluator",
+        "write thin runner",
+        "write tests",
+        "static contract validation"
+      ],
+      "zero_counts": [
+        "source_image_reads",
+        "oof_accesses",
+        "real_feature_extractions",
+        "candidate_optimizer_steps",
+        "candidate_predictions",
+        "candidate_scores",
+        "runtime_writes"
+      ]
+    },
+    "phase_2": {
+      "authorized": false,
+      "prospective_actions": [
+        "extract five B/14 caches",
+        "seal cache manifest",
+        "same-process C1 top-k replay"
+      ],
+      "candidate_gradient_allowed": false,
+      "requires_new_council_synthesis": true
+    },
+    "phase_3": {
+      "authorized": false,
+      "prospective_actions": [
+        "single B/14 training",
+        "evaluation",
+        "canonical replay"
+      ],
+      "requires_new_council_synthesis": true
+    }
+  },
+  "replay_contract": {
+    "cache_reextraction": false,
+    "rerun_candidate_states": 15,
+    "same_machine": true,
+    "normalized_predictions_byte_identical": true,
+    "checkpoints_byte_identical": true,
+    "audit_byte_identical": true
+  },
+  "terminal": {
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false,
+    "research_reference_only": true,
+    "v20_allowed": false,
+    "below_supported_reference": "C1 remains the best replicated reference; independent instrument required."
+  }
+}

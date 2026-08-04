@@ -1,0 +1,98 @@
+{
+  "contract_derivation_verified": true,
+  "contract_hashes": {
+    "evaluator_sha256": "3673a69fa46344119df685d89142ac9cd220f8d4c3cbbedefda18f1fa65ec273",
+    "manifest_sha256": "434b44258f99808d7c7c405d8786b263b998953283571306cfda6a668705b553",
+    "observations_sha256": "4958a0c76c9419f44f3e04597e5f900fa5a62dba6d18d637e7ba3f03660cf6c6",
+    "spec_sha256": "49e1060970bca1d6b77ef23bacdc428f3b59e15e3630e17c9354df1bdb454eb5"
+  },
+  "decision": "invalid_discovery",
+  "execution_integrity_pass": false,
+  "final_test_read": false,
+  "forbidden_operation_counters": {
+    "document_candidates_counted": 0,
+    "final_test_reads": 0,
+    "iiif_canvases_or_images_opened": 0,
+    "images_read_or_downloaded": 0,
+    "labels_read": 0,
+    "metadata_records_downloaded": 0,
+    "model_predictions": 0,
+    "out_of_scope_page_opens": 1,
+    "runtime_writes": 0
+  },
+  "gates": {
+    "all_fourteen_sources_accounted_exactly_once": true,
+    "compliance_checks_recorded": true,
+    "global_56_operation_budget_pass": false,
+    "minimum_7_machine_auditable_sources_pass": false,
+    "officialness_evidence_pass": true,
+    "per_source_budget_pass": false,
+    "structured_role_policy_pass": true,
+    "zero_out_of_scope_open_gate": false,
+    "zero_sensitive_operation_gate": true
+  },
+  "hypothesis_supported": false,
+  "iteration": 3,
+  "metrics": {
+    "compliance_check_count": 14,
+    "discovery_only_count": 6,
+    "discovery_only_unconfirmed_count": 6,
+    "logical_discovery_operation_count": 57,
+    "machine_auditable_official_source_family_count": 2,
+    "official_page_open_count": 43,
+    "official_source_family_count": 9,
+    "search_operation_count": 14,
+    "snapshot_candidate_requires_council_count": 0,
+    "source_family_count": 14,
+    "strict_candidate_count": 2
+  },
+  "model_risk_flags": {
+    "relaciones_geograficas_shared_campaign_term_ids": [
+      126,
+      378,
+      392,
+      409,
+      410,
+      425
+    ],
+    "reviewable_distinct_archival_signature_term_ids": [
+      300,
+      367
+    ],
+    "ten_class_coverage_gate": "deferred_but_mandatory_at_attrition"
+  },
+  "next_action": "Return invalid iteration-3 evidence to Council and preregister a clean replacement iteration before any new request.",
+  "phase": "official_endpoint_discovery",
+  "promotion_eligible": false,
+  "runtime_hashes_after": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_hashes_before": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-institutional-inventory-v16.endpoint-discovery-audit",
+  "snapshot_authorized": false,
+  "violations": {
+    "global_integrity_events": [
+      {
+        "detail": "Two post-budget reference reopens raised logical discovery operations from 55 to 57; British Museum and AGN each reached four opens against a maximum of three.",
+        "event": "logical_discovery_budget_exceeded"
+      },
+      {
+        "detail": "An AGN publication at bagn.archivos.gob.mx was opened although only agn.gob.mx and gob.mx were frozen. No information from that page contributes to endpoint eligibility.",
+        "event": "unfrozen_domain_opened"
+      }
+    ],
+    "officialness": [],
+    "per_source_budget": [
+      "british_museum:open",
+      "agn_mexico:open"
+    ],
+    "structured_role_policy": []
+  }
+}

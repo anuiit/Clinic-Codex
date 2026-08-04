@@ -1,0 +1,31 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.endpoint-discovery-evaluator",
+  "iteration": 3,
+  "primary_metric": "machine_auditable_official_source_family_count",
+  "secondary_metrics": [
+    "official_source_family_count",
+    "strict_candidate_count",
+    "snapshot_candidate_requires_council_count",
+    "discovery_only_count",
+    "discovery_only_unconfirmed_count",
+    "logical_discovery_operation_count",
+    "compliance_check_count"
+  ],
+  "pass_conditions": [
+    "all contract, manifest, and linked input hashes match",
+    "all fourteen source families receive exactly one result",
+    "search and open budgets are not exceeded or pooled",
+    "robots and terms compliance is recorded separately",
+    "officialness evidence exists for every confirmed domain",
+    "only structured official APIs, OAI-PMH, SRU, REST, or non-canvas IIIF qualify as strict candidates",
+    "all evidence items carry URL, UTC, local snapshot or summary SHA-256, content type, byte size, and operation accounting",
+    "discovered document, downloaded record, image, prediction, label, final-test, and runtime-write counts are zero",
+    "runtime artifact hashes remain unchanged",
+    "at least seven source families are machine-auditable"
+  ],
+  "contract_derivation_field": "contract_derivation_verified",
+  "promotion_eligible": false,
+  "snapshot_authorized": false,
+  "higher_is_better": true,
+  "minimum_machine_auditable_sources": 7
+}

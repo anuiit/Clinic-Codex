@@ -1,0 +1,81 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.endpoint-discovery-spec",
+  "run_id": "20260803-institutional-inventory-v16",
+  "iteration": 3,
+  "phase": "official_endpoint_discovery",
+  "hypothesis": "At least seven of fourteen frozen institutional source families expose an officially confirmed structured metadata endpoint suitable for a later separately authorized snapshot.",
+  "single_factor": "official machine-auditable endpoint availability",
+  "inputs": {
+    "gate_zero_bis_evaluation": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/evaluations/iteration-0002.json",
+    "gate_zero_bis_evaluation_sha256": "c09822dd17d115f22e4a35d99b075c71ae5b1079cbe3ad12ad462d234c772686",
+    "gate_zero_bis_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0002/gate-zero-bis-audit.json",
+    "gate_zero_bis_audit_sha256": "655cf525877a97f065a2aa8b5895e5e26246ad3dd9d3bc1ece71c96ab1579a09",
+    "envelope_additions": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0002/envelope-additions.json",
+    "envelope_additions_sha256": "963cae6b935a90983803d0adfeedf8cd15d0705caf9423cc7727615ced43f54b"
+  },
+  "pre_registered_gates": {
+    "source_family_count_equals": 14,
+    "search_operations_per_source_max": 1,
+    "official_page_opens_per_source_max": 3,
+    "logical_discovery_operations_total_max": 56,
+    "budget_pooling_allowed": false,
+    "retry_per_endpoint_max": 1,
+    "redirects_consume_source_budget": true,
+    "minimum_machine_auditable_sources": 7,
+    "discovered_document_count_equals": 0,
+    "downloaded_record_count_equals": 0,
+    "image_count_equals": 0
+  },
+  "compliance_policy": {
+    "robots_and_terms_check_required": true,
+    "compliance_requests_logged_separately": true,
+    "disallow_or_authentication_fails_closed": true,
+    "official_subdomain_requires_parent_institution_evidence": true,
+    "redirect_outside_frozen_domains_fails_closed": true
+  },
+  "evidence_hierarchy": [
+    "documented_api_oai_pmh_sru_rest",
+    "iiif_collection_or_presentation_without_canvas_or_image",
+    "official_catalogue_with_stable_identifiers",
+    "official_collection_landing_page",
+    "official_site_search"
+  ],
+  "snapshot_role_policy": {
+    "documented_api_oai_pmh_sru_rest": "strict_candidate",
+    "iiif_collection_or_presentation_without_canvas_or_image": "strict_candidate",
+    "official_catalogue_with_stable_identifiers": "snapshot_candidate_requires_council",
+    "official_collection_landing_page": "discovery_only",
+    "official_site_search": "discovery_only",
+    "unconfirmed": "discovery_only_unconfirmed"
+  },
+  "integrity_constraints": {
+    "document_counting_allowed": false,
+    "record_level_content_fetch_allowed": false,
+    "iiif_canvas_or_image_url_open_allowed": false,
+    "image_read_or_download_allowed": false,
+    "authentication_allowed": false,
+    "browser_state_mutation_allowed": false,
+    "model_inference_allowed": false,
+    "labels_or_final_test_read_allowed": false,
+    "runtime_write_allowed": false,
+    "source_or_domain_addition_after_first_request_allowed": false
+  },
+  "domain_scope": {
+    "strict": ["Aztec", "Mexica", "Nahua", "Central-Mexican pictorial"],
+    "descriptive_only": ["Mixtec-only", "ambiguous", "out-of-domain"]
+  },
+  "model_risk_flags": {
+    "relaciones_geograficas_shared_campaign_term_ids": [126, 378, 392, 409, 410, 425],
+    "reviewable_distinct_archival_signature_term_ids": [300, 367],
+    "ten_class_coverage_gate": "deferred_but_mandatory_at_attrition"
+  },
+  "decision_rule": {
+    "integrity_failure": "invalid_discovery",
+    "machine_auditable_sources_at_least_7": "discovery_surface_sufficient_for_snapshot_planning",
+    "machine_auditable_sources_below_7": "discovery_surface_sparse_requires_council",
+    "snapshot_authorized": false
+  },
+  "promotion_eligible": false,
+  "final_test_read_allowed": false,
+  "model_inference_allowed": false
+}

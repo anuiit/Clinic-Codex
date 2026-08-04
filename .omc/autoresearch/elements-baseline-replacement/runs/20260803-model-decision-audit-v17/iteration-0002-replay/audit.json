@@ -1,0 +1,13 @@
+{
+  "claim": "not_evidence_of_a_better_model",
+  "decision": "neutral_preservation",
+  "evaluation_sha256": "d3ad1aebb714390f885f6d5557a0cda335691449ab5a3d257e7a0a22b0035198",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "iteration": 2,
+  "prediction_rows_sha256": "d9b3e648055fcd4edb9c2a5eda376f710a4a463c99233f73f12fc5e4a04bff86",
+  "runtime_promotion": false,
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-model-decision-audit-v17.multiview-audit",
+  "summary_sha256": "d3ad1aebb714390f885f6d5557a0cda335691449ab5a3d257e7a0a22b0035198"
+}

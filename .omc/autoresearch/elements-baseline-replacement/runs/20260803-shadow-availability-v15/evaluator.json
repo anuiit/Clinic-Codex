@@ -1,0 +1,48 @@
+{
+  "schema_version": "autoresearch-shadow-availability-v15.evaluator",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-shadow-availability-v15",
+  "iteration": 1,
+  "primary_outcome": "shadow_flow_classification",
+  "allowed_values": [
+    "flow_exists_with_document_identity",
+    "flow_exists_without_document_identity",
+    "no_flow"
+  ],
+  "hypothesis_success_rule": "instrument_usable is true under the frozen classification contract.",
+  "integrity_success_rule": "Every privacy, input, replay and non-mutation gate passes.",
+  "failure_rule": "Any privacy or integrity failure invalidates the audit and forbids interpretation; a no_flow result is scientifically valid and still advances to v16.",
+  "required_source_population": {
+    "tracked_sources": 26,
+    "dynamic_surfaces": 5
+  },
+  "required_outputs": [
+    "shadow-availability-audit.json",
+    "evaluations/iteration-0001.json"
+  ],
+  "required_report_fields": [
+    "capture endpoints",
+    "persisted schema fields",
+    "document and fallback identity evidence",
+    "aggregate post-freeze record count",
+    "consent evidence",
+    "retention evidence",
+    "prediction-exposure evidence",
+    "double-blind annotation feasibility",
+    "flow classification",
+    "instrument usability",
+    "rate evidence horizon"
+  ],
+  "privacy_gates": [
+    "dynamic file bytes read equals zero",
+    "user identifiers emitted equals zero",
+    "predictions read equals zero",
+    "labels read equals zero",
+    "browser stores opened equals zero",
+    "external requests equals zero"
+  ],
+  "promotion_eligible": false,
+  "exclusion_change_allowed": false,
+  "next_direction_requires_council": true,
+  "v16_mandatory_regardless_of_result": true
+}

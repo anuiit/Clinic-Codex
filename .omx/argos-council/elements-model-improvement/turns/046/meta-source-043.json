@@ -1,0 +1,169 @@
+{
+  "version": "0.9.0-rc1",
+  "session_id": "adv_20260803T072824_f903d4d6",
+  "mode": "council",
+  "preset": null,
+  "personas": {},
+  "assignments": {},
+  "council": {
+    "schema_version": 1,
+    "synthesis_file": "council/last-synthesis.md",
+    "source_turn": 42,
+    "chars": 7322,
+    "sha256": "d14ffe0db4c29c6128b4678106961dc7e2ddf3a6de321136a6e98bb7bec4f9f2",
+    "updated_at": "2026-08-04T16:19:01.782499+00:00"
+  },
+  "turn": 43,
+  "status": "partial",
+  "retry_of": null,
+  "artifact_dir": "C:\\Users\\anmou\\.argos\\sessions\\adv_20260803T072824_f903d4d6",
+  "turn_dir": "C:\\Users\\anmou\\.argos\\sessions\\adv_20260803T072824_f903d4d6\\turns\\043",
+  "inputs_report": {
+    "included": [
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\authorizations\\phase-2.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 1262
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\decision-log.md",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 5786
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\iteration-0002-contract-freeze-audit.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 4132
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\iteration-0002-phase-2-failure-audit.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 3028
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\specs\\iteration-0002.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 6381
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omc\\autoresearch\\elements-baseline-replacement\\runs\\20260804-vicreg-backbone-renomination-v19\\state.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 6762
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\045\\synthesis.md",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 7322
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\046\\evidence.json",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 2690
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\.omx\\argos-council\\elements-model-improvement\\turns\\046\\prompt.md",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 1450
+      },
+      {
+        "path": "\\\\wsl$\\Ubuntu-24.04\\home\\sina\\omxpro\\clinic-codex\\scripts\\autoresearch_vicreg_backbone_v19.py",
+        "source": "file",
+        "root": null,
+        "relative_path": null,
+        "chars": 67251
+      }
+    ],
+    "skipped": [],
+    "total_chars": 106064,
+    "limits": {
+      "max_files": 100,
+      "max_file_chars": 75000,
+      "max_total_chars": 180000
+    }
+  },
+  "results": [
+    {
+      "argos": "fable",
+      "status": "skipped",
+      "provider": "claude",
+      "model": "claude-fable-5",
+      "kind": null,
+      "duration_sec": 0.0,
+      "content": "",
+      "cost": null,
+      "tokens": null,
+      "session_id": null,
+      "exit_code": null,
+      "error": "empty response rc=1; stdout tail: \"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{},\"permission_denials\":[],\"terminal_reason\":\"api_error\",\"fast_mode_state\":\"off\",\"uuid\":\"5c0e3965-38d5-49ae-bde8-f544ba45d537\"}",
+      "fallback_from": null,
+      "raw_path": null,
+      "command_shape": null,
+      "candidate": null,
+      "persona": null,
+      "assignment": null,
+      "prompt_manifest": null
+    },
+    {
+      "argos": "kimi",
+      "status": "ok",
+      "provider": "kimi",
+      "model": "kimi-code/k3",
+      "kind": "kimi",
+      "duration_sec": 118.811,
+      "content": "**1. Je ratifie l'audit `6cfff7ac…` comme preuve suffisante du retrait terminal.** Il est complet et interne­ment cohérent : une seule exécution autorisée, une seule observée, code de sortie 1, répertoire cache vide, zéro manifeste, zéro replay C1, zéro pas d'optimiseur, zéro prédiction, runtime inchangé, test final non lu, aucun processus GPU résiduel. La frontière d'information tient là où ça compte : des images *train* ont été décodées par le prefetch des workers — information non protégée — mais l'OOF n'a jamais été touché, aucune statistique apprise, aucune feature persistée. Une observation honnête pour le dossier : c'est la deuxième mort infrastructurelle causée par l'écart entre une sonde synthétique et le pipeline réel — la sonde de faisabilité mesurait des forwards synthétiques sans DataLoader ni `pin_memory`, exactement comme la sonde de 2 Gio de v18.3 ne mesurait pas le flush d'un mapping de 28,7 Gio. Deux fois, la gate de faisabilité a validé le chemin qu'elle pouvait voir et le run est mort sur le chemin qu'elle ne pouvait pas voir. Ce n'est pas une faute de protocole — les sondes étaient celles décidées prospectivement — mais c'est une leçon à consigner : sur cette machine, le risque dominant n'était jamais le GPU, c'était la plomberie I/O autour.\n\n**2. Confirmé, sans aucune réserve : pas de retry, pas de baisse de batch, pas de `pin_memory=False`, pas de modification du runner, pas de phase 3, pas de v20.** La synthèse du tour 45 — et mes propres mots, « une exécution, pas une saga » — interdisent la récupération. J'avais admis *une fois*, pour v18.3, un amendement infrastructurel conditionnel, et j'avais exigé qu'aucune option de ce type ne survive pour v19 : c'est précisément pour ce moment. Un correctif `pin_memory` serait une modification du contrat gelé après observation d'un échec — le pattern exact que le protocole existe pour interdire. La règle s'applique d'autant plus proprement qu'elle est ici indolore scientifiquement : rien n'a été consommé.\n\n**3. Confirmé : échec infrastructurel pur, ni victoire ni défaite métrique de B/14.** Aucun batch de features n'a été terminé ; l'interaction B/14 × VICReg n'a pas été testée — elle est *non mesurée*, pas réfutée. Le claim à inscrire est `retired_infrastructure_not_supported`, et toute formulation du type « B/14 n'apporte rien » ou « B/14 aurait gagné » est interdite, dans les deux sens. C'est encore plus pur que v18.3 : littéralement zéro octet scientifique produit. Mon prior reste ce qu'il était — v10 suggérait un effet de quelques millièmes, sous le plancher de l'instrument — mais il reste un prior, pas une donnée.\n\n**4. Conclusion finale de la mission, à conserver telle quelle.**\n\nL'état final du programme, après huit semaines et une quinzaine d'itérations gouvernées :\n\n- **Meilleure référence validée : C1**, VICReg fold-local sur projection gelée S/14 — +0,0112 top-1 poolé vs B0, borne bootstrap composantes +0,0031 > 0, 2/3 seeds positifs, McNemar p = 0,014, tier `supported_reference`, répliqué. C'est le seul signal positif reproductible du programme, et il tient.\n- **Toutes les branches tentées pour dépasser C1 sont closes** : tête cosinus v18.1 (−0,0071), projection contrastive v18.2 (−0,0031), multi-vues v17.2 et shrinkage v17.3 (neutres), B/14 brut et appris v10 (neutres), sampler support-aware (−0,0117), covariance (inerte). v18.3 et v19-A retirés sur infrastructure sans résultat scientifique.\n- **v11 reste en registre**, candidat full-data gelé, non promouvable : il a consommé les 9 990 lignes, la lignée du runtime déployé est inconnue, et aucune comparaison locale v11-vs-runtime n'est licite.\n- **Le runtime reste scellé** (`0ad6ce34…` / `ffc52f03…` / `f2150a97…`) et le **test final n'a jamais été lu** — c'est le seul artefact du programme qui n'a jamais été consommé, et il doit le rester tant qu'un instrument indépendant n'existe pas.\n- **La leçon métrologique centrale** : la demi-largeur bootstrap de l'instrument (≈ 0,011–0,014) égale la marge entière de C1. Les leviers restants sont sous la résolution de l'instrument de 653 lignes ; continuer à itérer dessus produisait du méta-overfitting, pas de l'information.\n- **La décision qui reste n'est pas scientifique, c'est un financement** : instrument indépendant — segmentation experte commanditée ou partenariat institutionnel — pour évaluer C1/v11 contre le runtime déployé. C'est à l'utilisateur de trancher, pas à ce Conseil.\n\nJe clos donc ma position de voix : le programme a tenu sa discipline de bout en bout — chaque retrait est venu d'une règle prospective, jamais d'un jugement après coup ; chaque branche est documentée, hashée, rejouée. La mission `elements-baseline-replacement` doit passer à l'état `candidate_built_awaiting_independent_instrument`, avec C1 comme référence de recherche, v11 en registre, et aucune itération supplémentaire sur cet instrument. J'ai voté l'arrêt plusieurs fois avant que le Conseil n'y arrive par épuisement des options ; je ne le présente pas comme une victoire — deux facteurs sont morts non testés sur une machine qui ne pouvait pas les héberger, et la réponse définitive sur B/14 restera inconnue. Mais ce qui devait être prouvé localement l'a été, et ce qui ne pouvait pas l'être a été correctement identifié comme hors de portée. C'est une fin honnête.",
+      "cost": null,
+      "tokens": null,
+      "session_id": "session_f3ab89df-9d59-4bb9-8b39-83747ff5439a",
+      "exit_code": 0,
+      "error": null,
+      "fallback_from": null,
+      "raw_path": "C:\\Users\\anmou\\.argos\\sessions\\adv_20260803T072824_f903d4d6\\turns\\043\\raw\\kimi.kimi.attempt-001.stdout",
+      "command_shape": "kimi -m kimi-code/k3 --agent-file <private-no-tools-agent> acp",
+      "candidate": {
+        "kind": "kimi",
+        "model": "kimi-code/k3",
+        "provider": "kimi",
+        "command": "kimi"
+      },
+      "persona": null,
+      "assignment": null,
+      "prompt_manifest": {
+        "schema_version": 1,
+        "workflow": "council",
+        "phase": "resume",
+        "argos": "kimi",
+        "assignment": null,
+        "contract_version": 2,
+        "contract_hash": "f0b7e7e14d53fcf6",
+        "base_chars": 116300,
+        "base_hash": "457fca926701e410",
+        "prefix_chars": 0,
+        "prefix_injected": false,
+        "final_chars": 116300,
+        "final_hash": "457fca926701e410",
+        "context_file_count": 10,
+        "context_chars": 106163,
+        "truncated": false,
+        "manifest_hash": "45f172bfd4ac64b9"
+      }
+    }
+  ]
+}

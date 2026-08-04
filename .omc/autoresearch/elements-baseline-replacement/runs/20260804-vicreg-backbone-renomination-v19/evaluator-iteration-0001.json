@@ -1,0 +1,30 @@
+{
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19.feasibility-evaluator-v1",
+  "iteration": 1,
+  "audit_path": "iteration-0001-feasibility-audit.json",
+  "required_boolean": "pass",
+  "score": null,
+  "required_gates": [
+    "frozen_inputs_verified",
+    "official_b14_pin_verified",
+    "backbone_frozen",
+    "projection_architecture_dimension_forced",
+    "cache_estimate_bounded_ext4",
+    "cuda_batch_with_15_percent_margin",
+    "mini_cache_byte_identical",
+    "zero_candidate_information",
+    "runtime_unchanged"
+  ],
+  "required_zero_operation_counts": [
+    "source_image_reads",
+    "candidate_feature_extractions",
+    "candidate_optimizer_steps",
+    "candidate_predictions",
+    "candidate_scores",
+    "oof_rows_accessed",
+    "final_test_reads",
+    "runtime_writes"
+  ],
+  "on_pass": "Council required before any candidate operation.",
+  "on_fail": "Terminal retirement; no retry, replacement factor, or v20."
+}

@@ -1,0 +1,32 @@
+{
+  "adapted_layer_artifact_sha256": {
+    "adapted_layers/fold-01-seed-17.bin": "c046051d4407207bd9bd2a5a83ec24034bbfa1ac086b3d7f946b933a1f0ed949",
+    "adapted_layers/fold-01-seed-42.bin": "78a7b4bced5b195963af61c44a55e27c226881b3d3ec62f3195e95a94efe2426",
+    "adapted_layers/fold-01-seed-73.bin": "54cde4501effe7867dcf54363dffba39efc52c83d2f85794088d0ac070cdb4e3",
+    "adapted_layers/fold-02-seed-17.bin": "00978bacab4c6dd1dd1841f2fb6537144147a5cdfd9be146700d3f0c76f9871e",
+    "adapted_layers/fold-02-seed-42.bin": "5e7d1d6f85dacfdefbba62191f0c348c64038d22e89da3db67cee34b11dee53c",
+    "adapted_layers/fold-02-seed-73.bin": "94a6c95a1321a21341c7411d4f144fe2d75760e3b11ce5a9a46bf5386572c586",
+    "adapted_layers/fold-03-seed-17.bin": "6a3347ac3fd20b003c8ba44261c161cb22e6bf6d9fee15bb25cc412f54d3c0b2",
+    "adapted_layers/fold-03-seed-42.bin": "b1e8a3d10fb5a2e93c34dceb8c5df04b37ae2981f09049277840ca4739af19a2",
+    "adapted_layers/fold-03-seed-73.bin": "4cd94535c26ddcb8e01bce5833c0a59e65fb44e3f05def8f35e9e1d33a090945",
+    "adapted_layers/fold-04-seed-17.bin": "5f968403980a9efe1f3e352be2ba61dc651ca22b307ecc1b64704b43cce9cf0f",
+    "adapted_layers/fold-04-seed-42.bin": "983f962c17ac41c7ee4582e7634c81f6a5c06d69291daee93393dbb7a2409e40",
+    "adapted_layers/fold-04-seed-73.bin": "48b7e6070340d872e08e0c48c9e4730bd27e005fa467d06da0563d6481b752c6",
+    "adapted_layers/fold-05-seed-17.bin": "efdd05f2c1fcaad1d0eda4cb62a2713e22ee8a33cacc16f9f4f3ec2e0a073e42",
+    "adapted_layers/fold-05-seed-42.bin": "22d644ad01ecd477e99b95fb562a4f5614312db6ae9be73ccde261abf710f495",
+    "adapted_layers/fold-05-seed-73.bin": "1144f264949f604214cf4c82cd007eef63dc0d3f0ed49edd8e475a821bd0118f"
+  },
+  "claim": "valid_but_gate_failure",
+  "decision": "not_supported",
+  "engagement_pass": true,
+  "evaluation_sha256": "159fdbd362c02c1ee3d255c856daae3f59bd2d3044c5bda68f114a5403320687",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "iteration": 2,
+  "prediction_rows_sha256": "825c46b4f7bf04d5e68000f89964c2920a8a601abd9b728f7049911bc5767a40",
+  "replay_normalization_sha256": "c56140ea622f99a30205a185b03df54b7c364b7e8b8b3299890a5c8ad174c4bb",
+  "runtime_promotion": false,
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-discriminative-readout-v18.component-contrastive-projection-audit",
+  "summary_sha256": "159fdbd362c02c1ee3d255c856daae3f59bd2d3044c5bda68f114a5403320687"
+}

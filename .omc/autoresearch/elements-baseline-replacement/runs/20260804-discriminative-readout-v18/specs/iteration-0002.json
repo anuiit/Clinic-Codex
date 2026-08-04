@@ -1,0 +1,170 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.spec",
+  "run_id": "20260804-discriminative-readout-v18",
+  "iteration": 2,
+  "name": "component-aware-supervised-contrastive-final-projection-adaptation",
+  "status": "preregistered_before_runner_implementation_and_any_iteration_0002_candidate_training_or_prediction",
+  "purpose": "Test one representation-geometry factor above the closed decision-head branch while retaining exact cached DINO inputs and the C1 evidence chain.",
+  "hypothesis": "Explicitly pulling same-class examples from distinct pixel hashes and distinct provenance components together in the final projection layer improves provenance-held-out pooled OOF top-1 beyond exact C1.",
+  "symmetric_risk": "As few as two eligible classes in one fold may make component-aware contrastive pressure deform the episodic C1 geometry and regress pooled OOF performance.",
+  "claim_domain": "pooled OOF top-1 only; macro, support, loss, movement, and effective-rank outputs are mandatory non-gating diagnostics",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 33,
+    "local_turn": 36,
+    "published_synthesis_sha256": "36a10d2706a6f6bb4c313f5855271890acb0df88aa3fa73f2e9fec75060a8a34"
+  },
+  "predecessor_closeout": {
+    "v18_1_decision": "not_supported",
+    "v18_1_claim": "valid_but_gate_failure",
+    "v18_1_summary_sha256": "6e27ca8ddb097066b119fe86a83afe99e92f3cb1f76e2c7264fbb32395dfc8be",
+    "v18_1_prediction_rows_sha256": "7dbc94dce764caf4111ff5df1a8d4a04adf259f064296917f8c71b650bb04762",
+    "v18_1_replay_audit_sha256": "2b0266c8b3e2955975573af7384de550e8dcda4c78b0f0ef6fab001b62e62991",
+    "head_only_branch_closed": true,
+    "standing_exact_c1_effective_rank_absolute_guard": 0.001
+  },
+  "pinned_harness": {
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "support_aware_i5_runner_sha256": "acd06503d801bdaf30e1b3d8569fd6713d9b3b83e545561fc26677998a8de0c6",
+    "covariance_i7_runner_sha256": "f8b51e9f5473a3a5306432809236680f778ecaaa6be316e17fcfae084d3bc453",
+    "hierarchical_v17_runner_sha256": "a1f0fb9e0fae18b0f5fb39dbbfa93361f041980447403eeb6a12f31630bafb08"
+  },
+  "frozen_inputs": {
+    "v9_spec_sha256": "be9706819cb1916a513c941dfcf99abc039b3b9bb289cf32ddd602e76da230cb",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+      "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    },
+    "eligibility_manifest_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0002-eligibility-manifest.json",
+    "eligibility_manifest_sha256": "cb9b5507a75de467384b11c28048f55af10db45b0e69981b241a80d97974184d",
+    "eligible_anchor_count_by_fold": {"1": 106, "2": 645, "3": 641, "4": 200, "5": 558},
+    "eligible_class_count_by_fold": {"1": 2, "2": 10, "3": 11, "4": 6, "5": 10},
+    "positive_ordered_pair_count_by_fold": {"1": 784, "2": 4454, "3": 4446, "4": 804, "5": 3346},
+    "eligible_rows_sha256_by_fold": {
+      "1": "1d0e2db42608c515877d512575d08ccf62c4cb7628be88f4d923584ca1c4c4fc",
+      "2": "fa226f3b0df80e6192b3f082197f9d7aabfb01155e55813a8a349c9dd814aa8b",
+      "3": "95a4e2a1a4ee5bd80d4ba503ed46bef617addf4f70fff5912bb160542fc068ef",
+      "4": "9ccf7c52d8100058b88a2ada7fd993a9b9a19d32e301bfa10925dbd5de1672e7",
+      "5": "0cb3c98bc614447f5b2912280e0485a359e7ab3fb8b9c6aae48621ded3c07869"
+    },
+    "positive_ordered_pairs_sha256_by_fold": {
+      "1": "6e2671b082116b53e1eae7f638e93a10d330f2834a09f0ba8a6f194852ac1225",
+      "2": "5b499eb5aeb4a6fdbef8beebade4e3d31d720152f36013ec8c05c436192e1043",
+      "3": "d08933776b7877474c4775f85292510e0b1a46a7cf6dade90b0ecf3151bfa342",
+      "4": "faf32d88cad000765fdc8043389c971a52a7d77fb2599ee33fea5001b4c3ee81",
+      "5": "b15dd67c3eb6e393ff78f675be44f801af00263e72da726609f0a80ec5959261"
+    },
+    "expected_c1_checkpoint_count": 15,
+    "expected_paired_prediction_rows": 1959,
+    "expected_unique_oof_rows": 653,
+    "expected_outer_folds": 5,
+    "expected_fixed_seeds": 3
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "arms": {
+    "baseline": "Persisted B0 top-k rows from v9, used only for the unchanged mission anchor.",
+    "control": "Exact C1 checkpoint and normalize(mu_y) fold-train prototypes on unchanged cached base features.",
+    "candidate": "The same C1 checkpoint after deterministic component-aware supervised-contrastive adaptation of only net[3], followed by normalize(mu_y) prototypes on the adapted fold-train embeddings."
+  },
+  "changed_factor": {
+    "only_change": "C1 final Linear(384,128) weight and bias adapt under component-aware supervised NT-Xent",
+    "model_mode": "evaluation mode throughout; dropout inactive",
+    "frozen_parameters": "net[0] weight and bias, GELU, dropout, DINO backbone, caches, and all runtime artifacts",
+    "trainable_parameters": ["net.3.weight", "net.3.bias"],
+    "initial_state": "byte-exact net[3] state from each exact C1 checkpoint",
+    "embedding": "normalize(net[3](GELU(net[0](cached_base_feature))))",
+    "eligible_predicate": "same class and distinct decoded_pixel_sha256 and distinct provenance component",
+    "fallback": null,
+    "loss_domain": "eligible rows only as anchors, positives, and denominator rows",
+    "loss": "supervised NT-Xent averaged uniformly over positives per anchor then uniformly over eligible anchors",
+    "temperature": 0.1,
+    "class_or_support_weighting": null,
+    "optimizer": {
+      "name": "AdamW",
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0,
+      "betas": [0.9, 0.999],
+      "epsilon": 1e-8,
+      "amsgrad": false,
+      "maximize": false,
+      "foreach": false,
+      "fused": false
+    },
+    "steps": 100,
+    "scheduler": null,
+    "batch": "all eligible fold-train rows in immutable cache row order at every step",
+    "gradient_clipping": null,
+    "random_sampling": false,
+    "forbidden": [
+      "within-component positive fallback",
+      "class or support weighting",
+      "head-only update",
+      "net[0] or backbone update",
+      "new feature extraction",
+      "multi-view features or checkpoints",
+      "temperature, learning-rate, step, optimizer, positive-rule, or regularization sweep",
+      "second candidate"
+    ]
+  },
+  "determinism": {
+    "random_operations": 0,
+    "full_batch_order": "eligible rows in canonical cache train order",
+    "torch_seed": 0,
+    "cublas_workspace_config": ":4096:8",
+    "strict_deterministic_algorithms": true,
+    "prediction_device": "cuda",
+    "training_device": "cuda"
+  },
+  "replay_normalization": {
+    "schema_version": "autoresearch-discriminative-readout-v18.component-contrastive-replay-normalization-v1",
+    "summary_removed_keys": [],
+    "pair_removed_keys": [],
+    "sha256": "c56140ea622f99a30205a185b03df54b7c364b7e8b8b3299890a5c8ad174c4bb"
+  },
+  "mandatory_audit": {
+    "spec_cache_pins_equal_canonical_i5_constants_before_training": true,
+    "eligibility_manifest_and_per_fold_counts_hashes_match_before_training": true,
+    "all_persisted_c1_checkpoint_hashes_match": true,
+    "standing_c1_effective_rank_guard": 0.001,
+    "control_topk_matches_all_persisted_c1_rows": true,
+    "step_zero_final_layer_state_hash_equals_c1_count": 15,
+    "step_zero_topk_matches_control_rows": 1959,
+    "persist_full_loss_trajectory_101_values": true,
+    "persist_adapted_layer_artifact_per_fold_seed": true,
+    "persist_initial_and_final_layer_state_hashes": true,
+    "persist_eligible_row_and_positive_pair_hashes": true,
+    "end_loss_below_start_loss_every_fold_seed": true,
+    "final_layer_hash_differs_from_initial_every_fold_seed": true,
+    "candidate_vs_c1_discordant_rows_gt": 0,
+    "finite_losses_logits_gradients_weights_and_embeddings": true,
+    "support_strata": ["n_y_lte_8", "n_y_9_to_31", "n_y_gte_32"],
+    "mandatory_binary_support_view": ["n_y_lte_8", "n_y_gt_8"],
+    "embedding_movement_and_effective_rank_diagnostics": true,
+    "rank_ratio_below_escalation_only": 0.8,
+    "deterministic_replay": true,
+    "replay_normalization_routine_sha256_pinned": true
+  },
+  "hard_boundaries": {
+    "single_candidate": true,
+    "single_execution_plus_deterministic_replay": true,
+    "new_feature_extraction": false,
+    "net0_or_backbone_training": false,
+    "within_component_positive_fallback": false,
+    "closed_factor_combination": false,
+    "hyperparameter_sweep": false,
+    "second_candidate": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  },
+  "failure_interpretation": "A neutral or negative result closes cache-bounded projection adaptation and returns one final backbone-adaptation-versus-stop decision to Council; it does not authorize fallback positives or any projection retry."
+}

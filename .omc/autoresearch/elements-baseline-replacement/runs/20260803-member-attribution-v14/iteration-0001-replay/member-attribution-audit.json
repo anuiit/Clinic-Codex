@@ -1,0 +1,142 @@
+{
+  "attribution_rule": {
+    "all_member_codex_ids_must_match": true,
+    "all_members_must_map": true,
+    "fuzzy_matching": false,
+    "majority_voting": false,
+    "partial_unanimity": false,
+    "single_codex_per_member": true,
+    "strict_unanimity": true
+  },
+  "contract_hashes": {
+    "evaluator_sha256": "e6f0b983ae5be6e385ee9d84e8a741da1d26a4014d3a8fc46c59cb2760f75d01",
+    "spec_sha256": "650f15f46e107e858351a96471ee691e0bed6f71091f62dd4614d4c6f5f0da6d"
+  },
+  "decision_band": null,
+  "descriptive_results": {
+    "global_unique_codex_coverage_descriptive": 0.46846846846846846,
+    "global_unique_codex_rows_descriptive": 4680,
+    "new_codex_ids_relative_to_v13": [],
+    "outside_population_preserved": true,
+    "outside_population_rows": 9503,
+    "population_resolution_rate_descriptive": 0.0,
+    "population_rows": 487,
+    "predeclared_432_subset_resolution_rate_descriptive": 0.0,
+    "predeclared_432_subset_resolved_rows": 0,
+    "predeclared_432_subset_rows": 432,
+    "refined_codex_ids": [],
+    "resolution_status_counts": {
+      "unresolved": 487
+    },
+    "resolved_rows": 0,
+    "resolved_rows_by_codex_id": {},
+    "unresolved_reason_counts": {
+      "unmapped_member": 487
+    },
+    "unresolved_rows": 487,
+    "v13_unique_codex_rows": 4680
+  },
+  "factor": "unanimous exact member-level cote attribution",
+  "hypothesis_supported": null,
+  "index_validation": {
+    "archive_index_count": 49,
+    "archive_index_hashes": {
+      "t_010.zip": "8274b7931f7dc866b3f81f7b63bb8cb49e754d4de79edf6dda6e0369b44aaeea",
+      "t_026.zip": "8530c3acab57b8e7254f121f2c249ed30f2ef914796940593d52be2d4a664825",
+      "t_027.zip": "c696483fd52dbbb526a2abb484d944cb238272d878fe51d76f85ecc1695f3b6b",
+      "t_030.zip": "014890d5ee1e16766ad3b7c38626eaaedf1d3299aa87a25c54a87816886523f3",
+      "t_032.zip": "a6bca7d5b2db9afb40b05aedf4e647298e4d235f1a9471c20f5bc1092c6272f6",
+      "t_033.zip": "6bb7ae6a7b92cbee124b9ba2cf215843c3cc586c3addd06ca4e7dbf60d9376e5",
+      "t_035.zip": "8989d22afbeb95d6abec49413899352f6fa442601e2b79f011b9c862f37ec3da",
+      "t_072.zip": "8cd946ad26d2d9f296cf9ed6afa91934fc413b2a998807a3a0d51bdbff235c70",
+      "t_073.zip": "c01d0719947cc12470dbe922bf57dac14e4cf9f38738edacf65a7494ace0242c",
+      "t_075.zip": "954e93b3d0589808e962608e4e9372800c428935de8995761c927ed192031e9c",
+      "t_082.zip": "b5b97678c8028ae039e98a100ecb6d49feb60bc9bc0e1ba47f711f09b9f0c97b",
+      "t_108.zip": "911ac1f97ce295f43a5e291de2fed95c964e2464b12b710b6262c58827d3cece",
+      "t_115.zip": "fc04bed74d595f56a0689f948d557c3abfd587d875f5cb26b1b400ce9d918973",
+      "t_116.zip": "1aa35877b4dae6d17309c1130398e26978f5e6862bb513d192650724039aaa3b",
+      "t_374.zip": "3484bdf6e050e34008b2fbfa7b73acb39f8239f9aba2cf198483d45dbdf82dee",
+      "t_376.zip": "0c367791d9a4d122f5bc8476785c9e2f82e4f78bc30bfe98339d3189b553d0e2",
+      "t_385a.zip": "f6c2a928620174e848be24c598a8db22297e6449211db2bff355be429405fed1",
+      "t_387_01.zip": "912755131f82f7fff26ff31a9c55885429790c0945a205847256c43891ebc9be",
+      "t_387_02.zip": "82d86878b9d3bc319638be648092173a12129479b3319f79ebebe78dff951272",
+      "t_387_03.zip": "e09672d8f0adf19ae043608a447f9badc1b7bc74e8f6a1fd57c0804ce22bc094",
+      "t_387_04.zip": "a61ac48bdbbd24ac175729c7bd2e616c7d04d6bfce634500c012701d758c8af2",
+      "t_387_05.zip": "068a2be2e50ead54855616a121f5165db536fc9ea35ce53f0b89d54b3cdf6807",
+      "t_387_06.zip": "f510b1ebb60a5267a12770e84081e5cc9b8da44da53d4c1c75057da79cc55aec",
+      "t_387_07.zip": "9474f903e5311b23a89e05ebb59223880d9a7dad6039a033507c1d22a1c68bca",
+      "t_387_08.zip": "836b3d2262dca6f0437c33c722ea6d260017dd0005924ace12e46bbc9318a3fa",
+      "t_387_09.zip": "5ab6cad51af661371d43c81a079eb04e288ae870cde91d65c18670885fdaa703",
+      "t_387_10.zip": "cd758fa87e57e47af6c414775f8b1547380b8125e51f5d829717b9ac1d01638c",
+      "t_387_11.zip": "7d8e633af8ae4fc52f8bcdef518f7a0da25466e8302d43cb79d284ebbd226641",
+      "t_387_12.zip": "763aba83646ebf29397b844691ca18a1d279dd6d2189c09951087fe9e3e2a535",
+      "t_387_13.zip": "d346fa2eaa943d09a5e63a5dc64ca6ed6b542eaa2f2b8a372eb3ffc51974e166",
+      "t_387_14.zip": "b63caca020b15f2fc09d0951ed490bc8d4ff30fa385176a8ec5cfa3e4c27be71",
+      "t_387_15.zip": "f23949ea92e96ebbd3ff0089feb8ed7bb0544b9ade914088475973fa004e0a04",
+      "t_387_16.zip": "64b24e667522c907f807c16cd611cbb139a4b6edc6bc8810a074512b91c95072",
+      "t_387_17.zip": "526928d2c4d0640102181e49ec681f0f9c76f4a75033c105899bbf2c6d28cfea",
+      "t_387_18.zip": "aa8db17516dd4abbfdb8fe7df72cd852a26790352779ed53dc077d805a6f3bb2",
+      "t_387_19.zip": "2376929cfb039e7a6e8edc13d0502318b1adcd08a155038b3362ae71c203851b",
+      "t_387_20.zip": "73d33edf2eeffb4f286ccc8ff6e457c35343777667fcb69f7bdb8212d1115eeb",
+      "t_387_21.zip": "d0a7b322b00b4b8a680ce4e991990eee4de5cb3c89190664fed1bfc99ce766b3",
+      "t_387_22.zip": "ba4f6c7faa43392d483e98405b9265ed3fe116eb6f4817a169f109e42fc775a5",
+      "t_387_23.zip": "b9a82014f38668c609fcbea56bea81c4bc6b08047414b411a6f10fafdb8fc7ba",
+      "t_391.zip": "c73a2e5baddaa61bba82b9fd13cb86b806917328d22c10b861aa8b14b6f3808e",
+      "t_M_Tributos.zip": "5dccfe0253f51872c86b823cc7670c28b39c02da718b0903fca0d270020a2da2",
+      "t_cuauhtin2.zip": "c54bce637eb3152df68f0156b19c2a6bbe0c5e8401ebc28616e4823ae4b0feba",
+      "t_dioses_matritenses.zip": "82443886cc2654fff7d0cac019f54bac7c4d7a5736ef67372fc4552244b0ad72",
+      "t_metlal.zip": "274b6e1147f25a31f14d8fe334e1e9536f6aa847f59124fc135b786fcb7038e5",
+      "t_tepech.zip": "90c6b543f2a6d85016c2028ac41993b8f282d8036d601accbb4372a7442c0fe9",
+      "t_tepetl.zip": "bc19bcce4d4e9a8f70288e48fd4c47fc9ecc0de7763142de296ec96e492f9281",
+      "t_tepeuc.zip": "c133fc0981119e7418fab00089a3e79095404133879185093bec0657a51d657d",
+      "t_totomi.zip": "768e65699d78bbdc10bce439f08ac8280005f7b857d3e4677abfc5b169957c7e"
+    },
+    "source_indexes_unchanged": true
+  },
+  "input_hashes": {
+    "codex_csv_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+    "council_synthesis_sha256": "c09c24495fb5d92b4d67a6bd22611f2c4b0a6c7843798fef8fc8bac3d0d93a91",
+    "elements_csv_sha256": "163629f1527011404b8865206d64306d580714995d171fb4264f9b8b1e6bc798",
+    "v12_exclusions_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756",
+    "v13_archive_map_sha256": "68355e21d06fe8fc71aa64aec8d4eb58784029235ac8fdc17fc0b949cdc48a58",
+    "v13_attribution_sha256": "611b8506e3f795f47d0d435696270bdca715c9359809600a4a400e427ef94c1b",
+    "v13_audit_sha256": "cee42ce6420cd3c876afff471e8b67b843c7146bbb0b99fa76c32b73effd3234"
+  },
+  "iteration": 1,
+  "mission": "elements-baseline-replacement",
+  "mode": "descriptive_build_only",
+  "next_direction_requires_council": true,
+  "next_phase": "close local provenance, then institutional metadata inventory and shadow-availability audit",
+  "numeric_success_threshold": null,
+  "population_contract": {
+    "ambiguous_archive": 37,
+    "population_rows": 487,
+    "subset_432_rows": 432,
+    "unique_archive_without_unique_codex": 450
+  },
+  "run_id": "20260803-member-attribution-v14",
+  "schema_version": "autoresearch-member-attribution-v14.audit",
+  "scientific_boundary": {
+    "archives_used_as_instrument": false,
+    "archives_used_for_training": false,
+    "efficacy_claim_allowed": false,
+    "holdout_or_final_test_read": false,
+    "independence_claim_allowed": false,
+    "model_predictions": 0,
+    "promotion_eligible": false,
+    "runtime_after": {
+      "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+      "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+      "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "runtime_before": {
+      "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+      "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+      "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "runtime_unchanged": true,
+    "v12_exclusions_modified": 0
+  },
+  "v13_reband_allowed": false,
+  "v13_verdict": "partial_recovery"
+}

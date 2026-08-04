@@ -1,0 +1,81 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.extract-train-recovery-failure-audit-v1",
+  "iteration": 3,
+  "recovery_id": "recovery-01",
+  "phase": "extract_train_host_disk_exhaustion_before_first_complete_fold",
+  "pass": false,
+  "command": "CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONUNBUFFERED=1 PYTHONPATH=backend backend/.venv/bin/python -u scripts/autoresearch_lora_vicreg_v18.py extract-train --token-cache-dir .omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/iteration-0003-token-caches-recovery-01 --final-token-manifest .omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/iteration-0003-token-caches-recovery-01/token-cache-manifest.json",
+  "exit_code": 1,
+  "duration_seconds": 36.3,
+  "failure": {
+    "class": "physical_host_disk_exhaustion_caused_wsl_ext4_io_and_read_only_failures",
+    "primary_message": "DataLoader worker Image.open raised OSError: [Errno 5] Input/output error.",
+    "secondary_message": "Python temporary-file cleanup raised OSError: [Errno 30] Read-only file system.",
+    "worker_count": 2,
+    "post_failure_probe": "WSL became unresponsive and then returned E_UNEXPECTED until shutdown and restart.",
+    "recovery_required": "WSL shutdown and distribution restart; ext4 recovery completed and the root filesystem remounted read-write.",
+    "model_metric_observed": false,
+    "candidate_consumed": false
+  },
+  "root_cause": {
+    "conclusion": "The physical Windows C: volume hosting ext4.vhdx was exhausted; the prior Linux-only capacity preflight measured sparse virtual ext4 capacity and was therefore invalid for the actual storage boundary.",
+    "windows_c_free_bytes_at_diagnosis": 39317504,
+    "ext4_vhdx_length_bytes_at_diagnosis": 233864953856,
+    "linux_ext4_available_bytes_before_failure": 820000000000,
+    "preflight_blind_spot": "df on / reported virtual ext4 capacity but did not measure free physical bytes on the Windows host volume backing the sparse VHDX.",
+    "shared_memory_exhaustion_supported": false,
+    "num_workers_change_indicated_by_root_cause": false
+  },
+  "recovery_observations": {
+    "regenerable_caches_removed": [
+      "C:\\Users\\anmou\\AppData\\Local\\NVIDIA\\DXCache (all unlocked entries)",
+      "pip cache"
+    ],
+    "windows_c_free_bytes_immediately_after_cache_cleanup": 6798053376,
+    "windows_c_free_bytes_at_audit": 6642216960,
+    "ext4_vhdx_length_bytes_at_audit": 233932062720,
+    "root_mount_source": "/dev/sdd",
+    "root_mount_read_write": true,
+    "root_mount_options_include": [
+      "rw",
+      "discard",
+      "errors=remount-ro",
+      "data=ordered"
+    ]
+  },
+  "failed_artifacts": {
+    "original_failed_cache_allocated_bytes": 108736376832,
+    "original_failed_cache_apparent_bytes": 114906528920,
+    "recovery_01_allocated_bytes": 570437632,
+    "recovery_01_partial_path": "iteration-0003-token-caches-recovery-01/fold-01/train-tokens.npy.partial",
+    "recovery_01_partial_apparent_bytes": 570425344,
+    "recovery_01_partial_trusted": false,
+    "recovery_01_complete_train_fold_count": 0,
+    "sealed_train_manifest_exists": false,
+    "final_token_manifest_exists": false
+  },
+  "storage_alternative_observed_but_not_authorized": {
+    "windows_volume": "F:",
+    "linux_mount": "/mnt/f",
+    "available_bytes_at_audit": 215109963776,
+    "estimated_complete_cache_bytes": 142226382336,
+    "required_bytes_with_25_percent_margin": 177782977920,
+    "margin_gate_pass": true,
+    "prospective_cache_path_created": false,
+    "prospective_retry_started": false
+  },
+  "scientific_operation_counts": {
+    "oof_token_file_count": 0,
+    "candidate_state_file_count": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "final_test_read": false,
+    "runtime_write": false
+  },
+  "runtime_sha256": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "decision": "Freeze recovery-01 as scientifically null. Do not retry, delete failed caches, change the runner, create the prospective F: cache path, train a candidate, extract OOF tokens, read the final test, or write runtime artifacts before the next Argos Council decision."
+}

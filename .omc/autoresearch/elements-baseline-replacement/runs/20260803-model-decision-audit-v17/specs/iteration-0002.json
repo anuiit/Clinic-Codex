@@ -1,0 +1,127 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.spec",
+  "run_id": "20260803-model-decision-audit-v17",
+  "iteration": 2,
+  "name": "supervised-multiview-readout-on-exact-vicreg-c1",
+  "status": "preregistered_before_runner_implementation_and_candidate_output",
+  "purpose": "Test one isolated model factor: deterministic cached train-view consumption during the exact C1 supervised episodic readout.",
+  "hypothesis": "Exposure to bounded scanner-safe train views during supervised readout improves transfer to unchanged base-feature inference without sacrificing the replicated C1 gain.",
+  "symmetric_risk": "Training the readout on cached views while constructing final prototypes and evaluating OOF queries on base features may create a train-inference domain mismatch and reduce accuracy.",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 27,
+    "local_turn": 33,
+    "published_synthesis_sha256": "49f8c503273acb4ba0d217573333fff7880c333ccae1fc13891f3fe3a2543402"
+  },
+  "pinned_harness": {
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "support_aware_i5_runner_sha256": "acd06503d801bdaf30e1b3d8569fd6713d9b3b83e545561fc26677998a8de0c6",
+    "covariance_i7_runner_sha256": "f8b51e9f5473a3a5306432809236680f778ecaaa6be316e17fcfae084d3bc453"
+  },
+  "frozen_inputs": {
+    "v9_spec_sha256": "be9706819cb1916a513c941dfcf99abc039b3b9bb289cf32ddd602e76da230cb",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08ff52548fe20b674d85f1f01922f9c2d30c534def09c75bace617e25d5ee",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f59f17d37fa5b7945195f7ac6df6ae1e203b5606264517c19bc4b0d5d1de",
+      "5": "b3b83641a19b3b608e94863754a4aa8785ef87e1b7096479d5806cfb1a22752e"
+    },
+    "expected_c1_checkpoint_count": 15,
+    "expected_paired_prediction_rows": 1959,
+    "expected_unique_oof_rows": 653
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "arms": {
+    "control": "Exact v9 C1 replay: fold-local VICReg initialization followed by supervised episodic training on base train features.",
+    "candidate": "The identical C1 pretrained state, row episode plan, optimizer, schedule, budget, and supervised RNG, with every support and query occurrence consuming exactly one deterministic cached train view."
+  },
+  "changed_factor": {
+    "only_change": "supervised support/query input feature source",
+    "control_feature": "base_features[row_index]",
+    "candidate_feature": "view_features[row_index, deterministic_view_index]",
+    "view_index_formula": "stable_seed(\"v17-multiview\", fold, seed, epoch, episode_index, role, slot_position, row_id) mod 8",
+    "roles": ["support", "query"],
+    "one_view_per_occurrence": true,
+    "row_identity_not_cache_position_in_seed": true,
+    "forbidden": [
+      "view averaging",
+      "view mixing or interpolation",
+      "loss-based view selection",
+      "new view generation",
+      "view-strength change",
+      "candidate-specific episode rows",
+      "candidate-specific optimizer or schedule"
+    ]
+  },
+  "inference_domain": {
+    "final_class_prototypes": "base train features only",
+    "oof_queries": "base OOF features only",
+    "oof_cached_views_available": false,
+    "projection_abi": "384-384-128 unchanged"
+  },
+  "grid": {
+    "folds": [1, 2, 3, 4, 5],
+    "seeds": [17, 42, 73],
+    "cache_views": 8,
+    "ssl": {
+      "objective": "VICReg",
+      "epochs": 30,
+      "batch_size": 256,
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0001,
+      "device": "cuda"
+    },
+    "supervised": {
+      "epochs": 30,
+      "episodes_per_epoch": 100,
+      "n_way": 20,
+      "k_shot": 3,
+      "q_queries": 5,
+      "optimizer": "AdamW",
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "temperature": 0.1,
+      "warmup_epochs": 5,
+      "schedule": "cosine after warmup",
+      "gradient_clip": 5.0,
+      "device": "single-thread CPU"
+    },
+    "prediction_device": "cuda"
+  },
+  "mandatory_audit": {
+    "recompute_fold_local_vicreg": true,
+    "initial_state_hash_matches_persisted_c1": true,
+    "ssl_plan_hash_matches_persisted_c1": true,
+    "episode_plan_hash_matches_persisted_c1": true,
+    "control_state_hash_matches_persisted_c1": true,
+    "control_topk_matches_all_persisted_c1_rows": true,
+    "candidate_and_control_share_pretrained_state": true,
+    "candidate_and_control_share_row_episode_plan": true,
+    "candidate_and_control_equal_budget": true,
+    "persist_view_plan_hash": true,
+    "persist_per_view_usage_counts": true,
+    "persist_per_row_eight_bin_usage_counts": true,
+    "all_view_indices_consumed_per_fold_seed": true,
+    "per_view_count_within_fraction_of_uniform": 0.05,
+    "candidate_episode_oof_row_exposure": 0,
+    "deterministic_replay": true
+  },
+  "hard_boundaries": {
+    "single_candidate": true,
+    "single_execution_plus_deterministic_replay": true,
+    "new_feature_extraction": false,
+    "new_view_generation": false,
+    "hyperparameter_or_view_strength_sweep": false,
+    "second_candidate": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  }
+}

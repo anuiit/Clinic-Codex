@@ -1,0 +1,54 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.gate-zero-bis-spec",
+  "run_id": "20260803-institutional-inventory-v16",
+  "iteration": 2,
+  "phase": "visual_lexicon_physical_provenance_deduplication",
+  "created_at": "2026-08-03T23:10:35Z",
+  "hypothesis": "Applying frozen intra-Visual-Lexicon physical/provenance grouping and fail-closed ambiguity rules corrects the historical 41-term upper bound to 37 auditable independent components without any network, image, label, or model access.",
+  "single_factor": "intra-Visual-Lexicon physical/provenance deduplication",
+  "inputs": {
+    "iteration_0001_visual_crosswalk": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0001/visual-lexicon-crosswalk.json",
+    "iteration_0001_visual_crosswalk_sha256": "3236dc7996df420516ceead59922ec9a7c22b2ffb35da156c14060e7043e8efb",
+    "iteration_0001_physical_crosswalk": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0001/physical-document-crosswalk.json",
+    "iteration_0001_physical_crosswalk_sha256": "a5c971254a939d8a93c3f275114ed675495c95e140f6047134a486629bfde07b",
+    "iteration_0001_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0001/gate-zero-audit.json",
+    "iteration_0001_audit_sha256": "7144f9e615a356cf5f75c51339c0f4b80b3d7a3fbf9928705da214b7931d8cbf",
+    "iteration_0001_evaluation": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/evaluations/iteration-0001.json",
+    "iteration_0001_evaluation_sha256": "8771ddc73368fdcd9255c5aa70238ae42b11b30ad090e12e9a631d9d538092b3"
+  },
+  "pre_registered_gates": {
+    "visual_lexicon_terms_equals": 50,
+    "historical_no_known_local_overlap_term_count_equals": 41,
+    "preserved_v12_exclusion_count_equals": 9,
+    "new_ambiguity_exclusion_count_equals": 2,
+    "same_component_group_count_equals": 2,
+    "admitted_term_count_equals": 39,
+    "strict_independent_component_ceiling_equals": 37,
+    "all_visual_terms_accounted_exactly_once": true,
+    "all_admitted_terms_belong_to_exactly_one_component": true,
+    "minimum_admissible_components": 42,
+    "portfolio_direct_authorization_threshold": 63,
+    "ambiguous_identity_policy": "exclude",
+    "copy_or_witness_policy": "one_provenance_component"
+  },
+  "integrity_constraints": {
+    "network_fetch_allowed": false,
+    "record_detail_fetch_allowed": false,
+    "image_read_or_download_allowed": false,
+    "model_inference_allowed": false,
+    "labels_or_final_test_read_allowed": false,
+    "runtime_write_allowed": false,
+    "manual_post_result_rule_edit_allowed": false,
+    "deterministic_replay_required": true,
+    "runtime_hashes_must_remain_unchanged": true
+  },
+  "decision_rule": {
+    "integrity_failure": "invalid_gate_zero_bis",
+    "ceiling_below_42": "visual_lexicon_physical_ceiling_corrected_but_insufficient",
+    "ceiling_42_to_62": "intermediate_ceiling_requires_council",
+    "ceiling_at_least_63": "portfolio_ceiling_acquired"
+  },
+  "promotion_eligible": false,
+  "final_test_read_allowed": false,
+  "model_inference_allowed": false
+}

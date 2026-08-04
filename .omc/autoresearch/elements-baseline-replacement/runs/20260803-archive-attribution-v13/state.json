@@ -1,0 +1,35 @@
+{
+  "schema_version": "autoresearch-archive-attribution-v13.state",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-archive-attribution-v13",
+  "status": "completed",
+  "phase": "evaluated",
+  "iteration": 1,
+  "current_factor": "exact archive collision attribution of retained development rows",
+  "promotion_eligible": false,
+  "runtime_write_allowed": false,
+  "model_inference_allowed": false,
+  "final_test_read": false,
+  "v12_exclusions_locked": true,
+  "council": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 18,
+    "published_synthesis_sha256": "c09c24495fb5d92b4d67a6bd22611f2c4b0a6c7843798fef8fc8bac3d0d93a91"
+  },
+  "result": {
+    "pass": false,
+    "decision_band": "partial_recovery",
+    "unique_codex_attributed_rows": 4680,
+    "unique_codex_attributed_row_coverage": 0.46846846846846846,
+    "unique_codex_id_count": 45,
+    "ambiguous_rows": 37,
+    "unique_archive_without_unique_codex_rows": 450,
+    "unmatched_rows": 4823,
+    "evaluation_sha256": "68eeb2e974c84d1c6cf8eddd2fe57631e6358680088fd051fa53cf482d8f8309",
+    "audit_sha256": "cee42ce6420cd3c876afff471e8b67b843c7146bbb0b99fa76c32b73effd3234",
+    "deterministic_replay": true,
+    "runtime_unchanged": true,
+    "final_test_read": false
+  },
+  "next_action": "Preregister the Council-authorized descriptive v14 member-level refinement."
+}

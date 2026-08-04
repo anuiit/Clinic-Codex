@@ -1,0 +1,201 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.lora-vicreg-spec-v1",
+  "run_id": "20260804-discriminative-readout-v18",
+  "iteration": 3,
+  "name": "last-block-rank8-lora-vicreg-participation",
+  "status": "frozen_before_any_iteration_0003_shared_token_extraction_candidate_training_or_prediction",
+  "purpose": "Test the final authorized backbone-participation factor by extending the exact replicated C1 VICReg mechanism into rank-8 LoRA adapters on the final DINOv2-S/14 block.",
+  "hypothesis": "Allowing only the last frozen DINO block's four Linear modules to participate through rank-8 LoRA in fold-local VICReg improves provenance-held-out pooled OOF top-1 beyond a same-process exact C1 replay.",
+  "symmetric_risk": "The instrument is noisy and repeatedly consulted; LoRA may preserve or degrade C1. Any result below supported_reference retires the instrument without v18.4.",
+  "claim_domain": "pooled OOF top-1 only; macro, top-3, support, bootstrap, movement, loss, rank, and control-replay outputs are mandatory diagnostics",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 35,
+    "local_turn": 38,
+    "published_synthesis_sha256": "1c64340186e3e21a3b448fec60958528479c494d8959ed4977fc047992599b52"
+  },
+  "predecessor_and_feasibility": {
+    "v18_2_decision": "not_supported",
+    "v18_2_claim": "valid_but_gate_failure",
+    "v18_2_replay_audit_sha256": "795d8394671635db210deabb29f7f3ec85dd9f06290eb335493bd51495d8d10b",
+    "v18_3_feasibility_audit_sha256": "519d3f78c66373a24c3d89e645e207f843c519fc17ef02ba8f6e85e036b410a6",
+    "v18_3_source_inventory_sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2",
+    "head_only_branch_closed": true,
+    "projection_only_branch_closed": true
+  },
+  "frozen_inputs": {
+    "corpus_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+    "collection_audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99",
+    "backbone_manifest_sha256": "bfc72fa2d0fbffc786236d591501ff9dfa23f5c316d619a47e891160316f9ab5",
+    "backbone_weights_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+    "backbone_source_tree_declaration_sha256": "b64f9117250826940b54ed25b65e2869fcdc9222cbaf9c1d4885eeab5f950a3b",
+    "backbone_hubconf_sha256": "c1f5090e78ff940b72c076d2bf9c0310d1707c946b3d10e2d6f2b0bdf56a6f64",
+    "backbone_vision_transformer_sha256": "7799a260f2d7d0fe197331d08502fb8c542f9b7424723650f6a39b64fa2639ea",
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "canonical_cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+      "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    },
+    "expected_outer_folds": 5,
+    "expected_fixed_seeds": [17, 42, 73],
+    "expected_unique_oof_rows": 653,
+    "expected_paired_prediction_rows": 1959
+  },
+  "arms": {
+    "mission_anchor": "Persisted B0 top-k rows from v9, used only for the unchanged mission anchor.",
+    "paired_control": "C1 re-executed in the same process from fold-train features reconstructed through the shared pre-final-block token cache at zero LoRA. Every persisted C1 train state and plan must match before active LoRA training; its top-k must match after the physically sealed OOF cache is created and before candidate interpretation.",
+    "candidate": "The same C1 initialization, view plan, VICReg projection and expander, supervised episode plan, and budgets, with only rank-8 LoRA matrices added to the final DINO block during VICReg and then frozen for the unchanged supervised readout."
+  },
+  "changed_factor": {
+    "only_change": "final DINOv2-S/14 block participates in C1 VICReg through LoRA",
+    "backbone": "exact local dinov2_vits14",
+    "target_block": "blocks.11",
+    "target_linear_modules": [
+      "attn.qkv",
+      "attn.proj",
+      "mlp.fc1",
+      "mlp.fc2"
+    ],
+    "rank": 8,
+    "alpha": 8,
+    "dropout": 0.0,
+    "scaling": 1.0,
+    "lora_trainable_parameter_names": [
+      "blocks.11.attn.qkv.lora_a",
+      "blocks.11.attn.qkv.lora_b",
+      "blocks.11.attn.proj.lora_a",
+      "blocks.11.attn.proj.lora_b",
+      "blocks.11.mlp.fc1.lora_a",
+      "blocks.11.mlp.fc1.lora_b",
+      "blocks.11.mlp.fc2.lora_a",
+      "blocks.11.mlp.fc2.lora_b"
+    ],
+    "lora_trainable_parameter_count": 49152,
+    "base_weights_and_biases": "frozen with byte hashes before and after every fold-by-seed run",
+    "lora_a_initialization": {
+      "method": "kaiming_uniform",
+      "a": "sqrt(5)",
+      "generator": "dedicated CUDA torch.Generator",
+      "seed_formula": "stable_seed('v18.3-lora-init', fold, seed)",
+      "global_rng_consumption": 0
+    },
+    "lora_b_initialization": "all zeros",
+    "forbidden": [
+      "other block or module adaptation",
+      "dense final-block training",
+      "rank, alpha, placement, learning-rate, weight-decay, epoch, batch-size, or loss sweep",
+      "head or projection factor from v18.1/v18.2",
+      "early stopping or selection from OOF",
+      "retry, fallback, distillation, ensemble, or second candidate"
+    ]
+  },
+  "shared_token_cache_and_numeric_policy": {
+    "schema_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-token-cache-schema.json",
+    "preprocessing": "exact v9 resize_and_pad, image_tensor, and safe_ssl_view code and operations",
+    "image_batch_size": 16,
+    "train_views": 8,
+    "view_seed": 20260803,
+    "image_size": 224,
+    "token_boundary": "input tensor to blocks.11",
+    "token_shape": [257, 384],
+    "token_storage_dtype": "float32",
+    "train_storage": "per-fold numpy .npy memmap shaped [train_rows,9,257,384], base then views 0..7",
+    "oof_storage": "physically separate per-fold numpy .npy memmap shaped [oof_rows,1,257,384], base only",
+    "oof_creation": "only after every VICReg and supervised update for all three seeds of the fold is complete",
+    "oof_access_during_training": 0,
+    "backbone_compute": "CUDA autocast float16 exactly as v9; block input/output, norm output, and CLS feature remain float32",
+    "persisted_feature_boundary": "quantize reconstructed CLS float32 to float16 exactly as v9, then convert to float32 for projection, expander, VICReg, supervised readout, and prediction",
+    "train_resume_batch_policy": "group selected tokens by their original flattened extraction batch size; nominal 144 and the fold-specific final partial size; deterministic repeat-last padding to that exact size then unpad",
+    "oof_resume_batch_policy": "group tokens by original base-only extraction batch size; nominal 16 and the fold-specific final partial size; deterministic repeat-last padding to that exact size then unpad",
+    "feature_equivalence_gate": "all 359640 train base/view features and all 653 OOF base features must be byte-identical to canonical v9 float16 tensors",
+    "actual_cache_hash_sealing": "spec/evaluator/schema freeze before extraction; each generated train or OOF cache and metadata hash is sealed in an execution manifest before downstream use",
+    "replay": "reuse hash-verified train and OOF token caches; never re-extract"
+  },
+  "vicreg_phase": {
+    "rows": "fold-train only",
+    "views": 8,
+    "pair_plan": "exact v9 ssl_pair_plan",
+    "pair_plan_seed": "stable_seed('ssl-plan', seed, epoch)",
+    "epochs": 30,
+    "samples_per_epoch": "all fold-train rows",
+    "batch_size": 256,
+    "projection": "exact C1 ProjectionHead 384→384→128 initialized from the same global RNG state",
+    "expander": "exact C1 VICRegExpander initialized from the same global RNG state",
+    "loss": {
+      "invariance_weight": 25.0,
+      "variance_weight": 25.0,
+      "covariance_weight": 1.0,
+      "variance_epsilon": 0.0001
+    },
+    "optimizer": {
+      "name": "AdamW",
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0001,
+      "betas": [0.9, 0.999],
+      "epsilon": 1e-8,
+      "parameter_group_control": "projection+expander",
+      "parameter_group_candidate": "projection+expander+all eight LoRA matrices",
+      "group_manifest_hash_required": true
+    },
+    "gradient_clipping": {
+      "maximum_norm": 5.0,
+      "control_scope": "projection+expander",
+      "candidate_scope": "projection+expander+all eight LoRA matrices",
+      "interpretation": "the larger clipping union is an intrinsic declared consequence of LoRA participation"
+    },
+    "expected_candidate_optimizer_steps": 14220
+  },
+  "supervised_phase": {
+    "lora_state": "frozen after VICReg",
+    "projection_initial_state": "the projection returned by the corresponding VICReg arm",
+    "epochs": 30,
+    "episodes_per_epoch": 100,
+    "n_way": 20,
+    "k_shot": 3,
+    "q_queries": 5,
+    "episode_seed": "stable_seed('supervised-episodes', fold, seed)",
+    "rng_seed": "stable_seed('supervised-rng', fold, seed)",
+    "optimizer": "exact v9 AdamW lr=1e-3 weight_decay=1e-4",
+    "temperature": 0.1,
+    "warmup_epochs": 5,
+    "scheduler": "exact v9 warmup then cosine",
+    "gradient_clipping": 5.0,
+    "device": "cpu with one thread"
+  },
+  "paired_control_interlocks": {
+    "all_train_features_from_tokens_match_canonical_v9": true,
+    "all_oof_features_from_tokens_match_canonical_v9": true,
+    "c1_reexecuted_same_process_same_machine": true,
+    "persisted_c1_checkpoint_file_hashes_verified": 15,
+    "reexecuted_c1_final_state_hashes_match": 15,
+    "reexecuted_c1_ssl_plan_hashes_match": 15,
+    "reexecuted_c1_episode_plan_hashes_match": 15,
+    "reexecuted_c1_topk_rows_match_after_oof_creation_before_candidate_interpretation": 1959,
+    "no_batchnorm_syncbatchnorm_or_running_batch_state": true,
+    "abort_before_active_lora_training_on_failure": true
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "hard_boundaries": {
+    "single_candidate": true,
+    "single_execution_plus_deterministic_replay": true,
+    "shared_prefix_token_extraction_allowed_after_contract_freeze": true,
+    "candidate_training_allowed_only_after_train_feature_equivalence_and_c1_replay": true,
+    "oof_token_extraction_allowed_only_after_all_updates_for_fold": true,
+    "oof_views": 0,
+    "hyperparameter_sweep": false,
+    "second_candidate": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  },
+  "stop_rule": "Any control-path mismatch aborts before active LoRA training. Any result below supported_reference, integrity failure, or replay mismatch permanently retires this instrument with no v18.4."
+}

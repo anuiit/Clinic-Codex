@@ -1,0 +1,41 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.spec-erratum",
+  "iteration": 2,
+  "status": "formal_correction_without_mutating_frozen_spec",
+  "frozen_spec_path": "specs/iteration-0002.json",
+  "frozen_spec_sha256": "51548b999afaffaa75c2d3b4fb84670aa283151a407f1c4b3ef1079899286dae",
+  "defect_class": "documentary_cache_hash_transcription_error",
+  "affected_declarations": {
+    "frozen_inputs.cache_sha256_by_fold.2": {
+      "declared_in_frozen_spec": "c9d08ff52548fe20b674d85f1f01922f9c2d30c534def09c75bace617e25d5ee",
+      "canonical_enforced_value": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2"
+    },
+    "frozen_inputs.cache_sha256_by_fold.4": {
+      "declared_in_frozen_spec": "ae16f59f17d37fa5b7945195f7ac6df6ae1e203b5606264517c19bc4b0d5d1de",
+      "canonical_enforced_value": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1"
+    },
+    "frozen_inputs.cache_sha256_by_fold.5": {
+      "declared_in_frozen_spec": "b3b83641a19b3b608e94863754a4aa8785ef87e1b7096479d5806cfb1a22752e",
+      "canonical_enforced_value": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    }
+  },
+  "unaffected_declarations": {
+    "frozen_inputs.cache_sha256_by_fold.1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+    "frozen_inputs.cache_sha256_by_fold.3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e"
+  },
+  "execution_validity": {
+    "affected_execution": false,
+    "reason": "The v17.2 runner delegated cache validation to the canonical i5 EXPECTED_CACHE_SHA256 constants; all five actual cache hashes matched those constants and the result persisted the correct values.",
+    "v9_cache_hashes_match_count": 5,
+    "expected_v9_cache_hashes_match_count": 5,
+    "canonical_summary_sha256": "c8e14168903d240f9d9e7552dac94d0537a23402ce4612137017a6af51f3f348",
+    "canonical_prediction_rows_sha256": "d9b3e648055fcd4edb9c2a5eda376f710a4a463c99233f73f12fc5e4a04bff86"
+  },
+  "council_confirmation": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 29,
+    "local_turn": 34,
+    "published_synthesis_sha256": "e6536c3404f90c534c72b435cdac5374fc5cf4142bef5478598ea98561f4d62c"
+  },
+  "directive": "Do not mutate the frozen v17.2 spec. Generate future spec cache pins from i5.EXPECTED_CACHE_SHA256 and machine-check equality before freezing the spec hash."
+}

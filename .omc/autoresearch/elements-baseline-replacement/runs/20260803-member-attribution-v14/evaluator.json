@@ -1,0 +1,55 @@
+{
+  "schema_version": "autoresearch-member-attribution-v14.evaluator",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-member-attribution-v14",
+  "iteration": 1,
+  "evaluation_mode": "integrity_only_descriptive_audit",
+  "primary_metric": null,
+  "numeric_success_threshold": null,
+  "hypothesis_supported": null,
+  "success_rule": "The descriptive audit is complete only when every integrity gate passes and the deterministic replay is exact. No coverage result constitutes scientific success.",
+  "failure_rule": "Any integrity failure invalidates the audit; stop without interpreting coverage and return the failure to Council.",
+  "required_population": {
+    "rows": 487,
+    "ambiguous_archive": 37,
+    "unique_archive_without_unique_codex": 450,
+    "predeclared_432_subset": 432
+  },
+  "required_gates": [
+    "contract hashes match",
+    "v13 frozen input hashes match",
+    "49 archive index hashes match the v13 audit",
+    "population and status counts match",
+    "all selected rows have exact member collisions",
+    "strict unanimous mapping rule is used",
+    "first and replay artifact hashes match",
+    "v13 verdict remains partial_recovery",
+    "v12 exclusions are unchanged",
+    "runtime is unchanged",
+    "model predictions equal zero",
+    "holdout and final test are unread"
+  ],
+  "required_outputs": [
+    "member-attribution.jsonl",
+    "development-provenance-v14.jsonl",
+    "member-attribution-audit.json",
+    "evaluations/iteration-0001.json"
+  ],
+  "interpretation": {
+    "allowed": [
+      "Exact provenance facts for development rows",
+      "Collision-screening preparation for a future independent instrument",
+      "Descriptive counts and global coverage"
+    ],
+    "forbidden": [
+      "Efficacy evidence",
+      "Independence evidence",
+      "Retroactive v13 success",
+      "Automatic exclusion changes",
+      "Runtime promotion"
+    ]
+  },
+  "promotion_eligible": false,
+  "exclusion_change_allowed": false,
+  "next_direction_requires_council": true
+}

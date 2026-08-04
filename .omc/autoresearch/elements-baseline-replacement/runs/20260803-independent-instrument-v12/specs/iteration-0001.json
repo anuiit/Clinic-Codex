@@ -1,0 +1,101 @@
+{
+  "schema_version": "autoresearch-independent-instrument-v12.spec",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-independent-instrument-v12",
+  "iteration": 1,
+  "name": "visual-lexicon-manuscript-ceiling-gate-zero",
+  "status": "preregistered_after_bounded_source_discovery_before_reproducible_audit",
+  "purpose": "Determine whether the Visual Lexicon can possibly supply the preregistered minimum number of manuscript-level independent components before any record crawl, image acquisition, label adjudication or model inference.",
+  "council": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 16,
+    "published_synthesis_sha256": "4b6f783b0458ce4126556e14768c83f59754762308b73267c8d0284a27880691",
+    "decision": "Visual Lexicon metadata first; local Tlachia archives are exclusion/collision evidence only; require at least 42 manuscript components and 10 active classes before image acquisition."
+  },
+  "bounded_discovery_log": {
+    "accessed_before_this_spec": [
+      "https://aztecglyphs.wired-humanities.org/taxonomy/term/9",
+      "https://aztecglyphs.wired-humanities.org/advsearch-all-grid",
+      "https://aztecglyphs.wired-humanities.org/content/quemitl-mdz20r",
+      "https://aztecglyphs.wired-humanities.org/taxonomy/term/9/all/feed"
+    ],
+    "purpose": "Confirm the official catalogue route, HTML field names, pagination shape and manuscript taxonomy select before implementing the auditor.",
+    "observed_manuscript_option_count": 50,
+    "model_predictions_seen": 0,
+    "candidate_inference_executed": false,
+    "holdout_or_final_test_read": false,
+    "note": "This iteration is a deterministic verification and decision audit of an acquisition ceiling, not a blind model-efficacy experiment."
+  },
+  "single_factor": {
+    "name": "external instrument source feasibility under conservative manuscript exclusion",
+    "source": "Visual Lexicon of Aztec Hieroglyphs official manuscript taxonomy",
+    "changed_from_v11": "availability of a newly sourced independent evaluation instrument",
+    "model_architecture_or_weights_changed": false
+  },
+  "inputs": {
+    "visual_lexicon_advanced_search_url": "https://aztecglyphs.wired-humanities.org/advsearch-all-grid",
+    "visual_lexicon_element_taxonomy_url": "https://aztecglyphs.wired-humanities.org/taxonomy/term/9",
+    "manuscript_select_id": "edit-field-manuscript-tid",
+    "expected_manuscript_option_count": 50,
+    "exclusion_rules": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+    "exclusion_rules_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756",
+    "local_codex_catalog": "/mnt/f/CODEX/AI_clinic/data_csv/codex.csv",
+    "local_codex_catalog_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+    "local_element_catalog": "/mnt/f/CODEX/AI_clinic/data_csv/elements.csv",
+    "local_element_catalog_sha256": "163629f1527011404b8865206d64306d580714995d171fb4264f9b8b1e6bc798",
+    "local_glyph_element_catalog": "/mnt/f/CODEX/AI_clinic/data_csv/glyph_elements.csv",
+    "local_glyph_element_catalog_sha256": "0b9ac7658bfb86fca2c42d6142722227363949922f481428eacb61a5b172014b",
+    "local_archive_glob": "/mnt/f/CODEX/t_*.zip",
+    "local_archive_count": 49,
+    "local_archive_name_inventory_sha256": "c153aacddacd068a50824a748de7cfac200be2bb4712c3300d892ff750c347b0",
+    "v8_provenance_audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99",
+    "v8_prequarantine_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+    "v11_candidate_manifest_sha256": "7b33a6a2605b864925e1b7fb8d2ecf46828c52bbadb811d1a6208758d55fadb7",
+    "runtime_config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "component_definition": {
+    "unit": "Visual Lexicon source manuscript taxonomy term",
+    "pages_within_one_manuscript": "one component",
+    "listed_direct_or_close_upstream_overlaps": "excluded before record-level inspection",
+    "unlisted_terms": "provisionally external only; later image collision audit would still be mandatory"
+  },
+  "pre_registered_gates": {
+    "minimum_admissible_manuscript_components": 42,
+    "minimum_active_runtime_classes": 10,
+    "expected_catalogue_manuscripts": 50,
+    "expected_predeclared_exclusions": 9,
+    "strict_component_ceiling_formula": "catalogue_manuscript_count - unique_predeclared_excluded_term_count",
+    "strict_component_ceiling_gte": 42,
+    "all_excluded_term_ids_exist_with_exact_display_names": true,
+    "local_codex_rows_equals": 50,
+    "local_archive_count_equals": 49,
+    "local_input_hashes_match": true,
+    "deterministic_replay_same_audit_hash": true,
+    "record_detail_pages_fetched": 0,
+    "images_downloaded": 0,
+    "model_predictions": 0,
+    "holdout_or_final_test_read": false,
+    "runtime_unchanged": true
+  },
+  "short_circuit_rule": "If the strict manuscript-component ceiling is below 42, stop immediately with instrument_not_acquired. Do not crawl record detail pages, inspect labels or rights, download images, run either model, recalculate thresholds downward or consume the one-shot evaluation.",
+  "conditional_next_phase_only_if_pass": {
+    "record_type": "Element from a Compound",
+    "strict_label_mapping": "exact normalized runtime class only; ambiguities rejected and double-reviewed",
+    "rights": "report with and without NC, but exclude NC/unknown from strict admission absent explicit compatibility",
+    "collision_checks": "byte, decoded RGB and quasi-duplicate checks against v8, consumed v4/v5 and decoded local archives",
+    "one_shot_scope": "covered classes only, frozen before prediction"
+  },
+  "outputs": [
+    "cache/advanced-search.html",
+    "cache/advanced-search.provenance.json",
+    "iteration-0001/manuscript-inventory.json",
+    "iteration-0001/catalogue-ceiling-audit.json",
+    "iteration-0001-replay/manuscript-inventory.json",
+    "iteration-0001-replay/catalogue-ceiling-audit.json",
+    "evaluations/iteration-0001.json"
+  ],
+  "runtime_write_allowed": false,
+  "model_inference_allowed": false,
+  "final_test_read_allowed": false,
+  "automatic_promotion_allowed": false
+}

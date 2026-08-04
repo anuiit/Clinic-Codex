@@ -1,0 +1,2364 @@
+{
+  "contract_hashes": {
+    "evaluator_sha256": "572e1c7a62e25afe0e3bd131b0086153c3978e80db4708b35abc68db856a007d",
+    "spec_sha256": "03085ad90b89563abd8ed0c3560dd52209286da49a7307422b66c6deb374b442",
+    "surface_manifest_sha256": "14bb355b3e7ecb91d67ec7b1e0edb62f40ccdd5d447577685faa572d5e36f328"
+  },
+  "decision": "no_qualifying_shadow_instrument_proceed_to_v16",
+  "dynamic_metadata_snapshot": {
+    "annotations": {
+      "earliest_mtime_utc": "2026-05-06T17:05:27.955229+00:00",
+      "exists": true,
+      "file_count": 108,
+      "latest_mtime_utc": "2026-05-27T15:44:54.429997+00:00",
+      "post_freeze_top_level_directories": 0,
+      "suffix_counts": {
+        ".json": 8,
+        ".png": 100
+      },
+      "top_level_directories": 8,
+      "total_bytes": 5052365
+    },
+    "auth_database": {
+      "exists": true,
+      "tables": [
+        {
+          "columns": [
+            "id_hash",
+            "user_id",
+            "csrf_hash",
+            "created_at",
+            "expires_at",
+            "revoked_at",
+            "csrf_token"
+          ],
+          "row_count": 4,
+          "table": "sessions",
+          "timestamp_ranges": {
+            "created_at": {
+              "maximum": "2026-07-31T13:01:07.788923+00:00",
+              "minimum": "2026-07-30T23:33:18.900968+00:00"
+            },
+            "expires_at": {
+              "maximum": "2026-08-07T13:01:07.788708+00:00",
+              "minimum": "2026-08-06T23:33:18.900716+00:00"
+            },
+            "revoked_at": {
+              "maximum": null,
+              "minimum": null
+            }
+          }
+        },
+        {
+          "columns": [
+            "id",
+            "email",
+            "password_hash",
+            "role",
+            "active",
+            "created_at"
+          ],
+          "row_count": 1,
+          "table": "users",
+          "timestamp_ranges": {
+            "created_at": {
+              "maximum": "2026-07-30T23:32:28.860551+00:00",
+              "minimum": "2026-07-30T23:32:28.860551+00:00"
+            }
+          }
+        }
+      ]
+    },
+    "backend_env_exists": true,
+    "browser_storage_opened": false,
+    "logs": {
+      "earliest_mtime_utc": "2026-07-02T11:53:00.058981+00:00",
+      "file_count": 5,
+      "latest_mtime_utc": "2026-07-11T21:54:15.852273+00:00",
+      "total_bytes": 16238
+    }
+  },
+  "dynamic_snapshot_stable": true,
+  "factor": "qualifying post-freeze shadow capture availability",
+  "flow": {
+    "aggregate_post_freeze_record_count": 0,
+    "capture_endpoint_exists": true,
+    "classification": "no_flow",
+    "consent_evidence": false,
+    "document_identity_fields": [],
+    "double_blind_annotation_feasible": false,
+    "explicit_local_dev_only_evidence": true,
+    "fallback_identity_fields": [
+      "analysis_id"
+    ],
+    "hypothesis_supported": false,
+    "image_retention_evidence": false,
+    "instrument_usable": false,
+    "prediction_exposure_evidence": true,
+    "server_persistence_exists": true
+  },
+  "frozen_source_validation": {
+    "candidate_manifest_sha256": "7b33a6a2605b864925e1b7fb8d2ecf46828c52bbadb811d1a6208758d55fadb7",
+    "council_synthesis_sha256": "c144b52c999f806ee5a912fc090e4326c6d97524b5b252f1fa2474977db75a5c",
+    "tracked_source_inventory_sha256": "ea2cac77eed4d57b97b24e045e2a945eede0bfda77b7b7220292eed3f2dab552"
+  },
+  "iteration": 1,
+  "mission": "elements-baseline-replacement",
+  "next_direction_requires_council": true,
+  "privacy_counters": {
+    "browser_stores_opened": 0,
+    "dynamic_file_bytes_read": 0,
+    "external_requests": 0,
+    "labels_read": 0,
+    "predictions_read": 0,
+    "user_identifiers_emitted": 0
+  },
+  "rate_evidence": {
+    "class_coverage_certifiable_without_content": false,
+    "descriptive_scenario_documents": 48,
+    "descriptive_scenario_documents_per_week": 6,
+    "descriptive_scenario_weeks": 8,
+    "document_deduplication_certifiable_without_content": false,
+    "minimum_window_days_for_rate": 7,
+    "observation_window_days": 0.08170393572913276,
+    "observed_records_per_week": null,
+    "rate_evidence_sufficient": false
+  },
+  "run_id": "20260803-shadow-availability-v15",
+  "schema_version": "autoresearch-shadow-availability-v15.audit",
+  "scientific_boundary": {
+    "external_fetches": 0,
+    "holdout_or_final_test_read": false,
+    "labels_read": false,
+    "model_predictions": 0,
+    "predictions_read": false,
+    "promotion_eligible": false,
+    "runtime_after": {
+      "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+      "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+      "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "runtime_before": {
+      "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+      "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+      "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "runtime_unchanged": true,
+    "training_performed": false,
+    "user_content_read": false
+  },
+  "source_scan": {
+    "endpoints": [
+      {
+        "blueprint": "bp",
+        "line": 23,
+        "method": "GET",
+        "route": "/admin/annotations",
+        "source": "backend/app/routes/admin_annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 35,
+        "method": "GET",
+        "route": "/admin/annotations/<analysis_id>/image",
+        "source": "backend/app/routes/admin_annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 47,
+        "method": "GET",
+        "route": "/admin/annotations/<analysis_id>/<int:index>/crop",
+        "source": "backend/app/routes/admin_annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 59,
+        "method": "POST",
+        "route": "/admin/annotations/<analysis_id>/<int:index>/review",
+        "source": "backend/app/routes/admin_annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 86,
+        "method": "POST",
+        "route": "/admin/annotations/<analysis_id>/<int:index>/modify",
+        "source": "backend/app/routes/admin_annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 61,
+        "method": "POST",
+        "route": "/save-annotation",
+        "source": "backend/app/routes/annotations.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 48,
+        "method": "GET",
+        "route": "/bootstrap/status",
+        "source": "backend/app/routes/auth.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 64,
+        "method": "POST",
+        "route": "/bootstrap",
+        "source": "backend/app/routes/auth.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 97,
+        "method": "POST",
+        "route": "/login",
+        "source": "backend/app/routes/auth.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 115,
+        "method": "GET",
+        "route": "/me",
+        "source": "backend/app/routes/auth.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 128,
+        "method": "POST",
+        "route": "/logout",
+        "source": "backend/app/routes/auth.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 27,
+        "method": "POST",
+        "route": "/classify",
+        "source": "backend/app/routes/classify.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 38,
+        "method": "POST",
+        "route": "/classify-batch",
+        "source": "backend/app/routes/classify.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 28,
+        "method": "POST",
+        "route": "/segment",
+        "source": "backend/app/routes/segment.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 74,
+        "method": "POST",
+        "route": "/similar",
+        "source": "backend/app/routes/similarity.py"
+      },
+      {
+        "blueprint": "bp",
+        "line": 114,
+        "method": "POST",
+        "route": "/trust",
+        "source": "backend/app/routes/similarity.py"
+      },
+      {
+        "blueprint": "legacy_bp",
+        "line": 172,
+        "method": "GET",
+        "route": "/sample-image",
+        "source": "backend/app/routes/similarity.py"
+      },
+      {
+        "blueprint": "legacy_bp",
+        "line": 191,
+        "method": "POST",
+        "route": "/similar-samples",
+        "source": "backend/app/routes/similarity.py"
+      }
+    ],
+    "evidence": {
+      "capture_input": [
+        {
+          "category": "capture_input",
+          "line": 27,
+          "source": "backend/app/config.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 3,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 40,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 52,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 69,
+          "source": "backend/app/routes/annotations.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 85,
+          "source": "backend/app/routes/annotations.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 29,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 29,
+          "source": "backend/app/routes/classify.py",
+          "token": "request.files"
+        },
+        {
+          "category": "capture_input",
+          "line": 30,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 32,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 32,
+          "source": "backend/app/routes/classify.py",
+          "token": "request.files"
+        },
+        {
+          "category": "capture_input",
+          "line": 40,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 40,
+          "source": "backend/app/routes/classify.py",
+          "token": "request.files"
+        },
+        {
+          "category": "capture_input",
+          "line": 41,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 42,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 44,
+          "source": "backend/app/routes/classify.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 30,
+          "source": "backend/app/routes/segment.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 30,
+          "source": "backend/app/routes/segment.py",
+          "token": "request.files"
+        },
+        {
+          "category": "capture_input",
+          "line": 31,
+          "source": "backend/app/routes/segment.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 34,
+          "source": "backend/app/routes/segment.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 34,
+          "source": "backend/app/routes/segment.py",
+          "token": "request.files"
+        },
+        {
+          "category": "capture_input",
+          "line": 7,
+          "source": "backend/app/routes/similarity.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 188,
+          "source": "backend/app/routes/similarity.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 16,
+          "source": "backend/app/services/container.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 20,
+          "source": "backend/app/services/container.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 96,
+          "source": "backend/app/services/container.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 198,
+          "source": "backend/app/services/container.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 250,
+          "source": "backend/app/services/container.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 21,
+          "source": "backend/app/services/image_service.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 29,
+          "source": "backend/app/services/image_service.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 41,
+          "source": "backend/app/services/image_service.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 48,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 140,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 230,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 234,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 342,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 365,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 367,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 399,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 400,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 401,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 430,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 546,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 661,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 666,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 704,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 715,
+          "source": "backend/services/annotation_review.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 51,
+          "source": "backend/services/annotation_storage.py",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 149,
+          "source": "backend/services/annotation_storage.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 150,
+          "source": "backend/services/annotation_storage.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 158,
+          "source": "backend/services/annotation_storage.py",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 93,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 16,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 18,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 23,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 24,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 25,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 29,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 31,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 35,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 38,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 39,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 40,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 52,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 53,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 54,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 57,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 61,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 69,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 72,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 81,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 92,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 97,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 98,
+          "source": "frontend/src/pages/workspace/useWorkspaceUpload.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 118,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 120,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 128,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 129,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 132,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 133,
+          "source": "frontend/src/services/api.ts",
+          "token": "File"
+        },
+        {
+          "category": "capture_input",
+          "line": 113,
+          "source": "frontend/src/types/index.ts",
+          "token": "image_data_url"
+        },
+        {
+          "category": "capture_input",
+          "line": 221,
+          "source": "frontend/src/types/index.ts",
+          "token": "File"
+        }
+      ],
+      "consent": [],
+      "document_identity": [],
+      "fallback_identity": [
+        {
+          "category": "fallback_identity",
+          "line": 35,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 38,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 40,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 47,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 50,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 52,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 59,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 63,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 75,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 77,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 86,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 90,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 112,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 69,
+          "source": "backend/app/routes/annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 76,
+          "source": "backend/app/routes/annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 77,
+          "source": "backend/app/routes/annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 92,
+          "source": "backend/app/routes/annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 94,
+          "source": "backend/app/routes/annotations.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 27,
+          "source": "backend/app/routes/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 38,
+          "source": "backend/app/routes/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 85,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 87,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 112,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 117,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 121,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 130,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 141,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 142,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 144,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 145,
+          "source": "backend/app/services/container.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 227,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 232,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 234,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 236,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 237,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 243,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 247,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 249,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 254,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 260,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 261,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 263,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 269,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 272,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 273,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 276,
+          "source": "backend/security/auth.py",
+          "token": "session_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 3,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 54,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 69,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 70,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 85,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 90,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 91,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 99,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 100,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 101,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 102,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 104,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 151,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 157,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 267,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 284,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 285,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 286,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 291,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 294,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 298,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 309,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 320,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 331,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 348,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 349,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 362,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 366,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 368,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 375,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 376,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 377,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 390,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 437,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 439,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 442,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 453,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 465,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 481,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 492,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 493,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 496,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 498,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 500,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 501,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 504,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 507,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 551,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 563,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 568,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 569,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 573,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 574,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 587,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 600,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 610,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 619,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 621,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 627,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 636,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 655,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 667,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 684,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 689,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 700,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 703,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 708,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 712,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 716,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 725,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 729,
+          "source": "backend/services/annotation_review.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 1,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 116,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 123,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 125,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 128,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 129,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 163,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 188,
+          "source": "backend/services/annotation_storage.py",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 91,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 111,
+          "source": "frontend/src/types/index.ts",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 124,
+          "source": "frontend/src/types/index.ts",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 157,
+          "source": "frontend/src/types/index.ts",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 172,
+          "source": "frontend/src/types/index.ts",
+          "token": "analysis_id"
+        },
+        {
+          "category": "fallback_identity",
+          "line": 188,
+          "source": "frontend/src/types/index.ts",
+          "token": "analysis_id"
+        }
+      ],
+      "local_only": [
+        {
+          "category": "local_only",
+          "line": 27,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "local/dev-only"
+        },
+        {
+          "category": "local_only",
+          "line": 50,
+          "source": "backend/services/annotation_review.py",
+          "token": "local/dev-only"
+        },
+        {
+          "category": "local_only",
+          "line": 50,
+          "source": "backend/services/annotation_review.py",
+          "token": "not production-secured"
+        }
+      ],
+      "logging": [],
+      "persistence": [
+        {
+          "category": "persistence",
+          "line": 57,
+          "source": "backend/app/config.py",
+          "token": "clinic_auth.sqlite3"
+        },
+        {
+          "category": "persistence",
+          "line": 64,
+          "source": "backend/app/routes/annotations.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 92,
+          "source": "backend/app/routes/annotations.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 94,
+          "source": "backend/app/routes/annotations.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 16,
+          "source": "backend/app/services/container.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 20,
+          "source": "backend/app/services/container.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 85,
+          "source": "backend/app/services/container.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 86,
+          "source": "backend/app/services/container.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 363,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 373,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 545,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 550,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 562,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 573,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 586,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 712,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 718,
+          "source": "backend/services/annotation_review.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 115,
+          "source": "backend/services/annotation_storage.py",
+          "token": "save_annotation"
+        },
+        {
+          "category": "persistence",
+          "line": 135,
+          "source": "backend/services/annotation_storage.py",
+          "token": "image.save"
+        },
+        {
+          "category": "persistence",
+          "line": 168,
+          "source": "backend/services/annotation_storage.py",
+          "token": "metadata.json"
+        },
+        {
+          "category": "persistence",
+          "line": 3,
+          "source": "frontend/src/services/storage.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 27,
+          "source": "frontend/src/services/storage.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 210,
+          "source": "frontend/src/services/storage.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 29,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 31,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 49,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 56,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 57,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 61,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 63,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 64,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 65,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 67,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 86,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 87,
+          "source": "frontend/src/services/storageDb.ts",
+          "token": "indexedDB"
+        },
+        {
+          "category": "persistence",
+          "line": 6,
+          "source": "frontend/src/services/storageLegacy.ts",
+          "token": "localStorage"
+        },
+        {
+          "category": "persistence",
+          "line": 8,
+          "source": "frontend/src/services/storageLegacy.ts",
+          "token": "localStorage"
+        },
+        {
+          "category": "persistence",
+          "line": 35,
+          "source": "frontend/src/services/storageLegacy.ts",
+          "token": "localStorage"
+        },
+        {
+          "category": "persistence",
+          "line": 50,
+          "source": "frontend/src/services/storageLegacy.ts",
+          "token": "localStorage"
+        },
+        {
+          "category": "persistence",
+          "line": 60,
+          "source": "frontend/src/services/storageLegacy.ts",
+          "token": "localStorage"
+        }
+      ],
+      "prediction_exposure": [
+        {
+          "category": "prediction_exposure",
+          "line": 95,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 97,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 98,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 114,
+          "source": "backend/app/routes/admin_annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 8,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 38,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 39,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 40,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 41,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 42,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 44,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 46,
+          "source": "backend/app/routes/annotations.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 93,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 105,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 127,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 127,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 133,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 133,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 155,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 157,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 158,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 159,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 200,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 200,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 208,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 212,
+          "source": "backend/app/routes/similarity.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 220,
+          "source": "backend/app/routes/similarity.py",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 124,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 132,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 227,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 247,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 248,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 251,
+          "source": "backend/app/services/container.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 26,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 32,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 160,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 315,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 334,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 353,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 354,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 357,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 414,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 459,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 483,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 686,
+          "source": "backend/services/annotation_review.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 36,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 39,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 41,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 43,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 45,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 47,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 142,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 145,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 156,
+          "source": "backend/services/annotation_storage.py",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 55,
+          "source": "frontend/src/pages/annotation/useAnnotationRecord.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 54,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 65,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 69,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 98,
+          "source": "frontend/src/pages/annotation/useAnnotationSubmission.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 88,
+          "source": "frontend/src/pages/workspace/useWorkspaceHistory.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 3,
+          "source": "frontend/src/services/api.ts",
+          "token": "SegmentResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 4,
+          "source": "frontend/src/services/api.ts",
+          "token": "ClassifyResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 128,
+          "source": "frontend/src/services/api.ts",
+          "token": "SegmentResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 129,
+          "source": "frontend/src/services/api.ts",
+          "token": "SegmentResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 132,
+          "source": "frontend/src/services/api.ts",
+          "token": "ClassifyResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 133,
+          "source": "frontend/src/services/api.ts",
+          "token": "ClassifyResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 170,
+          "source": "frontend/src/services/api.ts",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 36,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 41,
+          "source": "frontend/src/types/index.ts",
+          "token": "ClassifyResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 42,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 49,
+          "source": "frontend/src/types/index.ts",
+          "token": "ClassifyResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 53,
+          "source": "frontend/src/types/index.ts",
+          "token": "SegmentResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 61,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 67,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 76,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 81,
+          "source": "frontend/src/types/index.ts",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 82,
+          "source": "frontend/src/types/index.ts",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 94,
+          "source": "frontend/src/types/index.ts",
+          "token": "predicted_class"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 105,
+          "source": "frontend/src/types/index.ts",
+          "token": "SegmentResult"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 118,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 174,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        },
+        {
+          "category": "prediction_exposure",
+          "line": 215,
+          "source": "frontend/src/types/index.ts",
+          "token": "class_name"
+        }
+      ],
+      "retention": []
+    },
+    "evidence_counts": {
+      "capture_input": 82,
+      "consent": 0,
+      "document_identity": 0,
+      "fallback_identity": 131,
+      "local_only": 3,
+      "logging": 0,
+      "persistence": 40,
+      "prediction_exposure": 82,
+      "retention": 0
+    },
+    "frontend_interface_fields": {
+      "AnalysisRecord": [
+        "annotationStatus",
+        "annotations",
+        "id",
+        "imageDataUrl",
+        "imageName",
+        "result",
+        "timestamp"
+      ],
+      "SaveAnnotationPayload": [
+        "analysis_id",
+        "annotations",
+        "bbox",
+        "class_name",
+        "image_data_url",
+        "image_name",
+        "index",
+        "timestamp"
+      ]
+    },
+    "persisted_annotation_metadata_fields": [
+      "analysis_id",
+      "annotations",
+      "submitted_by",
+      "uploaded_at"
+    ],
+    "tracked_sources_scanned": 26
+  },
+  "v16_mandatory": true
+}

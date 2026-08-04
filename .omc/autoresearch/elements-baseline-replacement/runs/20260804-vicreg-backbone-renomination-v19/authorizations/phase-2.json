@@ -1,0 +1,32 @@
+{
+  "schema_version": "autoresearch-v19.phase-authorization-v1",
+  "authorized": true,
+  "phase": "phase_2_extraction_and_c1_control",
+  "council_session_id": "adv_20260803T072824_f903d4d6",
+  "council_source_turn": 42,
+  "council_local_turn": 45,
+  "published_synthesis_sha256": "d14ffe0db4c29c6128b4678106961dc7e2ddf3a6de321136a6e98bb7bec4f9f2",
+  "contract_freeze_audit_sha256": "46c9ba183af997f4922574701b488961d71b50051a3a6a0d24f45da8a74f1dab",
+  "frozen_runner_sha256": "14066b79538a5d3176bdf76f3a6475235da91480faf86a758c328234c6b60219",
+  "frozen_spec_sha256": "d4da848144eb5b0353919556fcd8ce42cff0a78a5d91e9a914b2e937ff270087",
+  "frozen_evaluator_sha256": "48494ce2fda34f05f8f0202e164f1d1582008eab02bb5bb0444d3c18f7033b92",
+  "one_execution_only": true,
+  "allowed": [
+    "extract exactly five new B14 fold caches once on WSL ext4",
+    "seal cache and sidecar manifest",
+    "replay 15 canonical C1 checkpoints on canonical S14 caches",
+    "verify exactly 1959 canonical C1 top-k rows"
+  ],
+  "forbidden": [
+    "candidate optimizer step",
+    "candidate training",
+    "candidate prediction",
+    "candidate score",
+    "runtime write",
+    "final test read",
+    "recovery attempt",
+    "new volume",
+    "v20"
+  ],
+  "phase_3_authorized": false
+}

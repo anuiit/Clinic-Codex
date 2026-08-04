@@ -1,0 +1,70 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.extract-train-recovery-02-failure-audit-v1",
+  "iteration": 3,
+  "recovery_id": "recovery-02",
+  "phase": "terminal_storage_backend_failure_before_first_complete_fold",
+  "pass": false,
+  "command": "CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONUNBUFFERED=1 PYTHONPATH=backend backend/.venv/bin/python -u scripts/autoresearch_lora_vicreg_v18.py extract-train --token-cache-dir /mnt/f/clinic-codex-autoresearch/20260804-discriminative-readout-v18/iteration-0003-token-caches-recovery-02 --final-token-manifest /mnt/f/clinic-codex-autoresearch/20260804-discriminative-readout-v18/iteration-0003-token-caches-recovery-02/token-cache-manifest.json",
+  "exit_code": 1,
+  "duration_seconds": 344.9,
+  "failure": {
+    "class": "drvfs_large_memmap_flush_cannot_allocate_memory",
+    "exception": "OSError: [Errno 12] Cannot allocate memory",
+    "operation": "numpy.memmap.flush()",
+    "runner_location": "extract_split after populating the fold-01 train token memmap",
+    "complete_train_fold_count": 0,
+    "model_metric_observed": false,
+    "candidate_consumed": false
+  },
+  "post_failure_system": {
+    "windows_c_free_bytes": 30870859776,
+    "windows_f_free_bytes": 186364514304,
+    "root_mount_source": "/dev/sdd",
+    "root_mount_read_write": true,
+    "wsl_memory_total_bytes": 16709738496,
+    "wsl_memory_available_bytes": 15778222080,
+    "wsl_swap_total_bytes": 4294967296,
+    "wsl_swap_free_bytes": 4294758400,
+    "interpretation": "The process failed while flushing a 28.7 GB drvfs-backed mapping even though post-failure WSL memory and swap were largely free. This supports a large-mmap/flush backend limitation rather than ordinary residual RAM exhaustion, but no retry is permitted to refine that diagnosis."
+  },
+  "failed_artifacts": {
+    "token_cache_dir": "/mnt/f/clinic-codex-autoresearch/20260804-discriminative-readout-v18/iteration-0003-token-caches-recovery-02",
+    "partial_path": "fold-01/train-tokens.npy.partial",
+    "partial_apparent_bytes": 28745446016,
+    "partial_trusted": false,
+    "sealed_fold_count": 0,
+    "train_manifest_exists": false,
+    "final_token_manifest_exists": false
+  },
+  "preflight_context": {
+    "authorization_synthesis_sha256": "dc6ffc3ae71edeabdfe4e34f9e5a9531d028427bd841ad729362ae74cdb50407",
+    "preregistration_sha256": "ba8f1e8e7782ebe02e6324a5cfc4eaeb1423731bf89345754e8bc4d615a7b4ec",
+    "storage_probe_audit_sha256": "8d0cfa4857a98b45d6b8bc1889cde1f89ebe694b160c0132e6cc6f9541cef5cd",
+    "storage_probe_bytes": 2147483648,
+    "storage_probe_passed": true,
+    "probe_limitation_realized": "The 2 GiB probe was smaller than WSL RAM and did not expose flush behavior for the 28.7 GB fold mapping.",
+    "runner_sha256": "557a99dc8a7c8f402a4d9644c0c3d76c5fefeefa8ed9094865508986274121e1",
+    "data_loader_num_workers": 2
+  },
+  "scientific_operation_counts": {
+    "oof_token_file_count": 0,
+    "candidate_state_file_count": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "final_test_read": false,
+    "runtime_write": false
+  },
+  "runtime_sha256": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "terminal_policy": {
+    "source": "Argos Council published synthesis dc6ffc3ae71edeabdfe4e34f9e5a9531d028427bd841ad729362ae74cdb50407",
+    "recovery_03_allowed": false,
+    "num_workers_0_amendment_allowed": false,
+    "v18_3_decision": "retired_infrastructure_not_supported",
+    "delete_failed_artifacts_before_council": false
+  },
+  "decision": "Retire v18.3 under the prospectively published terminal policy. Freeze all recovery-02 artifacts and submit the terminal infrastructure failure to Council. Do not retry, resume, modify the runner, delete failed caches, extract OOF tokens, train a candidate, read the final test, or write runtime artifacts."
+}

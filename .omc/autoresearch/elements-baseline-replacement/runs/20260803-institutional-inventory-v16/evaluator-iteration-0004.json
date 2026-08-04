@@ -1,0 +1,33 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.clean-endpoint-validation-evaluator",
+  "iteration": 4,
+  "primary_metric": "validated_compliant_structured_source_family_count",
+  "secondary_metrics": [
+    "source_family_count",
+    "validated_endpoint_count",
+    "compliance_request_count",
+    "endpoint_request_count",
+    "network_request_count",
+    "redirect_count",
+    "retry_count",
+    "raw_evidence_byte_count"
+  ],
+  "pass_conditions": [
+    "all spec, evaluator, manifest, Council correction, and Council synthesis hashes match",
+    "all six frozen source families receive exactly one result",
+    "request counters are persisted before every issue and budgets cannot be pooled",
+    "only exact allowlisted hosts are requested and redirects are never followed",
+    "compliance is established before any endpoint request for a source",
+    "only documented API, OAI-PMH, SRU, REST, or collection-level IIIF roots can validate",
+    "every response carries exact URL, host, issue and completion UTC, status, content type, raw byte count, raw-byte SHA-256, truncation, and budget accounting",
+    "all raw evidence is at most 1048576 bytes per response",
+    "document candidates, records/items, IIIF canvases/images, images, predictions, labels, final-test reads, and runtime writes are zero",
+    "runtime artifact hashes remain unchanged",
+    "at least two compliant structured source families validate"
+  ],
+  "contract_derivation_field": "contract_derivation_verified",
+  "minimum_validated_structured_sources": 2,
+  "snapshot_authorized": false,
+  "promotion_eligible": false,
+  "higher_is_better": true
+}

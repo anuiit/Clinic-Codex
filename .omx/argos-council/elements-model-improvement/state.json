@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "elements-model-improvement",
+  "status": "completed",
+  "session_id": "adv_20260803T072824_f903d4d6",
+  "partners": ["fable", "kimi"],
+  "artifact_dir": "C:\\Users\\anmou\\.argos\\sessions\\adv_20260803T072824_f903d4d6",
+  "turn": 46,
+  "source_turn": 43,
+  "last_synthesis_copy": "turns/046/synthesis.md",
+  "previous_session_id": "adv_20260803T032844_4155e58f",
+  "published_synthesis_sha256": "de277fc45d15e72f25dce6e6ee757bb904011f4a22486d0deab7a51943a77f2a",
+  "completed_at": "2026-08-04T18:48:43+02:00"
+}

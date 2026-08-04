@@ -1,0 +1,84 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.extract-train-failure-audit-v1",
+  "iteration": 3,
+  "phase": "extract_train_infrastructure_failure_before_manifest",
+  "pass": false,
+  "command": "CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONUNBUFFERED=1 PYTHONPATH=backend backend/.venv/bin/python -u scripts/autoresearch_lora_vicreg_v18.py extract-train",
+  "exit_code": 1,
+  "duration_seconds": 1344.6,
+  "failure": {
+    "class": "worker_bus_error_followed_by_wsl_exec_io_failure",
+    "primary_message": "Unexpected bus error encountered in worker. This might be caused by insufficient shared memory (shm).",
+    "worker_count": 2,
+    "post_failure_probe": "WSL execvpe(/bin/true) failed with I/O error",
+    "recovery_required": "wsl --shutdown followed by distribution restart",
+    "ext4_recovery_observed_after_restart": true,
+    "model_metric_observed": false,
+    "candidate_consumed": false
+  },
+  "system_after_recovery": {
+    "dev_shm_bytes": 8354869248,
+    "dev_shm_used_bytes": 0,
+    "workspace_available_bytes": 820244586496,
+    "wsl_memory_bytes": 16709742592,
+    "wsl_swap_bytes": 4294967296
+  },
+  "complete_train_folds": [
+    {
+      "fold": 1,
+      "row_count": 8091,
+      "view_count": 9,
+      "feature_equivalence_count": 72819,
+      "token_bytes": 28745446016,
+      "token_sha256": "fbf20e6071ed41f899ed325fc27da84adc8d8a9cd9b5d224a2f7086a6f59a6e9",
+      "metadata_sha256": "2475ffd4ad7522b9a7fc1c74cc8e650545313e57fb2abcaec59197e4c927c132",
+      "control_features_sha256": "5dd919ad82ab1c14635e3e5a621c64ca2178850a0a66572765865c2cafe18175",
+      "feature_equivalence_sha256": "2266de20641fa6375259870692968d125413dd63d0f45976df18ef9468b614f0"
+    },
+    {
+      "fold": 2,
+      "row_count": 8139,
+      "view_count": 9,
+      "feature_equivalence_count": 73251,
+      "token_bytes": 28915978880,
+      "token_sha256": "3f248f94ccceb3693d1d2dcc16b66cdce95d51c730f717d7844e3ad9245444bb",
+      "metadata_sha256": "f1ac737514fd476a51ea824c1566f8b8de02a7904a27e01d645c91e5efee63ff",
+      "control_features_sha256": "6c3d70b5abf9d9415c432ac7353fb97ca6721f8ffa52111ab383e6ceb9a6c832",
+      "feature_equivalence_sha256": "e544ec262c3770cd8139b49b7c9309afa44a45eb71dad89703446f3ea7a68c2b"
+    },
+    {
+      "fold": 3,
+      "row_count": 8021,
+      "view_count": 9,
+      "feature_equivalence_count": 72189,
+      "token_bytes": 28496752256,
+      "token_sha256": "b1e3ae7258a404f0d1e29bf83c996f1b81c8db7d8da77b0c0bbb9e217d09365c",
+      "metadata_sha256": "135e8b825fdf9e62d738d62d94243472543d4f42841f13e30384e1aa7d1b2e4c",
+      "control_features_sha256": "683510e2801c47a119b15d07e3eab93930e13b7852ad1c030c0452e3964c2188",
+      "feature_equivalence_sha256": "1b5d112f89e715ec8850ac94460045d4e475642af2b11193704ceea571b65525"
+    }
+  ],
+  "partial_artifacts": [
+    {
+      "fold": 4,
+      "path": "iteration-0003-token-caches/fold-04/train-tokens.npy.partial",
+      "allocated_bytes": 28567807616,
+      "trusted": false
+    }
+  ],
+  "remaining_folds": [4, 5],
+  "sealed_train_manifest_exists": false,
+  "final_token_manifest_exists": false,
+  "oof_token_file_count": 0,
+  "candidate_state_file_count": 0,
+  "candidate_optimizer_steps": 0,
+  "candidate_predictions": 0,
+  "final_test_read": false,
+  "runtime_write": false,
+  "runtime_sha256": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "decision": "No deletion, retry, resume, runner modification, candidate training, OOF extraction, prediction, final-test access, or runtime write is authorized pending Argos Council review."
+}

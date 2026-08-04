@@ -1,0 +1,108 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.shared-last-block-token-cache-v1",
+  "iteration": 3,
+  "status": "frozen_before_any_iteration_0003_shared_token_extraction_candidate_training_or_prediction",
+  "format": "numpy_npy_memmap",
+  "token_boundary": "input to exact DINOv2-S/14 blocks.11",
+  "token_dtype": "float32",
+  "token_shape": [257, 384],
+  "train_view_axis": ["base", "safe_view_0", "safe_view_1", "safe_view_2", "safe_view_3", "safe_view_4", "safe_view_5", "safe_view_6", "safe_view_7"],
+  "oof_view_axis": ["base"],
+  "folds": {
+    "1": {"train_rows": 8091, "oof_rows": 48, "train_nominal_resume_batch": 144, "train_final_resume_batch": 99, "oof_nominal_resume_batch": 16, "oof_final_resume_batch": 16},
+    "2": {"train_rows": 8139, "oof_rows": 22, "train_nominal_resume_batch": 144, "train_final_resume_batch": 99, "oof_nominal_resume_batch": 16, "oof_final_resume_batch": 6},
+    "3": {"train_rows": 8021, "oof_rows": 32, "train_nominal_resume_batch": 144, "train_final_resume_batch": 45, "oof_nominal_resume_batch": 16, "oof_final_resume_batch": 16},
+    "4": {"train_rows": 8041, "oof_rows": 438, "train_nominal_resume_batch": 144, "train_final_resume_batch": 81, "oof_nominal_resume_batch": 16, "oof_final_resume_batch": 6},
+    "5": {"train_rows": 7668, "oof_rows": 113, "train_nominal_resume_batch": 144, "train_final_resume_batch": 36, "oof_nominal_resume_batch": 16, "oof_final_resume_batch": 1}
+  },
+  "canonical_cache_sha256_by_fold": {
+    "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+    "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+    "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+    "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+    "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+  },
+  "source_contract": {
+    "corpus_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+    "collection_audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99",
+    "source_inventory_sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2",
+    "backbone_manifest_sha256": "bfc72fa2d0fbffc786236d591501ff9dfa23f5c316d619a47e891160316f9ab5",
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9"
+  },
+  "train_file_contract": {
+    "path_template": "fold-{fold:02d}/train-tokens.npy",
+    "metadata_template": "fold-{fold:02d}/train-metadata.json",
+    "shape": "[train_rows,9,257,384]",
+    "created_before_training": true,
+    "contains_only_fold_train_rows": true,
+    "hash_sealed_before_training": true,
+    "feature_equivalence_count_total": 359640
+  },
+  "oof_file_contract": {
+    "path_template": "fold-{fold:02d}/oof-tokens.npy",
+    "metadata_template": "fold-{fold:02d}/oof-metadata.json",
+    "shape": "[oof_rows,1,257,384]",
+    "created_after_all_three_seed_updates_for_fold": true,
+    "physically_separate_from_train": true,
+    "access_count_during_training": 0,
+    "feature_equivalence_count_total": 653
+  },
+  "metadata_fields": [
+    "row_id",
+    "class_label",
+    "class_name",
+    "component_id",
+    "decoded_pixel_sha256",
+    "source_file_sha256",
+    "fold",
+    "original_resume_batch_size"
+  ],
+  "extraction": {
+    "image_batch_size": 16,
+    "image_size": 224,
+    "views": 8,
+    "view_seed": 20260803,
+    "safe_view_operations": [
+      "resize_longest_side",
+      "white_pad",
+      "affine_rotation_translation_scale",
+      "brightness",
+      "contrast",
+      "mild_blur_or_noise"
+    ],
+    "forbidden_view_operations": [
+      "crop",
+      "cutmix",
+      "elastic_transform",
+      "horizontal_flip",
+      "hue_shift",
+      "mixup",
+      "perspective",
+      "vertical_flip"
+    ],
+    "backbone_autocast": "cuda_float16",
+    "captured_token_dtype": "float32",
+    "persisted_feature_dtype": "float16"
+  },
+  "execution_manifest": {
+    "path": "token-cache-manifest.json",
+    "must_pin": [
+      "spec_sha256",
+      "evaluator_sha256",
+      "cache_schema_sha256",
+      "runner_sha256",
+      "source_inventory_sha256",
+      "backbone_weights_sha256",
+      "train_token_file_sha256_by_fold",
+      "train_metadata_sha256_by_fold",
+      "train_feature_equivalence_sha256_by_fold",
+      "oof_token_file_sha256_by_fold_after_training",
+      "oof_metadata_sha256_by_fold_after_training",
+      "oof_feature_equivalence_sha256_by_fold_after_training"
+    ],
+    "replay_requires_exact_hash_match": true,
+    "replay_reextraction_forbidden": true
+  },
+  "final_test_read": false,
+  "runtime_write": false
+}

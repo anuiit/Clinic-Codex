@@ -1,0 +1,28 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.evaluator",
+  "iteration": 1,
+  "primary_metric": "strict_admissible_visual_lexicon_physical_document_ceiling",
+  "secondary_metrics": [
+    "local_physical_document_identity_count",
+    "preserved_v12_exclusion_count",
+    "new_ambiguous_exclusion_count",
+    "crosswalk_coverage_fraction",
+    "deterministic_replay"
+  ],
+  "pass_conditions": [
+    "all contract and input hashes match",
+    "all 50 local codex ids belong to exactly one physical-document group",
+    "ids 19 through 41 collapse to one Matrícula de Huexotzinco identity",
+    "all 50 Visual Lexicon terms receive exactly one disposition",
+    "all nine v12 exclusions remain excluded with identical term ids and display names",
+    "ambiguous terms are excluded",
+    "first run and replay outputs are byte-identical",
+    "no network, image, prediction, label, final-test, or runtime-write operation occurs",
+    "runtime artifact hashes remain unchanged"
+  ],
+  "scientific_success_condition": "strict ceiling is recertified under the expanded envelope; acquisition still requires the threshold policy in the frozen spec",
+  "promotion_eligible": false,
+  "higher_is_better": true,
+  "minimum_admissible_components": 42,
+  "direct_authorization_components": 63
+}

@@ -1,0 +1,144 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.spec",
+  "run_id": "20260804-discriminative-readout-v18",
+  "iteration": 1,
+  "name": "prototype-initialized-class-balanced-normalized-cosine-head",
+  "status": "preregistered_before_runner_implementation_and_any_candidate_training_or_prediction",
+  "purpose": "Test one isolated decision-surface architecture factor on exact persisted C1 embeddings before escalating to representation adaptation.",
+  "hypothesis": "A discriminatively learned normalized cosine head produces a materially better pooled OOF top-1 decision surface than non-parametric C1 class means while preserving the replicated B0 gain.",
+  "symmetric_risk": "Inverse-support full-batch weighting gives very large aggregate influence to two-row classes and may rotate their learned directions onto two training examples whose OOF provenance families are unseen, losing to the generative class mean.",
+  "claim_domain": "pooled OOF top-1 only; support, macro, movement, and rank outputs are mandatory non-gating diagnostics",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 32,
+    "local_turn": 35,
+    "published_synthesis_sha256": "c29a9aee808758c0343e0f7d69feaf50b2da7eed735a84e12622d63495877b56"
+  },
+  "predecessor_closeout": {
+    "v17_3_amendment_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-model-decision-audit-v17/iteration-0003-amendment-log.json",
+    "v17_3_amendment_sha256": "54c1da9b1d4fdeaac94fdf79c989237b7b78e420caba473cafc01120f52c9311",
+    "v17_3_decision": "neutral_preservation",
+    "v17_3_branch_closed": true,
+    "standing_exact_c1_effective_rank_absolute_guard": 0.001
+  },
+  "pinned_harness": {
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "support_aware_i5_runner_sha256": "acd06503d801bdaf30e1b3d8569fd6713d9b3b83e545561fc26677998a8de0c6",
+    "covariance_i7_runner_sha256": "f8b51e9f5473a3a5306432809236680f778ecaaa6be316e17fcfae084d3bc453"
+  },
+  "frozen_inputs": {
+    "v9_spec_sha256": "be9706819cb1916a513c941dfcf99abc039b3b9bb289cf32ddd602e76da230cb",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+      "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    },
+    "expected_c1_checkpoint_count": 15,
+    "expected_paired_prediction_rows": 1959,
+    "expected_unique_oof_rows": 653,
+    "expected_outer_folds": 5,
+    "expected_fixed_seeds": 3
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "arms": {
+    "baseline": "Persisted B0 top-k rows from v9, used only for the unchanged mission anchor.",
+    "control": "Exact persisted C1 projection with normalize(mu_y) fold-train prototypes and unchanged base OOF queries.",
+    "candidate": "The same exact C1 train/OOF embeddings with one discriminatively learned normalized class-weight tensor initialized byte-exactly from the control prototypes."
+  },
+  "changed_factor": {
+    "only_change": "non-parametric class-mean prototypes become a prototype-initialized discriminative normalized cosine head",
+    "prototype_labels": "sorted unique fold-train class labels",
+    "initial_weight_tensor": "byte-exact clone of the control normalize(mu_y) prototype tensor",
+    "logits": "16 * normalize(embedding) @ normalize(weight).T",
+    "scale": 16.0,
+    "bias": false,
+    "loss": "full-batch weighted cross-entropy",
+    "row_weight_raw": "1 / n_y where n_y is the fold-train count of the row's class",
+    "row_weight_normalization": "divide raw row weights by their arithmetic mean so all row weights have mean 1; equivalently N / (K * n_y)",
+    "optimizer": {
+      "name": "AdamW",
+      "learning_rate": 0.01,
+      "weight_decay": 0.0,
+      "betas": [0.9, 0.999],
+      "epsilon": 1e-8,
+      "amsgrad": false,
+      "maximize": false,
+      "foreach": false,
+      "fused": false
+    },
+    "steps": 100,
+    "scheduler": null,
+    "batch": "all fold-train rows in immutable cache row order at every step",
+    "gradient_clipping": null,
+    "trainable_parameters": "class-weight tensor only",
+    "forbidden": [
+      "projection update",
+      "backbone update",
+      "multi-view features or checkpoints",
+      "shrinkage",
+      "covariance penalty",
+      "support-aware episodic sampling",
+      "scale, weighting, learning-rate, step, optimizer, or regularization sweep",
+      "second candidate"
+    ]
+  },
+  "determinism": {
+    "random_operations": 0,
+    "full_batch_order": "cache train row order",
+    "torch_seed": 0,
+    "cublas_workspace_config": ":4096:8",
+    "strict_deterministic_algorithms": true,
+    "prediction_device": "cuda",
+    "training_device": "cuda"
+  },
+  "replay_normalization": {
+    "schema_version": "autoresearch-discriminative-readout-v18.replay-normalization-v1",
+    "summary_removed_keys": [],
+    "pair_removed_keys": [],
+    "sha256": "58335c98ef3cad6e3fafbff36fcfcafc36d1d700e45865b1e36708cbde126e82"
+  },
+  "mandatory_audit": {
+    "spec_cache_pins_equal_canonical_i5_constants_before_training": true,
+    "all_persisted_c1_checkpoint_hashes_match": true,
+    "standing_c1_effective_rank_guard": 0.001,
+    "control_topk_matches_all_persisted_c1_rows": true,
+    "step_zero_head_tensor_hash_equals_control_prototype_tensor_hash": true,
+    "step_zero_topk_matches_control": true,
+    "persist_full_loss_trajectory_101_values": true,
+    "persist_head_artifact_per_fold_seed": true,
+    "persist_head_initial_and_final_tensor_hashes": true,
+    "persist_full_batch_row_order_sha256": true,
+    "end_loss_below_start_loss_every_fold_seed": true,
+    "final_head_hash_differs_from_initial_every_fold_seed": true,
+    "candidate_vs_c1_discordant_rows_gt": 0,
+    "finite_losses_logits_gradients_and_weights": true,
+    "support_strata": ["n_y_lte_8", "n_y_9_to_31", "n_y_gte_32"],
+    "mandatory_binary_support_view": ["n_y_lte_8", "n_y_gt_8"],
+    "head_movement_cosine_by_support": true,
+    "effective_rank_diagnostics": true,
+    "rank_ratio_below_escalation_only": 0.8,
+    "deterministic_replay": true,
+    "replay_normalization_routine_sha256_pinned": true
+  },
+  "hard_boundaries": {
+    "single_candidate": true,
+    "single_execution_plus_deterministic_replay": true,
+    "new_feature_extraction": false,
+    "projection_or_backbone_training": false,
+    "closed_factor_combination": false,
+    "hyperparameter_sweep": false,
+    "second_candidate": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  },
+  "failure_interpretation": "A neutral or negative head result closes discriminative head-only adaptation and supports prospective escalation to a separately specified representation-adaptation phase; it does not authorize changing inverse-support weights after inspection."
+}

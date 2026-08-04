@@ -1,0 +1,51 @@
+{
+  "contract_derivation_verified": true,
+  "contract_hashes": {
+    "evaluator_sha256": "7594f41513386bc444c8e1bfd5f562e27e5312cdb07eb6d0c03f84e8ae40afef",
+    "manifest_sha256": "336e3a0b5ba637e58f2bdbd3aa319b7ffab773807789155f45a2befde26bd8f7",
+    "spec_sha256": "baf0c99fb3e259d00fe3ce7548bfa1d7fbb38a52d017e29aba680db39f731f54"
+  },
+  "decision": "structured_surface_sufficient_to_submit_snapshot_feasibility_plan_to_council",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "forbidden_operation_counters": {
+    "document_candidates_counted": 0,
+    "final_test_reads": 0,
+    "generic_web_searches": 0,
+    "iiif_canvases_or_images_opened": 0,
+    "images_read_or_downloaded": 0,
+    "labels_read": 0,
+    "model_predictions": 0,
+    "record_or_item_content_fetches": 0,
+    "runtime_writes": 0
+  },
+  "hypothesis_supported": true,
+  "integrity_violations": [],
+  "iteration": 4,
+  "metrics": {
+    "compliance_request_count": 13,
+    "endpoint_request_count": 7,
+    "network_request_count": 20,
+    "raw_evidence_byte_count": 1999749,
+    "redirect_count": 1,
+    "retry_count": 1,
+    "source_family_count": 6,
+    "validated_compliant_structured_source_family_count": 2,
+    "validated_endpoint_count": 3
+  },
+  "next_action": "Return the clean endpoint-validation result to Council before any metadata snapshot manifest is frozen.",
+  "promotion_eligible": false,
+  "runtime_hashes_after": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_hashes_before": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-institutional-inventory-v16.clean-endpoint-validation-audit",
+  "snapshot_authorized": false
+}

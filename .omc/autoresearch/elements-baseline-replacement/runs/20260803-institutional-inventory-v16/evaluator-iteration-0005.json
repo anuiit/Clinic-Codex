@@ -1,0 +1,36 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.metadata-feasibility-evaluator",
+  "iteration": 5,
+  "primary_metric": "conservatively_net_new_independent_physical_component_count",
+  "secondary_metrics": [
+    "stage_1_passing_source_count",
+    "source_atomic_pass_count",
+    "raw_record_count",
+    "unique_metadata_record_count",
+    "near_miss_count",
+    "local_or_envelope_duplicate_count",
+    "within_or_cross_source_duplicate_count",
+    "network_request_count",
+    "retry_count",
+    "raw_evidence_byte_count"
+  ],
+  "pass_conditions": [
+    "all spec, evaluator, manifest, Council synthesis, independent-component, v12-exclusion, and crosswalk hashes match",
+    "exactly two source families and four immutable queries per source are present",
+    "query hosts and paths are exact allowlisted and redirects are never followed",
+    "request counters are persisted before every issue and budgets cannot be pooled",
+    "query-path robots compliance is established before stage 1",
+    "stage 2 is mechanically blocked unless that source's stage 1 passes",
+    "a later query failure gives its source zero strict candidate credit",
+    "all raw response evidence carries exact URL, issue/completion UTC, byte count, SHA-256, status, type, and budget accounting",
+    "all strict candidates pass stable identity, canonical URL, domain, physical granularity, rights/access, local-envelope, and duplicate gates",
+    "no item detail, manifest, canvas, image, thumbnail, label, inference, training, checkpoint/runtime write, or final-test access occurs",
+    "runtime artifact hashes remain unchanged",
+    "at least 26 conservatively net-new independent physical components remain"
+  ],
+  "minimum_conservatively_net_new_components": 26,
+  "diagnostic_near_misses_do_not_count": true,
+  "image_or_snapshot_extension_authorized": false,
+  "promotion_eligible": false,
+  "higher_is_better": true
+}

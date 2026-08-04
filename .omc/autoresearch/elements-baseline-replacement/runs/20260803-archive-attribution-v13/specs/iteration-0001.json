@@ -1,0 +1,119 @@
+{
+  "schema_version": "autoresearch-archive-attribution-v13.spec",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-archive-attribution-v13",
+  "iteration": 1,
+  "name": "exact-archive-to-development-provenance-attribution",
+  "status": "preregistered_before_archive_entry_decoding_or_matching",
+  "purpose": "Build the collision index required by every future acquisition and test whether exact byte/RGB collisions can restore immutable codex identity for a material share of the 9990 authorized development rows.",
+  "council": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 17,
+    "published_synthesis_sha256": "5b94027acd37789dc6245fb041eb4ff71f7717133393e8439dbf13aac3cc0f1b",
+    "decision": "Run a local exact archive attribution audit as v13; archives remain exclusion/collision evidence only and no exclusion may change in this iteration."
+  },
+  "bounded_discovery_before_spec": {
+    "archive_directory_entries_read": true,
+    "archive_payloads_decoded": false,
+    "observed_archives": 49,
+    "observed_non_directory_entries": 47251,
+    "observed_raster_entries_by_extension": {".bmp": 7139, ".jpg": 39911},
+    "observed_non_raster_entries": 201,
+    "representative_archive_listed": "t_010.zip",
+    "representative_development_rows_read": 5,
+    "model_predictions_seen": 0,
+    "holdout_or_final_test_read": false
+  },
+  "single_factor": {
+    "name": "exact archive collision evidence added to previously unidentified development rows",
+    "changed_from_v12": "local provenance evidence only",
+    "model_architecture_or_weights_changed": false,
+    "external_instrument_changed": false
+  },
+  "inputs": {
+    "archive_glob": "/mnt/f/CODEX/t_*.zip",
+    "archive_count": 49,
+    "archive_name_inventory_sha256": "c153aacddacd068a50824a748de7cfac200be2bb4712c3300d892ff750c347b0",
+    "archive_content_inventory_sha256": "71ea5cba9246b70cdae37f04464e6152f9c3962b68bee6f1bc793f1343bd0e9f",
+    "archive_non_directory_entries": 47251,
+    "archive_supported_raster_entries": 47050,
+    "archive_non_raster_entries": 201,
+    "supported_extensions": [".bmp", ".jpg"],
+    "v8_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl",
+    "v8_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+    "v8_manifest_rows": 10039,
+    "v8_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0003/collection-provenance-audit.json",
+    "v8_audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99",
+    "quarantined_rows": 49,
+    "retained_rows": 9990,
+    "codex_csv": "/mnt/f/CODEX/AI_clinic/data_csv/codex.csv",
+    "codex_csv_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+    "elements_csv": "/mnt/f/CODEX/AI_clinic/data_csv/elements.csv",
+    "elements_csv_sha256": "163629f1527011404b8865206d64306d580714995d171fb4264f9b8b1e6bc798",
+    "glyph_elements_csv": "/mnt/f/CODEX/AI_clinic/data_csv/glyph_elements.csv",
+    "glyph_elements_csv_sha256": "0b9ac7658bfb86fca2c42d6142722227363949922f481428eacb61a5b172014b",
+    "pillow_version": "12.2.0"
+  },
+  "hash_contract": {
+    "byte_sha256": "SHA256 of the exact uncompressed ZIP member bytes",
+    "decoded_rgb_sha256": "SHA256(width as 8-byte big endian || height as 8-byte big endian || RGB bytes), identical to scripts/autoresearch_provenance_v8.py",
+    "zip_crc_verified": "Every supported member is fully read through zipfile before hashing",
+    "image_safety": "Keep Pillow decompression-bomb safeguards enabled and record every decode failure",
+    "max_member_uncompressed_bytes": 209715200,
+    "archive_index_checkpoint": "One deterministic JSONL plus hash-pinned sidecar per archive; valid sidecars may be reused"
+  },
+  "codex_mapping_contract": {
+    "evidence": "Exact casefolded equality between a ZIP member filename stem and an elements.csv cote; no fuzzy title inference",
+    "unique_archive_to_codex": "An archive maps to a codex only when all exact cote hits identify exactly one codex id",
+    "ambiguous_or_zero_hit_archives": "Remain technical archive identities and cannot confer business manuscript identity",
+    "row_attribution": "A retained row gains codex identity only when its byte and/or decoded RGB hash identifies exactly one archive and that archive maps to exactly one codex",
+    "conflicting_byte_rgb_archives": "Quarantine attribution as ambiguous"
+  },
+  "hypothesis": "Exact archive collisions uniquely attribute at least half of the 9990 retained development rows to at least 20 immutable codex identities, materially repairing the zero business-identity coverage observed in v8.",
+  "pre_registered_pass_gates": {
+    "all_49_archive_content_hashes_match_inventory": true,
+    "non_directory_entries_processed_equals": 47251,
+    "supported_raster_entries_accounted_for_equals": 47050,
+    "non_raster_entries_accounted_for_equals": 201,
+    "retained_development_rows_equals": 9990,
+    "quarantined_rows_excluded_equals": 49,
+    "unique_codex_attributed_row_coverage_gte": 0.5,
+    "unique_codex_id_count_gte": 20,
+    "deterministic_replay_same_attribution_hash": true,
+    "source_archives_modified": 0,
+    "development_rows_modified": 0,
+    "exclusion_rules_modified": 0,
+    "record_detail_pages_fetched": 0,
+    "external_images_downloaded": 0,
+    "model_predictions": 0,
+    "holdout_or_final_test_read": false,
+    "runtime_unchanged": true
+  },
+  "decision_bands": {
+    "material_recovery": "coverage >= 0.5 and at least 20 codex ids; submit facts to Council before any separate exclusion review",
+    "partial_recovery": "0 < coverage < 0.5 or fewer than 20 codex ids; preserve index for collision screening but do not revise v12 exclusions",
+    "no_recovery": "coverage == 0; preserve index and proceed to institutional/shadow metadata sourcing"
+  },
+  "forbidden_actions": [
+    "Use any archive image as promotion-test data",
+    "Train or fine-tune any model on archive contents",
+    "Reopen any of the nine v12 exclusions in this iteration",
+    "Lower the v12 threshold from 42 to 41",
+    "Read the consumed v4/v5 holdout",
+    "Run v11 or runtime inference"
+  ],
+  "outputs": [
+    "archive-index/*.jsonl",
+    "archive-index/*.summary.json",
+    "iteration-0001/archive-to-codex-map.json",
+    "iteration-0001/development-attribution.jsonl",
+    "iteration-0001/archive-attribution-audit.json",
+    "iteration-0001-replay/development-attribution.jsonl",
+    "iteration-0001-replay/archive-attribution-audit.json",
+    "evaluations/iteration-0001.json"
+  ],
+  "runtime_write_allowed": false,
+  "model_inference_allowed": false,
+  "final_test_read_allowed": false,
+  "automatic_promotion_allowed": false
+}

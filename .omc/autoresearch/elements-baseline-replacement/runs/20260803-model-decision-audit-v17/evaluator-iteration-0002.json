@@ -1,0 +1,88 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.evaluator",
+  "iteration": 2,
+  "status": "frozen_before_runner_implementation_and_candidate_output",
+  "integrity_gates": {
+    "contract_and_frozen_input_hashes_match": true,
+    "paired_prediction_rows": 1959,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "candidate_checkpoint_count": 15,
+    "initial_state_matches_persisted_c1_count": 15,
+    "ssl_plan_matches_persisted_c1_count": 15,
+    "episode_plan_matches_persisted_c1_count": 15,
+    "control_state_matches_persisted_c1_count": 15,
+    "control_topk_matches_persisted_c1_rows": 1959,
+    "candidate_and_control_shared_pretrained_state": true,
+    "candidate_and_control_shared_row_episode_plan": true,
+    "candidate_and_control_equal_supervised_budget": true,
+    "persisted_view_plan_count": 15,
+    "all_eight_views_consumed_count": 15,
+    "per_view_usage_relative_deviation_from_uniform_lte": 0.05,
+    "candidate_episode_oof_row_exposure": 0,
+    "nan_or_nonfinite_detected": false,
+    "runtime_unchanged": true,
+    "final_test_read": false,
+    "automatic_promotion": false
+  },
+  "engagement_and_stability_gates": {
+    "all_eight_views_consumed_per_fold_seed": true,
+    "minimum_post_l2_query_batch_mean_std_gte": 0.01,
+    "nan_or_nonfinite_detected": false
+  },
+  "b0_mission_anchor_gates": {
+    "delta_top1_gte": 0.01,
+    "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+    "positive_seed_count_gte": 2,
+    "delta_macro_top1_gte": -0.005,
+    "delta_top3_gte": 0.0,
+    "minimum_fold_delta_top1_gte": -0.05
+  },
+  "c1_noninferiority_gates": {
+    "delta_top1_gte": -0.005,
+    "delta_top1_component_bootstrap_lower_95_gt": -0.01,
+    "delta_top3_gte": -0.01,
+    "delta_macro_top1_gte": -0.01
+  },
+  "verdict_tiers": {
+    "supported_strong": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.01,
+      "candidate_minus_c1_component_bootstrap_lower_95_gt": 0.0,
+      "promotion_eligible": false
+    },
+    "supported_reference": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.005,
+      "candidate_minus_c1_positive_seed_count_gte": 2,
+      "claim_when_strong_lower_bound_fails": "unresolved_at_component_level_power",
+      "promotion_eligible": false
+    },
+    "neutral_preservation": {
+      "b0_anchor_and_c1_noninferiority_pass": true,
+      "positive_tier_pass": false,
+      "claim": "preserves C1 but is not evidence of a better model; close the multiview branch",
+      "promotion_eligible": false
+    },
+    "not_supported": {
+      "valid_integrity": true,
+      "any_efficacy_noninferiority_stability_or_engagement_gate_fails": true,
+      "promotion_eligible": false
+    },
+    "invalid": {
+      "any_integrity_or_control_replay_gate_fails": true,
+      "candidate_results_interpretable": false,
+      "promotion_eligible": false
+    }
+  },
+  "diagnostic_only": {
+    "candidate_minus_c1_mcnemar": true,
+    "view_usage": true,
+    "candidate_to_c1_effective_rank_ratio": true,
+    "candidate_to_b0_effective_rank_ratio": true,
+    "rank_ratio_below": 0.8,
+    "rank_action": "Council review, not automatic veto"
+  },
+  "research_reference_only": true,
+  "independent_promotion_instrument_required": true
+}

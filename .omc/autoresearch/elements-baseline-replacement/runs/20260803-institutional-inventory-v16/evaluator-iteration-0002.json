@@ -1,0 +1,31 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.gate-zero-bis-evaluator",
+  "iteration": 2,
+  "primary_metric": "strict_independent_visual_lexicon_component_ceiling",
+  "secondary_metrics": [
+    "preserved_v12_exclusion_count",
+    "new_ambiguity_exclusion_count",
+    "admitted_term_count",
+    "same_component_group_count",
+    "all_term_coverage_fraction",
+    "deterministic_replay"
+  ],
+  "pass_conditions": [
+    "all contract and input hashes match",
+    "all 50 prior terms retain a traceable disposition",
+    "all nine v12 exclusions remain excluded",
+    "terms 291 and 292 map to one physical-document component",
+    "terms 416 and 728 map to one provenance component",
+    "terms 122 and 342 are excluded as frozen unresolved ambiguities",
+    "terms 300 and 367 retain distinct archival-signature components",
+    "all remaining admitted terms are marked pending collision audit",
+    "local codex_49 carries the frozen TEPEUCILA/t_tepeuc aliases",
+    "first run and replay outputs are byte-identical",
+    "no network, image, prediction, label, final-test, or runtime-write operation occurs",
+    "runtime artifact hashes remain unchanged"
+  ],
+  "promotion_eligible": false,
+  "higher_is_better": true,
+  "minimum_admissible_components": 42,
+  "direct_authorization_components": 63
+}

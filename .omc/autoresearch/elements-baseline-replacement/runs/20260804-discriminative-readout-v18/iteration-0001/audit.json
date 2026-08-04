@@ -1,0 +1,32 @@
+{
+  "claim": "valid_but_gate_failure",
+  "decision": "not_supported",
+  "engagement_pass": true,
+  "evaluation_sha256": "6e27ca8ddb097066b119fe86a83afe99e92f3cb1f76e2c7264fbb32395dfc8be",
+  "execution_integrity_pass": true,
+  "final_test_read": false,
+  "head_artifact_sha256": {
+    "heads/fold-01-seed-17.bin": "9e827ccf534dd87b2bb92478f3ee39b438fdbe6fd16bbe2a5dbdc0f8af1c1921",
+    "heads/fold-01-seed-42.bin": "b8d2bdf1bc628c8d911ad302ec22b1ea79585099d92573c433b7ac91e949bf34",
+    "heads/fold-01-seed-73.bin": "03261df4674758c620bdc9eef17aa3e9bae302be4f8ae19067a3b2d406aac69e",
+    "heads/fold-02-seed-17.bin": "7fc4e54a6b9502f65f3161ed6dd860d701faf8e9dd89f8f9b6df03bc61fe1a2b",
+    "heads/fold-02-seed-42.bin": "50180334bfb986acc0cd164a6dfa53a6bf65e470a10c4d4614fd0a9d423c973b",
+    "heads/fold-02-seed-73.bin": "acf1ef9997b6ca0d42f280e2d444e00c2b1be80141c7821d1669a46e09d7b722",
+    "heads/fold-03-seed-17.bin": "92422239dd67ee08c8b0a3a04d8a37f583bef49c9507dc6f45518af9e8641491",
+    "heads/fold-03-seed-42.bin": "87dae4e1fe9990857613908f9a197664cded5b208ac4c33122985a0ffaa1db0f",
+    "heads/fold-03-seed-73.bin": "92752936b913cfdd76047e653bf3af93e43f379516ced51bd3ecc453f2957518",
+    "heads/fold-04-seed-17.bin": "b6197307b0e4ce9e1db2c866b014606c9f37cfeb0bc838a84cb12ba5ef581834",
+    "heads/fold-04-seed-42.bin": "562d68ce9241b05ffab98499a88f9c4ee896382c50e447ea53f9913fcf31cbe3",
+    "heads/fold-04-seed-73.bin": "1b6fe3363889618819e7a4ae19c8ccbce20cce2b41e1cbc1d9693ed6e5121c9e",
+    "heads/fold-05-seed-17.bin": "48e24aee18551e691de6b95d88e5b799cc1081c5391e4604109e1e2d41d7663f",
+    "heads/fold-05-seed-42.bin": "3d720676477902860e612b2e879b2b8cf3900df151cc6a467c2fc7f2700b9c10",
+    "heads/fold-05-seed-73.bin": "86efa598daf5f95b24762983db5698b800a5c509f2bc0b92ff3f34033abbb27e"
+  },
+  "iteration": 1,
+  "prediction_rows_sha256": "7dbc94dce764caf4111ff5df1a8d4a04adf259f064296917f8c71b650bb04762",
+  "replay_normalization_sha256": "58335c98ef3cad6e3fafbff36fcfcafc36d1d700e45865b1e36708cbde126e82",
+  "runtime_promotion": false,
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-discriminative-readout-v18.cosine-head-audit",
+  "summary_sha256": "6e27ca8ddb097066b119fe86a83afe99e92f3cb1f76e2c7264fbb32395dfc8be"
+}

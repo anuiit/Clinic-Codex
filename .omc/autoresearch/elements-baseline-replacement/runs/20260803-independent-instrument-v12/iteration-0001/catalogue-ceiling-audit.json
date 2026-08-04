@@ -1,0 +1,185 @@
+{
+  "contract_hashes": {
+    "evaluator_sha256": "55bcb0833210ab9871985b072ad3da19f9d8996b6957d1e1dc49bb7f62c85c7e",
+    "exclusion_rules_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756",
+    "spec_sha256": "6a630f12d80ea9b3542ee8abdb216ef30f539df0e6c55cd4fddde265871a2835"
+  },
+  "decision": "instrument_not_acquired",
+  "factor": "Visual Lexicon manuscript-component feasibility under conservative exclusions",
+  "gate_zero": {
+    "catalogue_manuscript_count": 50,
+    "component_ceiling_gate_pass": false,
+    "explicitly_reviewed_non_matches": [
+      {
+        "decision": "do_not_exclude_by_name_only",
+        "reason": "This is not the Matrícula de Huexotzinco term; shared place name is not manuscript identity.",
+        "term_id": 117,
+        "visual_manuscript": "Huexotzinco, Codex (Huex)"
+      },
+      {
+        "decision": "do_not_exclude_by_place_only",
+        "reason": "A shared regional name with Tepetlaoztoc is not sufficient to assert manuscript identity.",
+        "term_id": 120,
+        "visual_manuscript": "Oztoticpac Lands Map (Ozto)"
+      }
+    ],
+    "minimum_required_active_classes_if_ceiling_passes": 10,
+    "minimum_required_manuscript_components": 42,
+    "predeclared_excluded_manuscript_count": 9,
+    "strict_admissible_manuscript_component_ceiling": 41,
+    "verified_exclusions": [
+      {
+        "display_name": "Mendoza/Mendocino, Codex (Mdz)",
+        "evidence": "conservative exclusion because the Codex Mendoza tribute section is upstream-related to the Matrícula de Tributos source family",
+        "overlap_kind": "close_upstream_source_family",
+        "term_id": 112
+      },
+      {
+        "display_name": "Huexotzinco, Matrícula de (MH)",
+        "evidence": "direct manuscript acronym and archive-series match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 118
+      },
+      {
+        "display_name": "Tepechpan, Tira de (TT)",
+        "evidence": "direct manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 121
+      },
+      {
+        "display_name": "Xolotl, Codex (Xolo)",
+        "evidence": "direct manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 124
+      },
+      {
+        "display_name": "Florentine/Florentinus, Codex (FC)",
+        "evidence": "conservative exclusion of the closely related Sahagún manuscript source family",
+        "overlap_kind": "close_upstream_source_family",
+        "term_id": 224
+      },
+      {
+        "display_name": "Telleriano-Remensis, Codex (TR)",
+        "evidence": "direct manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 293
+      },
+      {
+        "display_name": "Tepetlaoztoc, Codex (aka Kingsborough) (TK)",
+        "evidence": "direct manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 318
+      },
+      {
+        "display_name": "Teocaltitlan, San Pablo/Valeriano (TV)",
+        "evidence": "direct Valeriano manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 376
+      },
+      {
+        "display_name": "Santa María Asunción, Codex (SMA)",
+        "evidence": "direct manuscript-title match",
+        "overlap_kind": "direct_manuscript",
+        "term_id": 759
+      }
+    ]
+  },
+  "iteration": 1,
+  "local_evidence": {
+    "linked_hashes": {
+      "v11_candidate_manifest_sha256": "7b33a6a2605b864925e1b7fb8d2ecf46828c52bbadb811d1a6208758d55fadb7",
+      "v8_prequarantine_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385",
+      "v8_provenance_audit_sha256": "e931611a9174fbcb2799c52f6bbb6cc315229d9e198260756ce51f804d032b99"
+    },
+    "local_archive_count": 49,
+    "local_archive_name_inventory_sha256": "c153aacddacd068a50824a748de7cfac200be2bb4712c3300d892ff750c347b0",
+    "local_archive_names": [
+      "t_010.zip",
+      "t_026.zip",
+      "t_027.zip",
+      "t_030.zip",
+      "t_032.zip",
+      "t_033.zip",
+      "t_035.zip",
+      "t_072.zip",
+      "t_073.zip",
+      "t_075.zip",
+      "t_082.zip",
+      "t_108.zip",
+      "t_115.zip",
+      "t_116.zip",
+      "t_374.zip",
+      "t_376.zip",
+      "t_385a.zip",
+      "t_387_01.zip",
+      "t_387_02.zip",
+      "t_387_03.zip",
+      "t_387_04.zip",
+      "t_387_05.zip",
+      "t_387_06.zip",
+      "t_387_07.zip",
+      "t_387_08.zip",
+      "t_387_09.zip",
+      "t_387_10.zip",
+      "t_387_11.zip",
+      "t_387_12.zip",
+      "t_387_13.zip",
+      "t_387_14.zip",
+      "t_387_15.zip",
+      "t_387_16.zip",
+      "t_387_17.zip",
+      "t_387_18.zip",
+      "t_387_19.zip",
+      "t_387_20.zip",
+      "t_387_21.zip",
+      "t_387_22.zip",
+      "t_387_23.zip",
+      "t_391.zip",
+      "t_M_Tributos.zip",
+      "t_cuauhtin2.zip",
+      "t_dioses_matritenses.zip",
+      "t_metlal.zip",
+      "t_tepech.zip",
+      "t_tepetl.zip",
+      "t_tepeuc.zip",
+      "t_totomi.zip"
+    ],
+    "local_codex_ids_sha256": "dd23434afa1e8759e26f3a848d14f3d9010b816951d8e62c2f557bfec7883d46",
+    "local_codex_rows": 50,
+    "runtime_hashes": {
+      "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+      "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+      "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "runtime_num_classes": 286,
+    "source_hashes": {
+      "codex_csv_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+      "elements_csv_sha256": "163629f1527011404b8865206d64306d580714995d171fb4264f9b8b1e6bc798",
+      "glyph_elements_csv_sha256": "0b9ac7658bfb86fca2c42d6142722227363949922f481428eacb61a5b172014b"
+    }
+  },
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-independent-instrument-v12",
+  "schema_version": "autoresearch-independent-instrument-v12.catalogue-ceiling-audit",
+  "scientific_boundary": {
+    "holdout_or_final_test_read": false,
+    "metadata_only": true,
+    "model_efficacy_measured": false,
+    "promotion_eligible": false,
+    "runtime_unchanged": true
+  },
+  "short_circuit": {
+    "images_downloaded": 0,
+    "labels_unlocked": 0,
+    "model_predictions": 0,
+    "one_shot_evaluation_consumed": false,
+    "reason": "strict ceiling 41 is below preregistered minimum 42",
+    "record_detail_pages_fetched": 0,
+    "triggered": true
+  },
+  "source": {
+    "html_sha256": "fa6f2a1d3a599586c1a3351a8b7150607db20b93d8468a1bed8c382804fc61f6",
+    "manuscript_select_id": "edit-field-manuscript-tid",
+    "url": "https://aztecglyphs.wired-humanities.org/advsearch-all-grid"
+  }
+}

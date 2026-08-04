@@ -1,0 +1,60 @@
+{
+  "contract_hashes": {
+    "evaluator_sha256": "13bbbc4a71066ae9c6549d19cbefada94ce5098bbc1fbd593b1d5cbe178e5722",
+    "rules_sha256": "4b9b88d9c14cf9b9f20c5145a77b0318fb18facc8f48137468bbfd5fe0e101f8",
+    "spec_sha256": "518c7d124906f42183aae944850f748d52306a3bab0911290a46fe2df7a6f7f7"
+  },
+  "decision": "visual_lexicon_ceiling_recertified_but_insufficient",
+  "execution_integrity_pass": true,
+  "forbidden_operation_counters": {
+    "final_test_reads": 0,
+    "images_read_or_downloaded": 0,
+    "labels_read": 0,
+    "model_predictions": 0,
+    "network_fetches": 0,
+    "record_detail_fetches": 0,
+    "runtime_writes": 0
+  },
+  "gates": {
+    "all_local_ids_accounted_exactly_once": true,
+    "all_visual_terms_accounted_exactly_once": true,
+    "ambiguity_excludes": true,
+    "direct_authorization_63_gate_pass": false,
+    "minimum_42_gate_pass": false,
+    "v12_exclusions_preserved": true
+  },
+  "hypothesis_supported": true,
+  "input_hashes": {
+    "local_codex_catalog_sha256": "72909513cd43c19f07989c0034cf61d70993fd2fea9551716a69d6493b07f961",
+    "v12_exclusion_rules_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756",
+    "v13_archive_crosswalk_sha256": "68355e21d06fe8fc71aa64aec8d4eb58784029235ac8fdc17fc0b949cdc48a58",
+    "visual_lexicon_inventory_sha256": "74e4fa63b3684e0d204683e1b9c75cb6f656d333353548f5c89b4660c2b62c79"
+  },
+  "instrument_acquired": false,
+  "iteration": 1,
+  "metrics": {
+    "crosswalk_coverage_fraction": 1.0,
+    "local_codex_row_count": 50,
+    "local_physical_document_identity_count": 28,
+    "matricula_huexotzinco_section_count": 23,
+    "new_ambiguous_exclusion_count": 0,
+    "preserved_v12_exclusion_count": 9,
+    "strict_admissible_visual_lexicon_physical_document_ceiling": 41,
+    "visual_lexicon_term_count": 50
+  },
+  "next_action": "Submit gate zero to Council before freezing any official institutional discovery manifest.",
+  "phase": "visual_lexicon_gate_zero",
+  "promotion_eligible": false,
+  "runtime_after": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_before": {
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-institutional-inventory-v16.gate-zero-audit"
+}

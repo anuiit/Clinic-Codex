@@ -1,0 +1,94 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.spec",
+  "run_id": "20260803-model-decision-audit-v17",
+  "iteration": 1,
+  "name": "multiview-versus-hierarchical-readout-decision-audit",
+  "status": "preregistered_before_audit_output",
+  "purpose": "Select at most one measurable, materially open model factor without training or producing candidate predictions.",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 26,
+    "published_synthesis_sha256": "3263e0e5176df241a48d4db962303bbce53696d063e40175a2d8355ae5bd7938"
+  },
+  "frozen_inputs": {
+    "v9_spec_sha256": "be9706819cb1916a513c941dfcf99abc039b3b9bb289cf32ddd602e76da230cb",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "v10_coverage_summary_sha256": "ff07f3a7de1616b0c7b8134a1208dd1c11a5a03c76ca584ef6bad8417cf7c05f",
+    "v10_per_class_coverage_sha256": "073ce0bd85635f273c49139479eca160e1b9e2d80e9894ad05bb3a9d892d025c",
+    "v10_i7_evaluation_sha256": "5a2949262739d4a048cace3d344051084b03e1dccc632d59b309d41fcbc5a899",
+    "v10_i7_prediction_rows_sha256": "7d932c02f166e11472c6825b3dbb0b954aa8c5740ff24f8a7f73f6b53fc691de",
+    "v8_provenance_manifest_sha256": "e918a190195d15ccfa9ea1fd4902607b84eea0c7d6c267d146a757f1b6547385"
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "expected_grid": {
+    "folds": [1, 2, 3, 4, 5],
+    "seeds": [17, 42, 73],
+    "cache_views": 8,
+    "feature_dim": 384,
+    "c1_checkpoint_count": 15,
+    "paired_prediction_rows": 1959,
+    "unique_oof_rows": 653,
+    "unique_oof_components": 25,
+    "evaluable_labels": 11
+  },
+  "descriptive_strata": {
+    "low_support_train_rows_max": 8,
+    "medium_support_train_rows_max": 31,
+    "cross_source_family_definition": "the OOF row source_family is absent from same-label training rows in that outer fold",
+    "residual_error_unit": "persisted C1 seed-row top1 error",
+    "candidate_predictions_forbidden": true
+  },
+  "candidate_factors": {
+    "supervised_multiview_readout": {
+      "changed_factor_if_selected": "draw episode support/query feature views deterministically from the existing eight frozen train-only scanner-safe views during the exact C1 supervised readout",
+      "control": "exact C1 replay",
+      "eligibility": {
+        "validated_cache_fold_count": 5,
+        "train_view_coverage_fraction": 1.0,
+        "finite_train_view_fraction": 1.0,
+        "oof_view_feature_count": 0,
+        "cross_source_family_residual_error_share_gte": 0.5
+      }
+    },
+    "hierarchical_shrunk_prototypes": {
+      "changed_factor_if_selected": "shrink each exact C1 class prototype toward the fold-train global centroid with lambda fixed to 8",
+      "control": "exact C1 replay",
+      "eligibility": {
+        "validated_c1_checkpoint_count": 15,
+        "exact_train_class_counts_available": true,
+        "exact_control_replay_rows": 1959,
+        "historical_macro_component_bootstrap_half_width_lte": 0.005
+      }
+    }
+  },
+  "selection_rule": [
+    "If exactly one factor is eligible, select it.",
+    "If both are eligible, compare supervised_multiview_readout cross-source-family residual-error share against hierarchical_shrunk_prototypes low-support residual-error share; select the larger burden.",
+    "If the shares tie, select supervised_multiview_readout because it extends the replicated VICReg mechanism.",
+    "If neither factor is eligible, select no experiment."
+  ],
+  "required_outputs": [
+    "hash and structural validation of five eight-view caches and fifteen C1 checkpoints",
+    "exact equality of persisted i7 control top-k and persisted v9 C1 top-k",
+    "train-only class support and source-family sets per outer fold",
+    "C1 residual-error burden by support and cross-source-family strata",
+    "empirical top1 and macro component-bootstrap interval half-widths",
+    "one selected factor or no factor under the frozen rule"
+  ],
+  "hard_boundaries": {
+    "new_feature_extraction": false,
+    "augmentation_generation": false,
+    "candidate_prediction": false,
+    "training": false,
+    "hyperparameter_sweep": false,
+    "checkpoint_write": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  }
+}

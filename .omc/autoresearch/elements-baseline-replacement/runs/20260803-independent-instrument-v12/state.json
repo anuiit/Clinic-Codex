@@ -1,0 +1,32 @@
+{
+  "schema_version": "autoresearch-independent-instrument-v12.state",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-independent-instrument-v12",
+  "status": "active",
+  "phase": "gate_zero_complete",
+  "iteration": 1,
+  "current_factor": "Visual Lexicon manuscript-component feasibility under conservative exclusions",
+  "promotion_eligible": false,
+  "runtime_write_allowed": false,
+  "model_inference_allowed": false,
+  "final_test_read": false,
+  "council": {
+  "result": {
+    "decision": "instrument_not_acquired",
+    "execution_integrity_pass": true,
+    "catalogue_manuscripts": 50,
+    "predeclared_exclusions": 9,
+    "strict_component_ceiling": 41,
+    "minimum_required_components": 42,
+    "short_circuit_triggered": true,
+    "record_detail_pages_fetched": 0,
+    "images_downloaded": 0,
+    "model_predictions": 0,
+    "evaluation_sha256": "5c794fcaa970fd012306ad20a69e63da22fd0b84bebbf9eb096f8469a2fd9323"
+  },
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 16,
+    "published_synthesis_sha256": "4b6f783b0458ce4126556e14768c83f59754762308b73267c8d0284a27880691"
+  },
+  "next_action": "Consult the Council on the next independent acquisition source without weakening the 42-component gate."
+}

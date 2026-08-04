@@ -1,0 +1,249 @@
+{
+  "backbone_loader_provenance": {
+    "backbone": "dinov2_vitb14",
+    "manifest_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+    "manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "mode": "local_pin",
+    "repository_path": "/home/sina/.cache/torch/hub/facebookresearch_dinov2_main",
+    "repository_sha256": "b64f9117250826940b54ed25b65e2869fcdc9222cbaf9c1d4885eeab5f950a3b",
+    "weights_path": "/home/sina/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth",
+    "weights_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+  },
+  "backbone_pin": {
+    "authenticity_scope": "Downloaded over HTTPS from the official Meta URL referenced by the official loader; no independently published Meta checksum was found. The local SHA-256 proves subsequent immutability, not independent first-download authenticity.",
+    "backbone": "dinov2_vitb14",
+    "critical_source_hashes_verified": true,
+    "hubconf_sha256": "c1f5090e78ff940b72c076d2bf9c0310d1707c946b3d10e2d6f2b0bdf56a6f64",
+    "license": "Apache-2.0",
+    "license_sha256": "600cc67cc4cb2f5ea317dcfc687ad1c74dc4bec8782bbe9db0afd83513b935b7",
+    "manifest_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+    "manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "repository_path": "/home/sina/.cache/torch/hub/facebookresearch_dinov2_main",
+    "schema_version": "dinov2-local-pin.v1",
+    "source_revision_kind": "source_tree_sha256",
+    "source_tree_sha256": "b64f9117250826940b54ed25b65e2869fcdc9222cbaf9c1d4885eeab5f950a3b",
+    "vision_transformer_sha256": "7799a260f2d7d0fe197331d08502fb8c542f9b7424723650f6a39b64fa2639ea",
+    "weights_bytes": 346378731,
+    "weights_bytes_verified": 346378731,
+    "weights_origin": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth",
+    "weights_path": "/home/sina/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth",
+    "weights_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+    "weights_sha256_verified": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+  },
+  "cache_estimate": {
+    "drvfs_forbidden": true,
+    "dtype": "float16",
+    "embedding_dim": 768,
+    "estimated_cache_bytes": 552407040,
+    "filesystem_required": "WSL ext4",
+    "fold_counts": {
+      "1": 1899,
+      "2": 1851,
+      "3": 1969,
+      "4": 1949,
+      "5": 2322
+    },
+    "inventory_rows": 9990,
+    "large_memmap_forbidden": true,
+    "maximum_cache_bytes": 2147483648,
+    "pass": true,
+    "per_fold": {
+      "1": {
+        "float16_cls_bytes": 111849984,
+        "held_out_rows_not_accessed": 1899,
+        "train_rows": 8091
+      },
+      "2": {
+        "float16_cls_bytes": 112513536,
+        "held_out_rows_not_accessed": 1851,
+        "train_rows": 8139
+      },
+      "3": {
+        "float16_cls_bytes": 110882304,
+        "held_out_rows_not_accessed": 1969,
+        "train_rows": 8021
+      },
+      "4": {
+        "float16_cls_bytes": 111158784,
+        "held_out_rows_not_accessed": 1949,
+        "train_rows": 8041
+      },
+      "5": {
+        "float16_cls_bytes": 106002432,
+        "held_out_rows_not_accessed": 2322,
+        "train_rows": 7668
+      }
+    },
+    "total_fold_local_train_rows": 39960,
+    "views_per_train_row_including_base": 9
+  },
+  "cuda": {
+    "batch_grid": [
+      8,
+      16,
+      32
+    ],
+    "device": "cuda",
+    "device_name": "NVIDIA GeForce RTX 3070",
+    "minimum_memory_margin_fraction": 0.15,
+    "probes": [
+      {
+        "batch_size": 8,
+        "feature_shape": [
+          8,
+          768
+        ],
+        "finite": true,
+        "free_memory_bytes_during_forward": 6920601600,
+        "free_memory_fraction_during_forward": 0.8057255344798645,
+        "peak_allocated_bytes": 404161536,
+        "status": "pass",
+        "total_memory_bytes": 8589279232
+      },
+      {
+        "batch_size": 16,
+        "feature_shape": [
+          16,
+          768
+        ],
+        "finite": true,
+        "free_memory_bytes_during_forward": 6836715520,
+        "free_memory_fraction_during_forward": 0.7959591643649571,
+        "peak_allocated_bytes": 453190656,
+        "status": "pass",
+        "total_memory_bytes": 8589279232
+      },
+      {
+        "batch_size": 32,
+        "feature_shape": [
+          32,
+          768
+        ],
+        "finite": true,
+        "free_memory_bytes_during_forward": 6677331968,
+        "free_memory_fraction_during_forward": 0.7774030611466329,
+        "peak_allocated_bytes": 551248896,
+        "status": "pass",
+        "total_memory_bytes": 8589279232
+      }
+    ],
+    "selected_extraction_batch": 32,
+    "training_batch_note": "The frozen-backbone extraction batch is distinct from the v9 VICReg projection training batch of 256 cached CLS rows."
+  },
+  "factor": "explicit one-time renomination of frozen DINOv2-B/14 under the exact v9 VICReg plus episodic-readout mechanism",
+  "final_test_read": false,
+  "frozen_inputs": {
+    "b14_manifest": {
+      "bytes": 1166,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+      "sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5"
+    },
+    "council_synthesis": {
+      "bytes": 6153,
+      "path": ".omx/argos-council/elements-model-improvement/turns/043/synthesis.md",
+      "sha256": "0379abee5893d619069eae42753dfae80d59682cf66517c7cc1d23452b5f56c0"
+    },
+    "history_correction": {
+      "bytes": 2350,
+      "path": ".omx/argos-council/elements-model-improvement/turns/043/branch-history-correction.json",
+      "sha256": "aa9c8d75c6ad5c454e39409a679c56ea8bb6049d0b15617d49bbbcd5b63ceeca"
+    },
+    "runtime_config": {
+      "bytes": 6020,
+      "path": "backend/codex_model/config.json",
+      "sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+    },
+    "runtime_projection": {
+      "bytes": 790632,
+      "path": "backend/codex_model/weights/projection.pt",
+      "sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210"
+    },
+    "runtime_prototypes": {
+      "bytes": 155709,
+      "path": "backend/codex_model/weights/prototypes.pt",
+      "sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+    },
+    "source_inventory": {
+      "bytes": 5025119,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-source-inventory.jsonl",
+      "sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2"
+    },
+    "v10_decision_log": {
+      "bytes": 13625,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/decision-log.md",
+      "sha256": "a5e7fb2560b2e636aed4f711d4aedfbb2d7728eda118253f4e5fadf3cfe4fc78"
+    },
+    "v10_learned_spec": {
+      "bytes": 1832,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/specs/iteration-0003.json",
+      "sha256": "70b270bc6cbb16d574e69fc5e25950b9919819ae396c2b2025f4c955be5b119b"
+    },
+    "v10_learned_summary": {
+      "bytes": 39693,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/iteration-0003/results/summary.json",
+      "sha256": "6cc3bbfff26036c298c7dab9ede3840bb2041a58a2e46301225a8ec8aa80ad77"
+    },
+    "v10_raw_summary": {
+      "bytes": 8256,
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/iteration-0002/results/summary.json",
+      "sha256": "13c3d1063e81175e39744c58c467665fe6a0d1061e127229b6026e4c79a8b1bf"
+    }
+  },
+  "gates": {
+    "backbone_frozen": true,
+    "cache_estimate_bounded_ext4": true,
+    "cuda_batch_with_15_percent_margin": true,
+    "frozen_inputs_verified": true,
+    "mini_cache_byte_identical": true,
+    "official_b14_pin_verified": true,
+    "projection_architecture_dimension_forced": true,
+    "runtime_unchanged": true,
+    "zero_candidate_information": true
+  },
+  "iteration": 1,
+  "mini_cache": {
+    "byte_identical_readback": true,
+    "bytes": 12416,
+    "dtype": "float16",
+    "oof_rows_accessed": 0,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/iteration-0001/feasibility-mini-cache.npy",
+    "readback_sha256": "60268f1e8398d0fbda5a746026e9d2d88944b9f5da09b923da2c90e87ca9f14f",
+    "sha256": "60268f1e8398d0fbda5a746026e9d2d88944b9f5da09b923da2c90e87ca9f14f",
+    "shape": [
+      8,
+      768
+    ],
+    "synthetic_only": true,
+    "value_identical_readback": true
+  },
+  "next_action": "Return to Argos Council before freezing the v19 runner/spec/evaluator or performing any candidate extraction, gradient, prediction, or score.",
+  "operation_counts": {
+    "candidate_feature_extractions": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "final_test_reads": 0,
+    "oof_rows_accessed": 0,
+    "runtime_writes": 0,
+    "source_image_reads": 0,
+    "synthetic_cuda_forward_batches": 3
+  },
+  "pass": true,
+  "projection_head": {
+    "architecture": "768->768->128",
+    "parameter_count": 689024,
+    "pass": true
+  },
+  "runtime_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_before": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_promotion": false,
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19.feasibility-v1"
+}

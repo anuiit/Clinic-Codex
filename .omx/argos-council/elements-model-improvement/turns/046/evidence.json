@@ -1,0 +1,60 @@
+{
+  "schema_version": "elements-model-improvement.council-turn-046-evidence-v1",
+  "milestone": "v19-A sole authorized phase-2 extraction failed terminally before the first completed feature batch",
+  "failure_audit": {
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/iteration-0002-phase-2-failure-audit.json",
+    "sha256": "6cfff7acdce3af4b8ef080bdf21dcf54788379c479a9f0f4322283d77f27a47b",
+    "status": "retired_terminal_phase_2_infrastructure_failure",
+    "exception_type": "RuntimeError",
+    "exception_message": "CUDA out of memory in pin memory thread for device 0",
+    "failure_stage": "fold-01 training-row DataLoader pin-memory handoff before the first completed feature batch",
+    "exit_code": 1
+  },
+  "execution_policy": {
+    "published_council_synthesis_sha256": "d14ffe0db4c29c6128b4678106961dc7e2ddf3a6de321136a6e98bb7bec4f9f2",
+    "phase_2_authorization_sha256": "ffb8c398cdcf68be118ed369adb6c8f1741eb1cd10e4cdeba4f39f9d9a62f3bf",
+    "authorized_execution_count": 1,
+    "observed_execution_count": 1,
+    "recovery_allowed": false,
+    "retry_performed": false
+  },
+  "frozen_contract": {
+    "runner_sha256": "14066b79538a5d3176bdf76f3a6475235da91480faf86a758c328234c6b60219",
+    "contract_freeze_audit_sha256": "46c9ba183af997f4922574701b488961d71b50051a3a6a0d24f45da8a74f1dab",
+    "runner_modified_after_authorization": false
+  },
+  "observed_boundary": {
+    "backbone_loaded": true,
+    "training_source_images_were_decoded": true,
+    "source_image_reads_exact_count_known": false,
+    "first_feature_batch_completed": false,
+    "oof_extraction_started": false,
+    "folds_completed": 0,
+    "cache_files": 0,
+    "cache_sidecars": 0,
+    "cache_manifest_written": false,
+    "c1_control_replay_started": false,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0
+  },
+  "safety": {
+    "runtime_writes": 0,
+    "runtime_unchanged": true,
+    "runtime_projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "runtime_prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "runtime_config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "final_test_read": false,
+    "gpu_processes_remaining_after_exit": 0
+  },
+  "requested_ratification": {
+    "v19_a_retired": true,
+    "phase_3_allowed": false,
+    "v20_allowed": false,
+    "promotion_allowed": false,
+    "metric_claim_about_b14_allowed": false,
+    "best_validated_reference": "C1",
+    "best_validated_reference_status": "supported_reference",
+    "close_experimental_mission": true
+  }
+}

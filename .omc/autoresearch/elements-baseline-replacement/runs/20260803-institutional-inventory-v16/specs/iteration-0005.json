@@ -1,0 +1,92 @@
+{
+  "schema_version": "autoresearch-institutional-inventory-v16.metadata-feasibility-spec",
+  "run_id": "20260803-institutional-inventory-v16",
+  "iteration": 5,
+  "phase": "interlocked_query_schema_and_metadata_feasibility",
+  "hypothesis": "The two Council-authorized institutional query families yield at least 26 conservatively net-new independent physical manuscript components after rights, domain, granularity, local-envelope, and duplicate exclusions.",
+  "single_factor": "conservatively net-new independent physical component feasibility from bounded official search metadata",
+  "inputs": {
+    "council_synthesis": ".omx/argos-council/elements-model-improvement/turns/031/synthesis.md",
+    "council_synthesis_sha256": "4b33661ab913df44a42d3cfb72969d4085996b1f3be7c0d185580d44b6f1182d",
+    "independent_components": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/iteration-0002/independent-components.json",
+    "independent_components_sha256": "2f4bb6628ae4bc77ce7e43299efde1439e01662ad4f9e974e78dc18f46d56b53",
+    "manuscript_exclusion_rules": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+    "manuscript_exclusion_rules_sha256": "add2a06eee290032c5479cbe9cf4522d6a6ac995a5a90d590047776cc965f756",
+    "local_identity_crosswalk_rules": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/local-identity-crosswalk-rules.json",
+    "local_identity_crosswalk_rules_sha256": "4b9b88d9c14cf9b9f20c5145a77b0318fb18facc8f48137468bbfd5fe0e101f8"
+  },
+  "request_contract": {
+    "source_family_count_equals": 2,
+    "frozen_queries_per_source_equals": 4,
+    "stage_1_queries_per_source_equals": 1,
+    "stage_2_queries_per_stage_1_passing_source_max": 3,
+    "initial_query_requests_per_source_max": 4,
+    "retries_per_request_max": 1,
+    "query_requests_including_retries_per_source_max": 8,
+    "query_requests_global_max": 16,
+    "initial_compliance_requests_per_source_equals": 1,
+    "compliance_requests_including_retries_per_source_max": 2,
+    "compliance_requests_global_max": 4,
+    "network_requests_global_max": 20,
+    "records_per_response_max": 25,
+    "raw_records_per_source_max": 100,
+    "pagination_pages_per_query_equals": 1,
+    "budget_pooling_allowed": false,
+    "counter_incremented_and_persisted_before_issue": true,
+    "redirects_followed": false,
+    "timeout_seconds": 20,
+    "response_byte_cap": 1048576,
+    "user_agent": "elements-research-endpoint-audit/1.0"
+  },
+  "stage_interlock": {
+    "stage_1": "After exact-path robots compliance, issue only the first frozen query and validate transport, content type, parseability, response root, pagination/count field, and result identity schema.",
+    "stage_2": "Issue the remaining three frozen queries only for that same source if its stage-1 response passes.",
+    "source_atomicity": "Any later query failure closes the source and gives it zero strict candidate credit; parsed rows may remain diagnostic only.",
+    "loc_may_proceed_if_bnf_fails": true
+  },
+  "robots_policy": {
+    "status_200": "parse and require the exact query URLs to be allowed for the frozen user agent",
+    "status_404_or_410": "treat the robots resource as unavailable and allow the exact query URLs, following the preregistered standards-compliant rule",
+    "status_401_or_403": "disallow the source",
+    "other_status_or_transport_failure": "source compliance unresolved and source closed"
+  },
+  "candidate_gates": {
+    "stable_institutional_identifier_required": true,
+    "canonical_source_url_required": true,
+    "target_domain_evidence_required": true,
+    "original_independent_physical_document_evidence_required": true,
+    "positive_rights_or_open_access_evidence_required": true,
+    "ambiguous_records_excluded": true,
+    "secondary_work_print_photo_facsimile_copy_or_reproduction_excluded": true,
+    "mixtec_only_records_descriptive_only": true,
+    "deduplicate_against_37_components": true,
+    "deduplicate_against_9_v12_exclusions": true,
+    "deduplicate_telleriano_rios_vaticanus_a_cognates": true,
+    "deduplicate_within_and_across_sources": true,
+    "unresolved_t_tepeuc_provenance_reserves_one_component_if_any_strict_candidates": true
+  },
+  "decision_rule": {
+    "frozen_local_component_base": 37,
+    "minimum_split_component_count": 63,
+    "minimum_conservatively_net_new_components": 26,
+    "integrity_failure": "invalid_metadata_feasibility",
+    "strict_components_at_least_26": "feasibility_ceiling_reached",
+    "strict_components_below_26": "not_reached",
+    "image_or_snapshot_extension_authorized": false
+  },
+  "integrity_constraints": {
+    "generic_web_search_allowed_during_execution": false,
+    "source_host_path_query_or_term_addition_after_first_request_allowed": false,
+    "redirect_follow_allowed": false,
+    "authentication_allowed": false,
+    "item_detail_fetch_allowed": false,
+    "iiif_manifest_canvas_or_image_url_open_allowed": false,
+    "thumbnail_or_image_read_allowed": false,
+    "model_inference_or_training_allowed": false,
+    "labels_or_final_test_read_allowed": false,
+    "checkpoint_or_runtime_write_allowed": false
+  },
+  "promotion_eligible": false,
+  "model_inference_allowed": false,
+  "final_test_read_allowed": false
+}

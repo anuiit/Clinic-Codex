@@ -1,0 +1,123 @@
+{
+  "schema_version": "autoresearch-model-decision-audit-v17.spec",
+  "run_id": "20260803-model-decision-audit-v17",
+  "iteration": 3,
+  "name": "pooled-top1-hierarchical-shrunk-prototypes-on-exact-vicreg-c1",
+  "status": "preregistered_before_any_iteration_0003_candidate_prediction",
+  "purpose": "Test one isolated training-free model factor: spherical shrinkage of exact C1 class prototypes toward the fold-train global centroid.",
+  "hypothesis": "A fixed global-centroid shrinkage prior suppresses spurious matches to noisy low-support prototypes and improves pooled OOF top-1 while preserving the replicated C1 gain.",
+  "symmetric_risk": "For a class with n_y=2, lambda=8 makes its unnormalized candidate prototype 80 percent global centroid; this can rotate neighboring rare classes toward one another, erase distinctiveness, and increase their confusion.",
+  "claim_domain": "pooled OOF top-1 only; macro and support-stratum results are mandatory descriptive diagnostics and may not replace the frozen primary claim",
+  "council_authority": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 29,
+    "local_turn": 34,
+    "published_synthesis_sha256": "e6536c3404f90c534c72b435cdac5374fc5cf4142bef5478598ea98561f4d62c"
+  },
+  "v17_2_erratum": {
+    "path": "specs/iteration-0002-erratum.json",
+    "sha256": "acd62f0692d8d5bc6315c87ed85d7b826aa0e50a55530268acd189ff57769fa3",
+    "frozen_v17_2_spec_sha256": "51548b999afaffaa75c2d3b4fb84670aa283151a407f1c4b3ef1079899286dae",
+    "rule": "cache declarations below are generated from and must exactly equal the canonical i5 enforcement constants before this spec is accepted"
+  },
+  "pinned_harness": {
+    "v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "support_aware_i5_runner_sha256": "acd06503d801bdaf30e1b3d8569fd6713d9b3b83e545561fc26677998a8de0c6",
+    "covariance_i7_runner_sha256": "f8b51e9f5473a3a5306432809236680f778ecaaa6be316e17fcfae084d3bc453"
+  },
+  "frozen_inputs": {
+    "v9_spec_sha256": "be9706819cb1916a513c941dfcf99abc039b3b9bb289cf32ddd602e76da230cb",
+    "v9_paired_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "v9_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "cache_sha256_by_fold": {
+      "1": "d7b2db5c0fe08d95e1b44cf8623eeb83abc48a3f00e9982af59d62a2d3744b39",
+      "2": "c9d08f6d6b22e16c9d66b33f646d83b301e74524b3b511d007a5b9743b0767c2",
+      "3": "79581b7e7cef86268315f962a7c958fa7444c61355e08e489b1f8d408d4b950e",
+      "4": "ae16f78ed4a7fdfb7c7de30867326a3429204f7c261adfa9b3d632de4a4409e1",
+      "5": "b3b8368f95251dae162aab73c399b0cf71226f0ac6bc879f40ea3d20a58894e8"
+    },
+    "expected_c1_checkpoint_count": 15,
+    "expected_paired_prediction_rows": 1959,
+    "expected_unique_oof_rows": 653,
+    "expected_outer_folds": 5,
+    "expected_fixed_seeds": 3
+  },
+  "runtime_hashes": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "arms": {
+    "baseline": "Persisted B0 top-k rows from v9, used only for the unchanged mission anchor.",
+    "control": "Exact C1 readout from the persisted fold/seed projection checkpoint: post-L2 train embeddings, class chordal mean mu_y, then normalize(mu_y).",
+    "candidate": "The same persisted C1 embeddings and OOF queries with only the class prototype replaced by normalize((n_y * mu_y + 8 * mu_G) / (n_y + 8))."
+  },
+  "changed_factor": {
+    "only_change": "fold-local class prototype estimator",
+    "lambda": 8,
+    "lambda_type": "single fixed scalar shared by every fold, seed, and class",
+    "train_embeddings": "persisted C1 checkpoint applied to cached base train features; ProjectionHead output is post-L2 normalized",
+    "oof_embeddings": "same persisted C1 checkpoint applied to cached base OOF features; unchanged between control and candidate",
+    "mu_y": "arithmetic mean of all post-L2 normalized fold-train embeddings whose class label is y",
+    "n_y": "fold-local count of the same rows used in mu_y",
+    "mu_G": "arithmetic mean of all post-L2 normalized fold-train embeddings across every class, including y",
+    "control_formula": "normalize(mu_y)",
+    "candidate_formula": "normalize((n_y * mu_y + 8 * mu_G) / (n_y + 8))",
+    "prototype_labels": "sorted unique fold-train class labels",
+    "similarity": "dot product between post-L2 OOF embeddings and normalized prototypes",
+    "forbidden": [
+      "lambda sweep",
+      "class-conditional lambda",
+      "component-weighted centroid",
+      "family or superclass centroid",
+      "candidate-specific embedding or checkpoint",
+      "retraining or fine-tuning",
+      "macro-based re-nomination",
+      "second candidate"
+    ]
+  },
+  "grid": {
+    "folds": [1, 2, 3, 4, 5],
+    "seeds": [17, 42, 73],
+    "candidate_count": 1,
+    "training_operations": 0,
+    "random_operations": 0,
+    "prediction_device": "cuda"
+  },
+  "replay_normalization": {
+    "schema_version": "autoresearch-model-decision-audit-v17.replay-normalization-v1",
+    "summary_removed_keys": [],
+    "pair_removed_keys": [],
+    "sha256": "03b6b1b3161ea4ec0455c1bd7bc80ec30038fa1e1947941a710d472b6f62238a"
+  },
+  "mandatory_audit": {
+    "spec_cache_pins_equal_canonical_i5_constants_before_prediction": true,
+    "all_persisted_c1_checkpoint_hashes_match": true,
+    "control_topk_matches_all_persisted_c1_rows": true,
+    "candidate_prototypes_differ_from_control_for_nonzero_class_count": true,
+    "candidate_vs_c1_discordant_rows_gt": 0,
+    "persist_per_fold_seed_class_support": true,
+    "persist_per_fold_seed_prototype_shift_cosine": true,
+    "support_strata": ["n_y_lte_8", "n_y_9_to_31", "n_y_gte_32"],
+    "mandatory_binary_support_view": ["n_y_lte_8", "n_y_gt_8"],
+    "candidate_minus_c1_mcnemar": true,
+    "effective_rank_diagnostics": true,
+    "rank_ratio_below_escalation_only": 0.8,
+    "deterministic_replay": true,
+    "replay_normalization_routine_sha256_pinned": true
+  },
+  "hard_boundaries": {
+    "single_candidate": true,
+    "single_execution_plus_deterministic_replay": true,
+    "new_feature_extraction": false,
+    "supervised_or_ssl_training": false,
+    "multiview_checkpoint_or_factor_combination": false,
+    "architecture_change": false,
+    "lambda_or_geometry_sweep": false,
+    "second_candidate": false,
+    "final_test_read": false,
+    "runtime_write": false,
+    "promotion": false
+  },
+  "failure_interpretation": "If minimally supported strata regress, state that shrinkage cost exceeded its variance benefit on minimal-support classes; do not replace the frozen pooled-top1 claim with macro or subgroup selection."
+}

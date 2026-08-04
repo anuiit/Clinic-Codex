@@ -1,0 +1,60 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.lora-vicreg-contract-freeze-audit-v1",
+  "iteration": 3,
+  "phase": "contract_runner_and_replay_auditor_frozen_before_any_shared_token_extraction_or_candidate_work",
+  "pass": true,
+  "contract_hashes": {
+    "spec_sha256": "775f809a8b3b641bc1058be34e54be0416306962f3bd956165cc105a0f2d4e87",
+    "evaluator_sha256": "761d14fd26be86fcd9cee24e50a3897fb3b552ec27b9b6615e7d695655dca180",
+    "cache_schema_sha256": "f687656cc15d8e6a0bebff7cc8e704c77f6279d85137e5f3196e38fe74cdbffc",
+    "feasibility_audit_sha256": "519d3f78c66373a24c3d89e645e207f843c519fc17ef02ba8f6e85e036b410a6",
+    "predecessor_replay_audit_sha256": "795d8394671635db210deabb29f7f3ec85dd9f06290eb335493bd51495d8d10b",
+    "source_inventory_sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2",
+    "replay_normalization_sha256": "7eea37fe365c51dffe9925c4b39c911acd0d14cba9435aeab45fb799c523cafc"
+  },
+  "implementation_hashes": {
+    "runner_sha256": "557a99dc8a7c8f402a4d9644c0c3d76c5fefeefa8ed9094865508986274121e1",
+    "replay_auditor_sha256": "135952e53b783f5aaed7c6fdb3d9cbb8840072af901e0dfd2e7cd06e848f78d5",
+    "runner_test_sha256": "a81b575b57cc5c8378d40ce17ad72bd5d5592adb9a0abc1c043cc4cf0b77b8f4",
+    "replay_auditor_test_sha256": "16deb93332b6fea613692630172f17ec67e258d833ba635d2dc5056d55ee6a20"
+  },
+  "verification": {
+    "contract_validator_passed": true,
+    "python_compile_passed": true,
+    "targeted_test_count": 12,
+    "targeted_tests_passed": 12,
+    "real_cuda_preflight_fold_seed_count": 15,
+    "real_cuda_preflight_optimizer_group_manifest_sha256": "a9c1d7d7843701e52ae9eb79d69b4920e4053041bcd54e8de8abc54e17be0ff6",
+    "real_cuda_preflight_base_backbone_sha256": "73a0df042a568318a6e44b1b2b91e21867c57777a4e058ad51f88afe0862bb8c",
+    "real_cuda_preflight_candidate_optimizer_steps": 0,
+    "real_cuda_preflight_oof_access_count": 0,
+    "lora_trainable_parameter_count": 49152,
+    "lora_trainable_name_count": 8
+  },
+  "ordering_interlocks": {
+    "all_fifteen_exact_c1_train_state_and_plan_replays_before_first_candidate_step": true,
+    "all_fifteen_lora_boundary_rng_and_base_hash_preflights_before_first_candidate_step": true,
+    "all_three_candidate_updates_complete_before_fold_oof_creation": true,
+    "all_five_oof_entries_hash_sealed_before_candidate_interpretation": true,
+    "shared_oof_path_c1_topk_checked_before_candidate_topk_interpretation": true,
+    "replay_reuses_hash_verified_train_and_oof_token_caches": true,
+    "replay_required_artifact_count": 19,
+    "replay_normalization_is_identity": true
+  },
+  "zero_operation_gates": {
+    "shared_token_cache_file_count": 0,
+    "oof_token_file_count": 0,
+    "candidate_feature_extraction_count": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "final_test_read": false,
+    "runtime_write": false,
+    "runtime_unchanged": true
+  },
+  "runtime_sha256": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "next_gate": "Argos Council approval of the executable contract before extract-train"
+}

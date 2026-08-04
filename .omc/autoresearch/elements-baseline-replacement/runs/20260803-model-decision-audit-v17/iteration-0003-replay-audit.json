@@ -1,0 +1,63 @@
+{
+  "claim": "not_evidence_of_a_better_model",
+  "comparisons": {
+    "audit.json": {
+      "byte_identical": true,
+      "canonical_sha256": "df6dd24ccfcfcd58e106ae1c0f6cf6c75daf67d77cf2a7e67a72c9d592ccd978",
+      "replay_sha256": "df6dd24ccfcfcd58e106ae1c0f6cf6c75daf67d77cf2a7e67a72c9d592ccd978"
+    },
+    "evaluation.json": {
+      "byte_identical": true,
+      "canonical_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01",
+      "replay_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01"
+    },
+    "prediction_rows.jsonl": {
+      "byte_identical": true,
+      "canonical_sha256": "b2c73a4a991a504127e0865406452d8fe838cafdb9abd14b869e737caf078a90",
+      "replay_sha256": "b2c73a4a991a504127e0865406452d8fe838cafdb9abd14b869e737caf078a90"
+    },
+    "summary.json": {
+      "byte_identical": true,
+      "canonical_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01",
+      "replay_sha256": "453309cd6a0181bcd03effd9812ddccda5aed437e81047cf9c84cb841b47da01"
+    }
+  },
+  "cross_machine_determinism_claimed": false,
+  "decision": "neutral_preservation",
+  "final_test_read": false,
+  "gates": {
+    "all_required_files_byte_identical": true,
+    "canonical_evaluator_sha_matches": true,
+    "canonical_integrity_pass": true,
+    "canonical_runner_sha_matches_current": true,
+    "canonical_spec_sha_matches": true,
+    "final_test_unread": true,
+    "normalization_contract_is_identity": true,
+    "normalization_contract_sha_matches": true,
+    "replay_evaluator_sha_matches": true,
+    "replay_integrity_pass": true,
+    "replay_runner_sha_matches_current": true,
+    "replay_spec_sha_matches": true,
+    "runtime_hashes_match": true,
+    "runtime_not_promoted": true,
+    "runtime_unchanged": true
+  },
+  "iteration": 3,
+  "normalization_contract": {
+    "pair_removed_keys": [],
+    "schema_version": "autoresearch-model-decision-audit-v17.replay-normalization-v1",
+    "summary_removed_keys": []
+  },
+  "normalization_contract_sha256": "03b6b1b3161ea4ec0455c1bd7bc80ec30038fa1e1947941a710d472b6f62238a",
+  "pass": true,
+  "runner_sha256": "a1f0fb9e0fae18b0f5fb39dbbfa93361f041980447403eeb6a12f31630bafb08",
+  "runtime_promotion": false,
+  "runtime_sha256": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "same_machine_only": true,
+  "schema_version": "autoresearch-model-decision-audit-v17.hierarchical-shrinkage-replay-audit",
+  "score": 0.003062787136294029
+}

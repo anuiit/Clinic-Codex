@@ -1,0 +1,66 @@
+{
+  "schema_version": "autoresearch-v19.phase-2-failure-audit-v1",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260804-vicreg-backbone-renomination-v19",
+  "iteration": 2,
+  "captured_at": "2026-08-04T18:31:46+02:00",
+  "status": "retired_terminal_phase_2_infrastructure_failure",
+  "candidate": "DINOv2-B/14 under the exact canonical v9 VICReg plus episodic-readout mechanism",
+  "execution": {
+    "command": "backend/.venv/bin/python scripts/autoresearch_vicreg_backbone_v19.py precompute --authorization .omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/authorizations/phase-2.json",
+    "authorized_execution_count": 1,
+    "observed_execution_count": 1,
+    "exit_code": 1,
+    "recovery_allowed": false,
+    "retry_performed": false
+  },
+  "frozen_inputs": {
+    "runner_sha256": "14066b79538a5d3176bdf76f3a6475235da91480faf86a758c328234c6b60219",
+    "contract_freeze_audit_sha256": "46c9ba183af997f4922574701b488961d71b50051a3a6a0d24f45da8a74f1dab",
+    "phase_2_authorization_sha256": "ffb8c398cdcf68be118ed369adb6c8f1741eb1cd10e4cdeba4f39f9d9a62f3bf",
+    "published_council_synthesis_sha256": "d14ffe0db4c29c6128b4678106961dc7e2ddf3a6de321136a6e98bb7bec4f9f2"
+  },
+  "failure": {
+    "exception_type": "RuntimeError",
+    "stage": "fold-01 training-row DataLoader pin-memory handoff before the first completed feature batch",
+    "message": "Caught RuntimeError in pin memory thread for device 0: CUDA error: out of memory",
+    "backbone_loaded": true,
+    "first_feature_batch_completed": false,
+    "folds_completed": 0
+  },
+  "artifact_inventory": {
+    "cache_directory_created": true,
+    "cache_directory_empty": true,
+    "cache_files": 0,
+    "cache_sidecars": 0,
+    "cache_manifest_written": false,
+    "c1_control_audit_written": false,
+    "gpu_processes_remaining_after_exit": 0
+  },
+  "information_boundary": {
+    "training_source_images_were_decoded": true,
+    "source_image_reads_exact_count_known": false,
+    "source_image_reads_note": "The pin-memory thread received a populated batch, proving source decoding occurred, but worker prefetch prevents an exact post-failure count.",
+    "oof_extraction_started": false,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "c1_checkpoints_replayed": 0,
+    "c1_prediction_rows_replayed": 0,
+    "final_test_read": false
+  },
+  "runtime": {
+    "writes": 0,
+    "unchanged": true,
+    "projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "terminal_disposition": {
+    "phase_2_pass": false,
+    "phase_3_allowed": false,
+    "v19_a_retired": true,
+    "v20_allowed": false,
+    "reason": "The sole Council-authorized phase-2 extraction failed and the published protocol forbids recovery or a second execution."
+  }
+}

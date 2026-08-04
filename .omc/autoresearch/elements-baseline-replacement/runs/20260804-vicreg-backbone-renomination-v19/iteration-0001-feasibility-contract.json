@@ -1,0 +1,87 @@
+{
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19.feasibility-contract-v1",
+  "status": "preregistered_before_any_v19_candidate_operation",
+  "iteration": 1,
+  "authorization": {
+    "council_session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 40,
+    "local_turn": 43,
+    "published_synthesis_sha256": "0379abee5893d619069eae42753dfae80d59682cf66517c7cc1d23452b5f56c0"
+  },
+  "factor": {
+    "name": "v19-A",
+    "description": "Explicit one-time renomination of frozen DINOv2-B/14 under the exact v9 fold-local VICReg plus episodic-readout mechanism.",
+    "backbone": "dinov2_vitb14",
+    "backbone_trainable": false,
+    "embedding_dim": 768,
+    "dimension_forced_projection_head": "768->768->128",
+    "research_reference_only": true,
+    "runtime_abi_compatible": false
+  },
+  "prior_branch_closure": {
+    "disclosure": "B/14 capacity was tested and closed in v10; v19 is not a virgin scaling branch.",
+    "history_correction_sha256": "aa9c8d75c6ad5c454e39409a679c56ea8bb6049d0b15617d49bbbcd5b63ceeca",
+    "v10_decision_log_sha256": "a5e7fb2560b2e636aed4f711d4aedfbb2d7728eda118253f4e5fadf3cfe4fc78",
+    "v10_raw_summary_sha256": "13c3d1063e81175e39744c58c467665fe6a0d1061e127229b6026e4c79a8b1bf",
+    "v10_learned_summary_sha256": "6cc3bbfff26036c298c7dab9ede3840bb2041a58a2e46301225a8ec8aa80ad77",
+    "v10_learned_spec_sha256": "70b270bc6cbb16d574e69fc5e25950b9919819ae396c2b2025f4c955be5b119b"
+  },
+  "frozen_runner": {
+    "path": "scripts/autoresearch_vicreg_backbone_feasibility_v19.py",
+    "sha256": "9afe6abe12a584490539752067c76c7365b0324561a0472d61efd102b4b6c58a",
+    "test_path": "backend/tests/test_autoresearch_vicreg_backbone_feasibility_v19.py",
+    "test_sha256": "421be50834dfd3b3148f3c5ae9c922be8844fd7689e7490b8222dde2ee8c3bc1",
+    "tests_passed": 5
+  },
+  "frozen_inputs": {
+    "b14_manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "b14_checkpoint_bytes": 346378731,
+    "b14_checkpoint_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+    "source_inventory_sha256": "d21ccbc123d454db773eb31fbc2fe3cf225c21c79534a142cf0b3d34340a87d2",
+    "runtime_projection_sha256": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "runtime_prototypes_sha256": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "runtime_config_sha256": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "cuda_probe": {
+    "device_required": "cuda",
+    "batch_grid": [
+      8,
+      16,
+      32
+    ],
+    "stop_after_first_oom": true,
+    "minimum_free_memory_fraction_during_forward": 0.15,
+    "gradient_enabled": false,
+    "input": "deterministic synthetic normalized-shape tensors only"
+  },
+  "cache_gate": {
+    "retained_inventory_rows": 9990,
+    "total_fold_local_train_rows": 39960,
+    "views_per_train_row_including_base": 9,
+    "dtype": "float16",
+    "embedding_dim": 768,
+    "expected_bytes": 552407040,
+    "maximum_bytes": 2147483648,
+    "filesystem": "WSL ext4 only",
+    "drvfs_forbidden": true,
+    "large_memmap_forbidden": true,
+    "mini_cache": "synthetic CLS only; fsync, atomic rename, byte-identical readback"
+  },
+  "scientific_operation_limits": {
+    "source_image_reads": 0,
+    "candidate_feature_extractions": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "oof_rows_accessed": 0,
+    "final_test_reads": 0,
+    "runtime_writes": 0
+  },
+  "command": "PYTHONPATH=backend backend/.venv/bin/python scripts/autoresearch_vicreg_backbone_feasibility_v19.py",
+  "postcondition": {
+    "pass": "Return to Argos Council before freezing any candidate runner, spec, or evaluator.",
+    "fail": "Retire v19-A without retry or replacement factor, then document with Argos Council.",
+    "candidate_operations_after_this_command": false,
+    "v20_allowed": false
+  }
+}

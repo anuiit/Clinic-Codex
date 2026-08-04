@@ -1,0 +1,107 @@
+{
+  "schema_version": "autoresearch-shadow-availability-v15.spec",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-shadow-availability-v15",
+  "iteration": 1,
+  "mode": "metadata_only_availability_audit",
+  "objective": "Determine whether a real post-freeze shadow capture flow exists locally and whether its metadata controls could support a future independent instrument.",
+  "factor": "availability of a qualifying post-freeze shadow capture channel on the frozen repo-local surface",
+  "hypothesis": "A post-freeze flow exists with immutable physical-document identity, clear consent and retention controls, and a feasible annotation path isolated from model predictions.",
+  "council_authorization": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 19,
+    "synthesis_path": ".omx/argos-council/elements-model-improvement/turns/026/synthesis.md",
+    "synthesis_sha256": "c144b52c999f806ee5a912fc090e4326c6d97524b5b252f1fa2474977db75a5c"
+  },
+  "surface_manifest": {
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-shadow-availability-v15/surface-manifest.json",
+    "sha256": "14bb355b3e7ecb91d67ec7b1e0edb62f40ccdd5d447577685faa572d5e36f328",
+    "tracked_source_count": 26,
+    "dynamic_surface_count": 5
+  },
+  "candidate_freeze": {
+    "created_at_utc": "2026-08-03T20:43:54.764582+00:00",
+    "manifest": "backend/model_registry/versions/20260803T202104Z-vicreg-full-data-v11/manifest.json",
+    "manifest_sha256": "7b33a6a2605b864925e1b7fb8d2ecf46828c52bbadb811d1a6208758d55fadb7",
+    "checkpoint_sha256": "acbf331bbdd1795eda301e1d20a7db546f4949d576e7d08fa6f1890d83dd946c"
+  },
+  "semantic_extraction_contract": {
+    "tracked_sources_only": true,
+    "endpoint_rule": "Extract literal Flask Blueprint route decorators and HTTP methods.",
+    "evidence_rule": "Report only tracked source path, line number and matched schema token; never report arbitrary line contents.",
+    "persisted_field_rule": "Extract literal dictionary keys from backend/services/annotation_storage.py and interface field names from frozen TypeScript sources.",
+    "document_identity_fields": [
+      "document_id",
+      "physical_document_id",
+      "manuscript_id",
+      "source_document_id"
+    ],
+    "fallback_identity_fields": [
+      "analysis_id",
+      "session_id",
+      "device_id"
+    ],
+    "consent_tokens": [
+      "consent",
+      "opt_in",
+      "privacy_basis"
+    ],
+    "retention_tokens": [
+      "retention",
+      "delete_after",
+      "image_expires_at"
+    ],
+    "prediction_exposure_tokens": [
+      "predicted_class",
+      "class_name",
+      "SegmentResult",
+      "ClassifyResult"
+    ],
+    "local_only_tokens": [
+      "local/dev-only",
+      "local-only",
+      "not production-secured"
+    ]
+  },
+  "dynamic_metadata_contract": {
+    "annotations": "Stat-only aggregate counts, suffix counts, bytes and mtimes; never read or emit names or bytes.",
+    "auth_database": "Read-only SQLite schema, aggregate row counts and aggregate timestamp ranges; never select or emit row values.",
+    "logs": "Stat-only recursive aggregate count, bytes and mtime range; never read or emit paths.",
+    "environment": "Existence boolean for backend/.env only; never open it.",
+    "browser_storage": "Infer capability from frozen source only; never open browser storage."
+  },
+  "classification_contract": {
+    "flow_exists_with_document_identity": "A non-local-only persisted capture flow has at least one aggregate post-freeze record and its frozen persisted schema includes immutable physical-document identity.",
+    "flow_exists_without_document_identity": "A non-local-only persisted capture flow has at least one aggregate post-freeze record but only fallback grouping identity.",
+    "no_flow": "No qualifying non-local-only persisted post-freeze flow is evidenced.",
+    "instrument_usable": "Requires flow_exists_with_document_identity plus explicit consent, image-retention controls and a feasible double-blind annotation path isolated from predictions.",
+    "rate_scenario": "Six qualified documents per week for eight weeks is descriptive only and cannot be certified without content, deduplication and labels.",
+    "hypothesis_supported": "True only when instrument_usable is true."
+  },
+  "integrity_gates": [
+    "The surface manifest and all 26 tracked source hashes match.",
+    "The candidate manifest and Council synthesis hashes match.",
+    "Only the frozen metadata operations are executed.",
+    "No user file, image, annotation metadata, log, environment file, browser record, prediction or label is opened.",
+    "Dynamic aggregate snapshots remain stable across the audit.",
+    "First and replay artifacts are byte-identical.",
+    "Runtime and v11 candidate hashes remain unchanged.",
+    "No training, inference, holdout access, final-test access or promotion occurs."
+  ],
+  "forbidden_actions": [
+    "Read any byte from backend/annotations, any log file, backend/.env or browser storage.",
+    "Emit dynamic file names, analysis ids, user ids, emails, tokens, labels, predictions or submitted content.",
+    "Treat analysis_id, session_id or device_id as physical-document identity.",
+    "Count sessions as independent components.",
+    "Infer class coverage from metadata-only evidence.",
+    "Acquire images or detailed external records.",
+    "Change any provenance attribution, exclusion, model, runtime or candidate.",
+    "Skip the mandatory v16 institutional inventory based on the v15 result."
+  ],
+  "model_inference_allowed": false,
+  "training_allowed": false,
+  "external_fetch_allowed": false,
+  "final_test_read_allowed": false,
+  "automatic_promotion_allowed": false,
+  "next_phase": "Council review followed by mandatory v16 official-source institutional metadata inventory."
+}

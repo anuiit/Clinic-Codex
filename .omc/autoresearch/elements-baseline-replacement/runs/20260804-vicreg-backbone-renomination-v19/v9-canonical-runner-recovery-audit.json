@@ -1,0 +1,57 @@
+{
+  "schema_version": "autoresearch-v19.v9-canonical-runner-recovery-audit-v1",
+  "incident": {
+    "classification": "stale_parallel_writer_overwrote_v9_runner_and_test_after_canonical_launch",
+    "date": "2026-08-03",
+    "discovery_phase": "v9 full five-fold/three-seed execution",
+    "archived_stale_runner": "iteration-0001/provenance/overwritten-runner-at-0628.py",
+    "archived_stale_test": "iteration-0001/provenance/overwritten-test-at-0629.py",
+    "recovery_record": "The v9 decision log records recovery of the launch source from the saved bytecode and Council attachment, preservation of the overwritten variants, and interruption of the stale writer.",
+    "scientific_effect": "The overwrite occurred after canonical launch. Canonical prediction rows pin the recovered source hash; the archived overwritten source is not accepted as an input."
+  },
+  "canonical_evidence": {
+    "recovered_runner_path": "scripts/autoresearch_self_supervised_v9.py",
+    "recovered_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "current_test_sha256": "5b257d315f55043bc1daba402a86e9da713ef049305b6a6355c397652f6a9d67",
+    "v9_decision_log_sha256": "cb01ecc1d1b32ff1eb7021018d82e362f847e4fd926aa5d8a065a0800c302bdf",
+    "canonical_prediction_rows_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/prediction_rows.jsonl",
+    "canonical_prediction_rows_sha256": "37a15fb66ef883d15df5db8e1cadb152f9460876b60ace832c434375a3cdf34f",
+    "canonical_prediction_row_count": 1959,
+    "unique_embedded_code_sha256_count": 1,
+    "embedded_code_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "all_prediction_rows_match_recovered_runner": true,
+    "canonical_summary_sha256": "d6094bc9887748ba9bc89b3f6d691483b803be806cf0623e450450132387a22d",
+    "canonical_summary_code_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "launch_bytecode_sha256": "fae76e7dbefde5bae99c47195ac4845ed7578eef2964491cdab1f3056828fc90",
+    "canonical_folds_sha256": "18b4222d265631051dde5df809d2eff4a088a0ef90b420940eb94a47a437805c"
+  },
+  "quarantined_variants": {
+    "stale_runner_sha256": "29c594dd15af1c28021448335d5ce51461b3c1314b92ef045bf908a4988ec018",
+    "stale_test_sha256": "da08de745c325cdc06483049540535226e0b4488911a4b160817bbcbacb4a012",
+    "accepted_as_canonical": false,
+    "preserved_for_forensics": true
+  },
+  "v19_interlock": {
+    "verify_recovered_runner_sha256_before_import": true,
+    "modify_v9_runner": false,
+    "fail_before_source_image_read_on_mismatch": true,
+    "reuse_symbols": [
+      "safe_ssl_view",
+      "precompute_fold",
+      "ssl_pair_plan",
+      "pretrain_vicreg",
+      "build_episode_plan",
+      "train_supervised",
+      "predict_arm",
+      "paired_component_bootstrap",
+      "exact_mcnemar"
+    ],
+    "require_c1_same_process_topk_replay_before_candidate_gradient": true
+  },
+  "limitations": [
+    "The local checkpoint/source hashes prove current immutability, not independent authenticity of the original remote content.",
+    "The saved bytecode hash alone is not treated as source equivalence; acceptance also relies on the recovered-source hash embedded independently in every canonical prediction row and in the canonical summary, plus the contemporaneous decision-log recovery record."
+  ],
+  "pass": true,
+  "decision": "The recovered v9 runner at SHA-256 e03e1e... is the only canonical mechanism source authorized for v19 imports. Any drift is terminal before data or candidate operations."
+}

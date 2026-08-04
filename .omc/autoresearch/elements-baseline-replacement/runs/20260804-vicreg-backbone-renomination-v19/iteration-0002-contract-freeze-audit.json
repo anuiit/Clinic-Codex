@@ -1,0 +1,83 @@
+{
+  "schema_version": "autoresearch-v19.contract-freeze-audit-v1",
+  "iteration": 2,
+  "created_at_utc": "2026-08-04T16:00:34Z",
+  "status": "pass_pending_council_phase_2_authorization",
+  "pass": true,
+  "scope": "phase_1_implementation_tests_and_contract_freeze_only",
+  "council_authorization_in_force": {
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 41,
+    "local_turn": 44,
+    "published_synthesis_sha256": "bdbee8f74dde40130a1b5cde83c22c9a4f757a3b8544b6fc30763cb55e8e2bc3",
+    "phase_1_authorized": true,
+    "phase_2_authorized": false,
+    "phase_3_authorized": false
+  },
+  "frozen_artifacts": {
+    "runner_path": "scripts/autoresearch_vicreg_backbone_v19.py",
+    "runner_sha256": "14066b79538a5d3176bdf76f3a6475235da91480faf86a758c328234c6b60219",
+    "tests_path": "backend/tests/test_autoresearch_vicreg_backbone_v19.py",
+    "tests_sha256": "b46ddefe03993e83f6847f6aa3a1d9b98534fcfc3cecc6e64bd796309169c154",
+    "spec_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/specs/iteration-0002.json",
+    "spec_sha256": "d4da848144eb5b0353919556fcd8ce42cff0a78a5d91e9a914b2e937ff270087",
+    "evaluator_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/evaluator-iteration-0002.json",
+    "evaluator_sha256": "48494ce2fda34f05f8f0202e164f1d1582008eab02bb5bb0444d3c18f7033b92",
+    "static_contract_validation_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19/iteration-0002-static-contract-validation.json",
+    "static_contract_validation_sha256": "ed65e45bdb314e6ebfbaa2de9bf1978f43a2beb4043619d6fbff3cf83fb8e5df",
+    "feasibility_audit_sha256": "defa12f5cae3662fd12eb75bf75ba580b4d200b97b5b351261aea3b9a206a0e4",
+    "v9_recovery_audit_sha256": "8f04000fd14e61e899e05c034fb36ab71dce3fecd7cb423fbba11ba476583cf5"
+  },
+  "implementation_contract": {
+    "thin_runner_imports_canonical_v9_unchanged": true,
+    "canonical_v9_runner_sha256": "e03e1e29340a1a165ab2f82001236f5aaae4450afcee862dff8cb27ef26c48a9",
+    "candidate": "single DINOv2-B/14 768->768->128 head under exact v9 VICReg plus episodic readout",
+    "rng_alignment_to_c1_post_head_state": true,
+    "phase_2_cache_filesystem": "WSL ext4",
+    "drvfs_forbidden": true,
+    "cache_overwrite_forbidden": true,
+    "b14_row_order_must_equal_canonical_s14": true,
+    "oof_views_forbidden": true,
+    "same_process_c1_interlock_before_candidate_gradient": true,
+    "same_process_c1_expected_exact_topk_matches": 1959,
+    "episode_plan_hash_matches_required": 15,
+    "ssl_plan_hash_matches_required": 15,
+    "deterministic_replay_required": true
+  },
+  "verification": {
+    "targeted_runner_tests": {
+      "command": "backend/.venv/bin/python -m pytest backend/tests/test_autoresearch_vicreg_backbone_v19.py -q",
+      "passed": 11,
+      "failed": 0
+    },
+    "combined_feasibility_and_runner_tests": {
+      "command": "backend/.venv/bin/python -m pytest backend/tests/test_autoresearch_vicreg_backbone_feasibility_v19.py backend/tests/test_autoresearch_vicreg_backbone_v19.py -q",
+      "passed": 16,
+      "failed": 0
+    },
+    "python_compile": true,
+    "cli_import": true,
+    "static_contract_validation_pass": true,
+    "workspace_cache_target_ext4": true,
+    "checkpoint_serialization_byte_deterministic": true,
+    "ruff": "unavailable_in_backend_environment"
+  },
+  "operation_counts": {
+    "source_image_reads": 0,
+    "oof_accesses": 0,
+    "real_feature_extractions": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "runtime_writes": 0
+  },
+  "runtime_sha256": {
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54",
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b"
+  },
+  "runtime_unchanged": true,
+  "final_test_read": false,
+  "promotion_eligible": false,
+  "next_action": "Council review before any phase_2 extraction or C1 control replay"
+}

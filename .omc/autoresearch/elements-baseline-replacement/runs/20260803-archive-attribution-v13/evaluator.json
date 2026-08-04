@@ -1,0 +1,45 @@
+{
+  "schema_version": "autoresearch-archive-attribution-v13.evaluator",
+  "mission": "elements-baseline-replacement",
+  "run_id": "20260803-archive-attribution-v13",
+  "iteration": 1,
+  "evaluation_mode": "provenance_recovery_and_collision_index_not_model_efficacy",
+  "primary_metric": "unique_codex_attributed_row_coverage",
+  "pass_definition": "Execution integrity passes, at least 50% of the 9990 retained rows are uniquely attributed by exact collisions, and at least 20 codex identities are represented.",
+  "thresholds": {
+    "minimum_unique_codex_attributed_row_coverage": 0.5,
+    "minimum_unique_codex_ids": 20
+  },
+  "required_integrity_gates": {
+    "spec_and_evaluator_hash_pinned_by_runner": true,
+    "archive_content_inventory_hash_matches": true,
+    "archive_count_equals": 49,
+    "non_directory_entries_equals": 47251,
+    "supported_rasters_success_plus_failure_equals": 47050,
+    "non_raster_entries_equals": 201,
+    "retained_rows_equals": 9990,
+    "quarantined_rows_equals": 49,
+    "deterministic_replay_same_attribution_hash": true,
+    "sources_unchanged": true,
+    "exclusions_unchanged": true,
+    "model_predictions_equals": 0,
+    "final_test_read": false,
+    "runtime_unchanged": true
+  },
+  "required_output": {
+    "pass": "boolean hypothesis result",
+    "execution_integrity_pass": "boolean",
+    "promotion_eligible": "boolean always false",
+    "business_identity_coverage_before": "number fixed at 0.0",
+    "unique_codex_attributed_row_coverage": "number",
+    "unique_codex_ids": "integer",
+    "ambiguous_rows": "integer",
+    "unmatched_rows": "integer",
+    "decision_band": "material_recovery|partial_recovery|no_recovery",
+    "final_test_read": "boolean",
+    "runtime_unchanged": "boolean"
+  },
+  "promotion_eligible": false,
+  "failure_rule": "A non-pass does not invalidate the collision index when integrity passes. It forbids provenance-based exclusion review and sends the mission to new external acquisition sourcing.",
+  "exclusion_change_allowed": false
+}

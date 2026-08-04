@@ -1,0 +1,94 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.evaluator",
+  "iteration": 1,
+  "status": "frozen_before_runner_implementation_and_any_candidate_training_or_prediction",
+  "primary_claim": "pooled OOF top-1 candidate-minus-exact-C1",
+  "integrity_gates": {
+    "contract_and_frozen_input_hashes_match": true,
+    "v17_3_amendment_hash_matches": true,
+    "spec_cache_pins_equal_canonical_i5_constants": true,
+    "paired_prediction_rows": 1959,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "persisted_c1_checkpoint_hash_match_count": 15,
+    "control_topk_matches_persisted_c1_rows": 1959,
+    "step_zero_head_tensor_hash_matches_control_count": 15,
+    "step_zero_topk_matches_control_rows": 1959,
+    "full_batch_row_order_hash_count": 15,
+    "optimizer_step_count": 1500,
+    "learned_head_artifact_count": 15,
+    "training_operation_scope": "head weights only",
+    "new_feature_extraction": false,
+    "candidate_count": 1,
+    "finite_losses_logits_gradients_and_weights": true,
+    "runtime_unchanged": true,
+    "final_test_read": false,
+    "automatic_promotion": false,
+    "deterministic_replay_required": true,
+    "replay_normalization_routine_sha256": "58335c98ef3cad6e3fafbff36fcfcafc36d1d700e45865b1e36708cbde126e82"
+  },
+  "engagement_gates": {
+    "end_loss_below_start_loss_count": 15,
+    "final_head_hash_differs_from_initial_count": 15,
+    "nonzero_angular_head_movement_count": 15,
+    "candidate_vs_c1_discordant_prediction_rows_gt": 0
+  },
+  "b0_mission_anchor_gates": {
+    "delta_top1_gte": 0.01,
+    "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+    "positive_seed_count_gte": 2,
+    "delta_macro_top1_gte": -0.005,
+    "delta_top3_gte": 0.0,
+    "minimum_fold_delta_top1_gte": -0.05
+  },
+  "c1_noninferiority_gates": {
+    "delta_top1_gte": -0.005,
+    "delta_top1_component_bootstrap_lower_95_gt": -0.01,
+    "delta_top3_gte": -0.01,
+    "delta_macro_top1_gte": -0.01
+  },
+  "verdict_tiers": {
+    "supported_strong": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.01,
+      "candidate_minus_c1_component_bootstrap_lower_95_gt": 0.0,
+      "promotion_eligible": false
+    },
+    "supported_reference": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.005,
+      "candidate_minus_c1_positive_seed_count_gte": 2,
+      "claim_when_strong_lower_bound_fails": "unresolved_at_component_level_power",
+      "promotion_eligible": false
+    },
+    "neutral_preservation": {
+      "b0_anchor_and_c1_noninferiority_pass": true,
+      "positive_tier_pass": false,
+      "claim": "preserves C1 but is not evidence of a better model; close discriminative head-only adaptation",
+      "promotion_eligible": false
+    },
+    "not_supported": {
+      "valid_integrity": true,
+      "any_efficacy_noninferiority_or_engagement_gate_fails": true,
+      "promotion_eligible": false
+    },
+    "invalid": {
+      "any_integrity_or_control_replay_gate_fails": true,
+      "candidate_results_interpretable": false,
+      "promotion_eligible": false
+    }
+  },
+  "diagnostic_only": {
+    "candidate_minus_c1_mcnemar": true,
+    "loss_trajectory_per_fold_seed": true,
+    "head_movement_cosine_by_support": true,
+    "support_strata_three_bin": ["n_y_lte_8", "n_y_9_to_31", "n_y_gte_32"],
+    "support_strata_binary": ["n_y_lte_8", "n_y_gt_8"],
+    "learned_head_effective_rank": true,
+    "candidate_to_c1_embedding_rank_ratio": true,
+    "rank_ratio_below": 0.8,
+    "rank_action": "Council review, not automatic veto"
+  },
+  "research_reference_only": true,
+  "independent_promotion_instrument_required": true
+}

@@ -1,0 +1,122 @@
+{
+  "schema_version": "autoresearch-discriminative-readout-v18.lora-vicreg-evaluator-v1",
+  "iteration": 3,
+  "status": "frozen_before_any_iteration_0003_shared_token_extraction_candidate_training_or_prediction",
+  "primary_claim": "pooled OOF top-1 candidate-minus-same-process-exact-C1",
+  "pretraining_abort_gates": {
+    "contract_spec_evaluator_and_cache_schema_hashes_match": true,
+    "v18_2_replay_audit_hash_matches": true,
+    "v18_3_feasibility_audit_hash_matches_and_passes": true,
+    "source_inventory_hash_matches": true,
+    "backbone_manifest_weights_and_critical_source_hashes_match": true,
+    "five_canonical_v9_cache_hashes_match": true,
+    "train_token_cache_contains_fold_train_rows_only": true,
+    "train_token_cache_metadata_and_source_hashes_match": true,
+    "train_token_cache_float32_shape_and_batch_metadata_match": true,
+    "all_train_base_and_view_feature_values_match_canonical_v9": 359640,
+    "same_process_c1_initial_state_hash_match_count": 15,
+    "same_process_c1_ssl_plan_hash_match_count": 15,
+    "same_process_c1_final_state_hash_match_count": 15,
+    "same_process_c1_episode_plan_hash_match_count": 15,
+    "lora_rng_isolated_from_global_rng": true,
+    "lora_trainable_name_count": 8,
+    "lora_trainable_parameter_count": 49152,
+    "base_backbone_trainable_parameter_count": 0,
+    "batchnorm_or_syncbatchnorm_module_count": 0,
+    "oof_token_files_exist_before_all_fold_updates": 0,
+    "active_lora_optimizer_steps_before_all_abort_gates_pass": 0
+  },
+  "post_training_integrity_gates": {
+    "candidate_count": 1,
+    "candidate_optimizer_step_count": 14220,
+    "candidate_lora_state_artifact_count": 15,
+    "candidate_projection_state_artifact_count": 15,
+    "optimizer_group_manifest_match_count": 15,
+    "base_backbone_hash_unchanged_count": 15,
+    "oof_token_cache_created_after_all_fold_updates_count": 5,
+    "oof_token_access_during_training_count": 0,
+    "all_oof_base_feature_values_match_canonical_v9": 653,
+    "same_process_c1_topk_match_rows_after_oof_creation": 1959,
+    "paired_prediction_rows": 1959,
+    "unique_oof_rows": 653,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "finite_losses_logits_gradients_weights_and_embeddings": true,
+    "runtime_unchanged": true,
+    "final_test_read": false,
+    "automatic_promotion": false,
+    "deterministic_replay_required": true,
+    "replay_reextracts_token_cache": false
+  },
+  "engagement_gates": {
+    "end_vicreg_loss_below_start_count": 15,
+    "final_lora_hash_differs_from_initial_count": 15,
+    "nonzero_embedding_movement_count": 15,
+    "candidate_vs_c1_discordant_prediction_rows_gt": 0
+  },
+  "b0_mission_anchor_gates": {
+    "delta_top1_gte": 0.01,
+    "delta_top1_component_bootstrap_lower_95_gt": 0.0,
+    "positive_seed_count_gte": 2,
+    "delta_macro_top1_gte": -0.005,
+    "delta_top3_gte": 0.0,
+    "minimum_fold_delta_top1_gte": -0.05
+  },
+  "c1_noninferiority_gates": {
+    "delta_top1_gte": -0.005,
+    "delta_top1_component_bootstrap_lower_95_gt": -0.01,
+    "delta_top3_gte": -0.01,
+    "delta_macro_top1_gte": -0.01
+  },
+  "verdict_tiers": {
+    "supported_strong": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.01,
+      "candidate_minus_c1_component_bootstrap_lower_95_gt": 0.0,
+      "promotion_eligible": false
+    },
+    "supported_reference": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.005,
+      "candidate_minus_c1_positive_seed_count_gte": 2,
+      "claim_when_strong_lower_bound_fails": "unresolved_at_component_level_power",
+      "promotion_eligible": false
+    },
+    "neutral_preservation": {
+      "b0_anchor_and_c1_noninferiority_pass": true,
+      "positive_tier_pass": false,
+      "claim": "preserves C1 but does not establish a better model; retire the instrument",
+      "promotion_eligible": false
+    },
+    "not_supported": {
+      "valid_integrity": true,
+      "any_efficacy_noninferiority_or_engagement_gate_fails": true,
+      "promotion_eligible": false
+    },
+    "invalid": {
+      "any_post_training_integrity_or_replay_gate_fails": true,
+      "candidate_results_interpretable": false,
+      "promotion_eligible": false
+    },
+    "aborted_control_path_mismatch": {
+      "any_pretraining_abort_gate_fails": true,
+      "active_lora_optimizer_steps": 0,
+      "candidate_consumed": false,
+      "instrument_retired": true
+    }
+  },
+  "diagnostic_only": {
+    "candidate_minus_c1_mcnemar": true,
+    "vicreg_loss_trajectory_per_fold_seed": true,
+    "embedding_movement_by_fold_seed": true,
+    "support_strata_three_bin": ["n_y_lte_8", "n_y_9_to_31", "n_y_gte_32"],
+    "support_strata_binary": ["n_y_lte_8", "n_y_gt_8"],
+    "candidate_embedding_effective_rank": true,
+    "candidate_to_c1_embedding_rank_ratio": true,
+    "rank_ratio_below": 0.8,
+    "rank_action": "Council review, not automatic veto"
+  },
+  "research_reference_only": true,
+  "independent_promotion_instrument_required": true,
+  "terminal_rule": "Below supported_reference, any integrity failure, or any non-byte-identical replay retires the instrument and forbids v18.4."
+}
