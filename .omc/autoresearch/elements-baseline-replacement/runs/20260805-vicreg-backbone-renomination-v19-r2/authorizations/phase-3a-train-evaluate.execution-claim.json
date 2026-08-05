@@ -1,0 +1,14 @@
+{
+  "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3a-train-evaluate.json",
+  "authorization_sha256": "cc4b7ccf1ec2889c187caed81906d347e8f31a90aad1e016122346ee5d4f370b",
+  "command": "train-evaluate",
+  "command_contract_sha256": "dc419e6290c32a0f95f4c5531930cf3cf11441978aae07b5a7d10818a1eefa59",
+  "consumed_at": "2026-08-05T01:29:03.050283+02:00",
+  "deadline_at": "2026-08-05T07:29:03.050283+02:00",
+  "deadline_policy": "claim_time_plus_21600",
+  "max_runtime_seconds": 21600,
+  "one_execution_only": true,
+  "retry_allowed": false,
+  "schema_version": "autoresearch-v19r.execution-claim-v1",
+  "started_at": "2026-08-05T01:29:03.050283+02:00"
+}

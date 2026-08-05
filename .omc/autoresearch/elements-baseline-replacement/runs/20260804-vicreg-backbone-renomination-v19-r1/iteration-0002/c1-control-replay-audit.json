@@ -1,0 +1,225 @@
+{
+  "cache_manifest_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+  "cache_manifest_sha256": "69961003a7dc3601655b27acf8caefef953db987676ed3697146fd36351a5a9b",
+  "cache_manifest_verified": true,
+  "entries": [
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-01-seed-17-C1.pt",
+      "checkpoint_sha256": "1a1f812cc5f6d609e9fec101c7e8e9ddb80d914f0fd8332b3d789c6631d934cb",
+      "effective_rank": 27.68353271484375,
+      "episode_plan_sha256": "d3a3c6245e14e5fc0087e7c1896d523b26ecdb42205b061e3698c87519742c15",
+      "fold": 1,
+      "prediction_rows": 48,
+      "seed": 17,
+      "ssl_plan_sha256": "20cd11db88acebf52641f7d48a51cb57c314db81d1237413901b9e8bc201fcf7"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-01-seed-42-C1.pt",
+      "checkpoint_sha256": "534885155218bc8db5980f0c5909be489e3812c7472353111cbe0c5154fe145b",
+      "effective_rank": 27.67816734313965,
+      "episode_plan_sha256": "4731282440bc59281b89bbf1c53096955dca141d04b46b33d50da547d9e61fd5",
+      "fold": 1,
+      "prediction_rows": 48,
+      "seed": 42,
+      "ssl_plan_sha256": "f328774a5078142a2bd1f48adb6c42dc4f7c534a3f14c0c3db74069ac3877475"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-01-seed-73-C1.pt",
+      "checkpoint_sha256": "6d1f50d0f40a9694a4355a3040ae8964e447e349b23d1602182e6a5df5672996",
+      "effective_rank": 27.665307998657227,
+      "episode_plan_sha256": "c5c9390f8c196d76209e4182c91096000bd399d327991396da0094b7599f2f54",
+      "fold": 1,
+      "prediction_rows": 48,
+      "seed": 73,
+      "ssl_plan_sha256": "f8a92f7439580677718a47503608d3f2dce3d06ba1bcbb41abb765b2ef1c3a9a"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-02-seed-17-C1.pt",
+      "checkpoint_sha256": "ea24d00cd8d79793c5a4e6f2c58ed85cb78cc63e0327995b9b644607c68aa85b",
+      "effective_rank": 12.36617660522461,
+      "episode_plan_sha256": "1ed5b93dc272e35e5a5277978627ef24e61cf908d2d075abe2f45ead6ecc55b9",
+      "fold": 2,
+      "prediction_rows": 22,
+      "seed": 17,
+      "ssl_plan_sha256": "effd21cf119add59a46ea4f1dc2b7e3b7b757a3fa15cd9b1d6e1359556680902"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-02-seed-42-C1.pt",
+      "checkpoint_sha256": "3e12a831204deeab8e1acac9813da77bd5798ad4db0dce03c704774f98037765",
+      "effective_rank": 12.00853443145752,
+      "episode_plan_sha256": "831d233d2b207a001c94df47989add4521c0a61095806ddc16e8a0311730f92a",
+      "fold": 2,
+      "prediction_rows": 22,
+      "seed": 42,
+      "ssl_plan_sha256": "595b6fa7b55fcd8931e3634fa520a01de6600a026b37c0791631ef8135d8c76a"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-02-seed-73-C1.pt",
+      "checkpoint_sha256": "e7be90a4a5287d52cc4c40bb3354bc2e6b623e4cb7277546a49f29c1cce665b2",
+      "effective_rank": 12.792412757873535,
+      "episode_plan_sha256": "04dc9e5d1ed039b17892d0b38eb1e42ba2c3ef2e994eb623c924e518ebd850b2",
+      "fold": 2,
+      "prediction_rows": 22,
+      "seed": 73,
+      "ssl_plan_sha256": "be8877963fb8f31f1b418bed99e62bcc37ae860cb56613559e76ef7450f4c71f"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-03-seed-17-C1.pt",
+      "checkpoint_sha256": "3cf8118a742f9138f91d3c3b6be67c9b22b8c113dc4a13bc8179b9d365d62fcf",
+      "effective_rank": 17.827808380126953,
+      "episode_plan_sha256": "22e7069c4e746f1dcc3e311fa70f8643e8453366f30484ec1ded021fb02b5b1c",
+      "fold": 3,
+      "prediction_rows": 32,
+      "seed": 17,
+      "ssl_plan_sha256": "126670b289eb55b37bc4e21de426115331f474ec4fa2b40e6c7413d0bcd3fee9"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-03-seed-42-C1.pt",
+      "checkpoint_sha256": "4ec947c3eda90f7800346ac9ceae21b7d40d67d998af00b6f797a94fe7a9a46a",
+      "effective_rank": 18.305564880371094,
+      "episode_plan_sha256": "bb9a54894580ebfabbea4ceeb59a37d2c2b39c67747497b4a7551a3b0e4f53d6",
+      "fold": 3,
+      "prediction_rows": 32,
+      "seed": 42,
+      "ssl_plan_sha256": "9ea6e0a88cc1526376417d76254edb31cb2d6797aebce1cda7b32ce1f95e3522"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-03-seed-73-C1.pt",
+      "checkpoint_sha256": "beb85282e236e0e662b14db9c3c8c3de9a357f5d8d8214bec2352646269941a2",
+      "effective_rank": 17.812271118164062,
+      "episode_plan_sha256": "7b70f27afa68611989bbfec74269bf4af505a66282baabeb636a1b1799ab5864",
+      "fold": 3,
+      "prediction_rows": 32,
+      "seed": 73,
+      "ssl_plan_sha256": "10e89f27fd60cde761b0aec3ecd1fdf28edbdbfc4b15a175188205d687de28cd"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-04-seed-17-C1.pt",
+      "checkpoint_sha256": "64ff28a7ff36bdb4583aba9c4e9ff95d9cc9c8df970fb14ea40c3b7f018a7862",
+      "effective_rank": 61.05693817138672,
+      "episode_plan_sha256": "bb739854b0b887f673407b56e6258a2a8c54d9e291880b11f5d9f4f9473c92b8",
+      "fold": 4,
+      "prediction_rows": 438,
+      "seed": 17,
+      "ssl_plan_sha256": "c81878731fd3a21887df1dac4273218fca9b399ed651a745d6c4f9c22a752604"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-04-seed-42-C1.pt",
+      "checkpoint_sha256": "99d71a2c28186aecc083e2878a153981f5eb4f03e43833d5730c0607aa14ef49",
+      "effective_rank": 60.455711364746094,
+      "episode_plan_sha256": "59a458bb5334453625181f7b03ea146e51a82fb7f461392db5e78f5d651536d2",
+      "fold": 4,
+      "prediction_rows": 438,
+      "seed": 42,
+      "ssl_plan_sha256": "131d7959445d35e9b7c3e754dbfbbae8fa778b48a3e738d9fac38027ab97750e"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-04-seed-73-C1.pt",
+      "checkpoint_sha256": "0479600b8842bee133142e5dd69710951fc63dfa40bbd15bc4e7987883bba161",
+      "effective_rank": 61.264583587646484,
+      "episode_plan_sha256": "b9cfd16c2bae35111d306c051e3a7a4c68d11751785a6d89792b55c4d4f9c395",
+      "fold": 4,
+      "prediction_rows": 438,
+      "seed": 73,
+      "ssl_plan_sha256": "a811112efbaad904c2a4d1b0c1c8a3bef17a8e02cec135af102ffdd4d586416b"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-05-seed-17-C1.pt",
+      "checkpoint_sha256": "2451d2d590827673ce91bab360bf1948a90fd1857696f23e741d9b444983e715",
+      "effective_rank": 35.54347610473633,
+      "episode_plan_sha256": "2abd44b2a2c01e119375229f06b8915526e41d380a348535b9e17b8bca2d00cf",
+      "fold": 5,
+      "prediction_rows": 113,
+      "seed": 17,
+      "ssl_plan_sha256": "21e81b6ff1dd5bd0dc0ba4fd4f279faf3019207b3e56dc3fc8793590bbb7fa34"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-05-seed-42-C1.pt",
+      "checkpoint_sha256": "66ceebfd9b6bfaef703a32143162618b34b0bc79fdf512b3f2810e7cb07f0acf",
+      "effective_rank": 35.72234344482422,
+      "episode_plan_sha256": "ab7888f6b96ea00fd434a899a65e7652c74d2dfec1b91190db4c86d4bf92a339",
+      "fold": 5,
+      "prediction_rows": 113,
+      "seed": 42,
+      "ssl_plan_sha256": "07b1df6317fad6681ce3e1a1793b228026fda065e89798085057858eb70c6853"
+    },
+    {
+      "checkpoint_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/checkpoints/fold-05-seed-73-C1.pt",
+      "checkpoint_sha256": "58a047692514b6592feafaaefffa2bf04fbd14102f998852ea0139fec501d8a1",
+      "effective_rank": 35.112796783447266,
+      "episode_plan_sha256": "dcf91e1fb6baba636f987b51aebff7f8c8285be86e1d898581b13f8d211bd9a4",
+      "fold": 5,
+      "prediction_rows": 113,
+      "seed": 73,
+      "ssl_plan_sha256": "6cb9da5b63aa9ff6e7ac74e3567e93ab569128988cadc6db82c30c7186cd5999"
+    }
+  ],
+  "exact_topk_match_count": 1959,
+  "execution_claim": {
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.execution-claim.json",
+    "sha256": "f768659ed204066f5fae994a450468163ee5ff2f310a5c349fd3baa406822412"
+  },
+  "final_test_read": false,
+  "mismatches": [],
+  "operation_counts": {
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "control_predictions": 1959,
+    "real_feature_extractions": 0,
+    "runtime_writes": 0,
+    "source_image_reads": 0
+  },
+  "pass": true,
+  "phase_authorization": {
+    "command_contract": {
+      "audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0003/collection-provenance-audit.json",
+      "authorization": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.json",
+      "b14_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches",
+      "b14_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+      "c1_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/caches",
+      "c1_predictions": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/prediction_rows.jsonl",
+      "c1_summary": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/paired_seed_summary.json",
+      "cache_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+      "command": "replay-c1",
+      "control_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/c1-control-replay-audit.json",
+      "device": "cuda",
+      "evaluator": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/evaluator-iteration-0002.json",
+      "freeze_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002-phase-2b-contract-freeze-audit.json",
+      "image_batch_size": 4,
+      "manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl",
+      "num_workers": 0,
+      "runner": "scripts/autoresearch_vicreg_backbone_v19r.py",
+      "runtime_config": "backend/codex_model/config.json",
+      "runtime_projection": "backend/codex_model/weights/projection.pt",
+      "runtime_prototypes": "backend/codex_model/weights/prototypes.pt",
+      "source_inventory": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-source-inventory.jsonl",
+      "spec": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/specs/iteration-0002.json",
+      "supervised_device": "cpu"
+    },
+    "command_contract_sha256": "c2ed21c403113f671a2d76fc02d78f9817eaf5f7eea6f9a395d094b4ad2d0df1",
+    "contract_freeze_audit_sha256": "98742f84f3cedd1a06b63f6848542766b8d00c705cc6c77442ecf188228c0455",
+    "deadline": {
+      "deadline_at": "2026-08-05T02:54:54+02:00",
+      "max_runtime_seconds": 21600,
+      "started_at": "2026-08-04T20:54:54+02:00"
+    },
+    "execution_claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.execution-claim.json",
+    "one_execution_only": true,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.json",
+    "phase": "phase_2b_c1_control",
+    "published_synthesis_sha256": "bb845aeceb9e51b1729aacd5fd056a6e9fa409ddb8b4ba5d95c6591ba4cf1a62",
+    "retry_allowed": false,
+    "sha256": "ce266e9fb7764a685f3e98a1c5de05cb5b70a2f6003826d26758bb2477a30f9b"
+  },
+  "replayed_checkpoints": 15,
+  "replayed_prediction_rows": 1959,
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-v19r.c1-control-replay-audit-v1",
+  "static_contract_sha256": "5dd570ba7696f50abb2e09558928982c2aa84a0d3c58631c839afa574bd5245c"
+}

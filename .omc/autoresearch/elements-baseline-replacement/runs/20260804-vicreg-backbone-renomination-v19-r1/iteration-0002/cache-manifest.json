@@ -1,0 +1,278 @@
+{
+  "backbone_pin": {
+    "authenticity_scope": "Downloaded over HTTPS from the official Meta URL referenced by the official loader; no independently published Meta checksum was found. The local SHA-256 proves subsequent immutability, not independent first-download authenticity.",
+    "backbone": "dinov2_vitb14",
+    "critical_source_hashes_verified": true,
+    "hubconf_sha256": "c1f5090e78ff940b72c076d2bf9c0310d1707c946b3d10e2d6f2b0bdf56a6f64",
+    "license": "Apache-2.0",
+    "license_sha256": "600cc67cc4cb2f5ea317dcfc687ad1c74dc4bec8782bbe9db0afd83513b935b7",
+    "manifest_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+    "manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "repository_path": "/home/sina/.cache/torch/hub/facebookresearch_dinov2_main",
+    "schema_version": "dinov2-local-pin.v1",
+    "source_revision_kind": "source_tree_sha256",
+    "source_tree_sha256": "b64f9117250826940b54ed25b65e2869fcdc9222cbaf9c1d4885eeab5f950a3b",
+    "vision_transformer_sha256": "7799a260f2d7d0fe197331d08502fb8c542f9b7424723650f6a39b64fa2639ea",
+    "weights_bytes": 346378731,
+    "weights_bytes_verified": 346378731,
+    "weights_origin": "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth",
+    "weights_path": "/home/sina/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth",
+    "weights_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+    "weights_sha256_verified": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+  },
+  "backbone_provenance": {
+    "backbone": "dinov2_vitb14",
+    "manifest_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+    "manifest_sha256": "ea73c8b9d2cc8a81a48183a43516fc76ad6b2bd5694442229d9b03ce3774e4d5",
+    "mode": "local_pin",
+    "repository_path": "/home/sina/.cache/torch/hub/facebookresearch_dinov2_main",
+    "repository_sha256": "b64f9117250826940b54ed25b65e2869fcdc9222cbaf9c1d4885eeab5f950a3b",
+    "weights_path": "/home/sina/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth",
+    "weights_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73"
+  },
+  "duration_seconds_descriptive_only": 5601.473770618439,
+  "evaluator_sha256": "fdcd9e4f7d29793bb7790fc65682fb02db2df4381478ba6983acf3d37e255687",
+  "execution_claim": {
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2a-precompute.execution-claim.json",
+    "sha256": "858a38214a5c34bb0b5954fca2265c8c137bff253891167d9ae150884295c37b"
+  },
+  "expected_tensor_bytes": 552407040,
+  "extraction_geometry": {
+    "effective_images_per_full_batch": 36,
+    "num_workers": 0,
+    "row_batch_size": 4,
+    "smoke_batches": 0,
+    "smoke_fold": 0,
+    "views_including_base": 9
+  },
+  "filesystem": {
+    "filesystem": "ext4",
+    "mountpoint": "/",
+    "resolved_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches",
+    "workspace_device": 2096
+  },
+  "final_test_read": false,
+  "folds": [
+    {
+      "byte_identical_readback": true,
+      "cache_bytes": 112934049,
+      "cache_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-01-views08.pt",
+      "cache_sha256": "2ab57814e947c5162180b2c52da8dbe8f055d52ec87a32332414a5481559c3b7",
+      "canonical_oof_row_ids_sha256": "1b580b58483140094008b426b6a1320f1f4b51197418ec618c98cd5e932290d7",
+      "canonical_train_row_ids_sha256": "2f22607a65eed822d5f535b2b5f91c35d0b36334787385fe00d401dafd689a0a",
+      "dtype": "torch.float16",
+      "final_test_read": false,
+      "fold": 1,
+      "oof_row_ids_sha256": "1b580b58483140094008b426b6a1320f1f4b51197418ec618c98cd5e932290d7",
+      "oof_rows": 48,
+      "oof_shape": [
+        48,
+        768
+      ],
+      "oof_view_features_persisted": false,
+      "sidecar_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-01-views08.pt.prov.json",
+      "sidecar_sha256": "ad7fdb8ede7745348be70cc2f7a7787eef47401873feb2127bfccef8a70c6bd3",
+      "train_row_ids_sha256": "2f22607a65eed822d5f535b2b5f91c35d0b36334787385fe00d401dafd689a0a",
+      "train_rows": 8091,
+      "train_shape": [
+        8091,
+        768
+      ],
+      "view_plan_sha256": "5901cf4395c6abee5701b6804630f2ac3b243cfb4234463b4b8e74f5798578be",
+      "view_shape": [
+        8091,
+        8,
+        768
+      ]
+    },
+    {
+      "byte_identical_readback": true,
+      "cache_bytes": 113558753,
+      "cache_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-02-views08.pt",
+      "cache_sha256": "9c96d52eca0eb9a43ff4a5b708fa52eb782fe42a31fa6fc5ca6fc69793ce9b57",
+      "canonical_oof_row_ids_sha256": "f30067bfd3902e9745d8f2902a7d5556d892f261d24f45a8f8d476c74806f99b",
+      "canonical_train_row_ids_sha256": "752d709122121a53712439b42fa7e9f04f193dc690a89810857e46db6405b829",
+      "dtype": "torch.float16",
+      "final_test_read": false,
+      "fold": 2,
+      "oof_row_ids_sha256": "f30067bfd3902e9745d8f2902a7d5556d892f261d24f45a8f8d476c74806f99b",
+      "oof_rows": 22,
+      "oof_shape": [
+        22,
+        768
+      ],
+      "oof_view_features_persisted": false,
+      "sidecar_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-02-views08.pt.prov.json",
+      "sidecar_sha256": "fbd2745b352a68477636a8b70a8e03b1cc5111cefe86b1c43aee6ed2dd79505a",
+      "train_row_ids_sha256": "752d709122121a53712439b42fa7e9f04f193dc690a89810857e46db6405b829",
+      "train_rows": 8139,
+      "train_shape": [
+        8139,
+        768
+      ],
+      "view_plan_sha256": "1c81a0714e4f5865f9926f467b4f381a662cb6907151c9ed2bdb99e9ad9d6c72",
+      "view_shape": [
+        8139,
+        8,
+        768
+      ]
+    },
+    {
+      "byte_identical_readback": true,
+      "cache_bytes": 111930721,
+      "cache_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-03-views08.pt",
+      "cache_sha256": "f8b4737e9b555df5af170223fbb5adb25592d53095fba06743423ee73e1a5006",
+      "canonical_oof_row_ids_sha256": "c884d1afcd16af1fb2401c81efa6c61f0d5eed94c8c6fe65ace70551536dbd1f",
+      "canonical_train_row_ids_sha256": "c0dac104d077eca6c7f2d46ad4d96f6a47d3c93b96f5bc2f467993650b14fcd6",
+      "dtype": "torch.float16",
+      "final_test_read": false,
+      "fold": 3,
+      "oof_row_ids_sha256": "c884d1afcd16af1fb2401c81efa6c61f0d5eed94c8c6fe65ace70551536dbd1f",
+      "oof_rows": 32,
+      "oof_shape": [
+        32,
+        768
+      ],
+      "oof_view_features_persisted": false,
+      "sidecar_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-03-views08.pt.prov.json",
+      "sidecar_sha256": "20bd5cc229135237f3a1f5afd044bd9fc30d5eb4ae0bfc29cda416f76410e6d9",
+      "train_row_ids_sha256": "c0dac104d077eca6c7f2d46ad4d96f6a47d3c93b96f5bc2f467993650b14fcd6",
+      "train_rows": 8021,
+      "train_shape": [
+        8021,
+        768
+      ],
+      "view_plan_sha256": "a1ef50a97515b4306dc273068d7dba11dd2839531a40d5262c455e5721825d29",
+      "view_shape": [
+        8021,
+        8,
+        768
+      ]
+    },
+    {
+      "byte_identical_readback": true,
+      "cache_bytes": 112883873,
+      "cache_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-04-views08.pt",
+      "cache_sha256": "be2e69f4636241ddd7454e8504ff9a3e83f809f5c4136468de5403d4822a3483",
+      "canonical_oof_row_ids_sha256": "0be9fcdcc97ab6b7929b564df88a8b616db3536ffc3e22d947d347635b22eeb5",
+      "canonical_train_row_ids_sha256": "c411937e058fc9b044c49692f3195de47fe21e29513ca655c15151a74a94d7cb",
+      "dtype": "torch.float16",
+      "final_test_read": false,
+      "fold": 4,
+      "oof_row_ids_sha256": "0be9fcdcc97ab6b7929b564df88a8b616db3536ffc3e22d947d347635b22eeb5",
+      "oof_rows": 438,
+      "oof_shape": [
+        438,
+        768
+      ],
+      "oof_view_features_persisted": false,
+      "sidecar_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-04-views08.pt.prov.json",
+      "sidecar_sha256": "2733e93ce4d13b2e54d1143f6b4ada516474b4bb72fc178c229093916580d168",
+      "train_row_ids_sha256": "c411937e058fc9b044c49692f3195de47fe21e29513ca655c15151a74a94d7cb",
+      "train_rows": 8041,
+      "train_shape": [
+        8041,
+        768
+      ],
+      "view_plan_sha256": "3ec5be1f25bddea49846809cc7819bfa2e86f9e22fcee9a9879923244c4747ab",
+      "view_shape": [
+        8041,
+        8,
+        768
+      ]
+    },
+    {
+      "byte_identical_readback": true,
+      "cache_bytes": 107141921,
+      "cache_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-05-views08.pt",
+      "cache_sha256": "c4b40ebfe3120ed8d1e7228afeef69472f1897acc99a5f058b5a2d216ea9bcf8",
+      "canonical_oof_row_ids_sha256": "fdc5d75af8f4f582786bca7af6e5bc81e4f8cb83c6db71948dc05619fb5c0dd8",
+      "canonical_train_row_ids_sha256": "03cde3c2d03e6c1598fb810271da387b1ba9da1465125e043c3088f4523ce2d9",
+      "dtype": "torch.float16",
+      "final_test_read": false,
+      "fold": 5,
+      "oof_row_ids_sha256": "fdc5d75af8f4f582786bca7af6e5bc81e4f8cb83c6db71948dc05619fb5c0dd8",
+      "oof_rows": 113,
+      "oof_shape": [
+        113,
+        768
+      ],
+      "oof_view_features_persisted": false,
+      "sidecar_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-05-views08.pt.prov.json",
+      "sidecar_sha256": "e09ed883eef9349f24cc9bd6d8ecafb15a0e2b40735b92f7999974b4887688d6",
+      "train_row_ids_sha256": "03cde3c2d03e6c1598fb810271da387b1ba9da1465125e043c3088f4523ce2d9",
+      "train_rows": 7668,
+      "train_shape": [
+        7668,
+        768
+      ],
+      "view_plan_sha256": "248db154bb72b8d431eecc2e6e88031cfd40467f7c3c9e1e16150bedf5a42400",
+      "view_shape": [
+        7668,
+        8,
+        768
+      ]
+    }
+  ],
+  "operation_counts": {
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "real_feature_extractions": 40613,
+    "runtime_writes": 0,
+    "source_image_reads": 40613
+  },
+  "pass": true,
+  "phase_authorization": {
+    "command_contract": {
+      "audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0003/collection-provenance-audit.json",
+      "authorization": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2a-precompute.json",
+      "b14_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches",
+      "b14_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+      "c1_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/caches",
+      "c1_predictions": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/prediction_rows.jsonl",
+      "c1_summary": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/paired_seed_summary.json",
+      "cache_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+      "command": "precompute",
+      "control_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/c1-control-replay-audit.json",
+      "device": "cuda",
+      "evaluator": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/evaluator-iteration-0002.json",
+      "freeze_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002-phase-2a-contract-freeze-audit.json",
+      "image_batch_size": 4,
+      "manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl",
+      "num_workers": 0,
+      "runner": "scripts/autoresearch_vicreg_backbone_v19r.py",
+      "runtime_config": "backend/codex_model/config.json",
+      "runtime_projection": "backend/codex_model/weights/projection.pt",
+      "runtime_prototypes": "backend/codex_model/weights/prototypes.pt",
+      "source_inventory": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-source-inventory.jsonl",
+      "spec": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/specs/iteration-0002.json",
+      "supervised_device": "cpu"
+    },
+    "command_contract_sha256": "c5cee038842752f0d092fef904b83a11e072d8917a017efdb3e87cd54098b6d8",
+    "contract_freeze_audit_sha256": "f877759ac62de60047e849c7e0944e5a939210e138d275e8e545b4f7515bae56",
+    "deadline": {
+      "deadline_at": "2026-08-05T02:54:54+02:00",
+      "max_runtime_seconds": 21600,
+      "started_at": "2026-08-04T20:54:54+02:00"
+    },
+    "execution_claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2a-precompute.execution-claim.json",
+    "one_execution_only": true,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2a-precompute.json",
+    "phase": "phase_2a_extraction",
+    "published_synthesis_sha256": "ba95ee197d1c3e8dff9598eb67a6af23f20f344aeb29d690d01f6cbece4e9675",
+    "retry_allowed": false,
+    "sha256": "a5554fc2059b08ef50c9e2ea00273e4789cbde7c9ffa49f6195be349761f166b"
+  },
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-v19r.b14-fold-cache-manifest-v1",
+  "spec_sha256": "e865a9a9d7d521df7e81168129a1f2f244df66422d5c45dd631dad9fb1765dfa",
+  "static_contract_sha256": "5dd570ba7696f50abb2e09558928982c2aa84a0d3c58631c839afa574bd5245c",
+  "total_cache_bytes": 558449317,
+  "under_two_gib": true
+}

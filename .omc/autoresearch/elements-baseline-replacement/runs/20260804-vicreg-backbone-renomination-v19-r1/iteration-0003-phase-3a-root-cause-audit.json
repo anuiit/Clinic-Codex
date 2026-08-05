@@ -1,0 +1,54 @@
+{
+  "cache_probe": {
+    "clone_byte_equal": true,
+    "clone_is_inference": false,
+    "conclusion": "serialized B/14 caches are normal tensors and are not the failure source",
+    "oof_base_features_is_inference": false,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-01-views08.pt",
+    "train_base_features_is_inference": false,
+    "train_view_features_is_inference": false
+  },
+  "confirmed_root_cause": {
+    "falsified_hypothesis": "loaded B/14 feature tensors retained inference semantics",
+    "function": "embedding_snapshot",
+    "mechanism": "model.to(device) executes inside torch.inference_mode(), converting CPU-to-CUDA parameter copies into inference tensors; the following VICReg forward cannot save them for backward"
+  },
+  "created_at": "2026-08-05T01:11:21+02:00",
+  "final_test_read": false,
+  "minimal_fix": {
+    "architecture_changed": false,
+    "cache_clone_required": false,
+    "change": "move model.to(device) immediately before entering torch.inference_mode() in embedding_snapshot",
+    "data_or_split_changed": false,
+    "loss_changed": false,
+    "scientific_configuration_changed": false
+  },
+  "model_probe": {
+    "device": "cuda",
+    "inference_parameters_after_current_snapshot": 4,
+    "inference_parameters_after_move_outside_inference_mode": 0,
+    "inference_parameters_before_snapshot": 0,
+    "parameter_tensor_count": 4,
+    "synthetic_feature_rows": 4
+  },
+  "new_instrument_requires_council": true,
+  "operation_counts": {
+    "cache_reextractions": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "runtime_writes": 0,
+    "source_image_reads": 0
+  },
+  "pass": true,
+  "run_id": "20260804-vicreg-backbone-renomination-v19-r1",
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "same_run_retry_allowed": false,
+  "schema_version": "autoresearch-v19r.phase-3a-root-cause-audit-v1",
+  "terminal_failure_audit_sha256": "75e6bda279d470d161ceb7bef7cbe45e98a736c45c78defe258bf0233d02f473"
+}

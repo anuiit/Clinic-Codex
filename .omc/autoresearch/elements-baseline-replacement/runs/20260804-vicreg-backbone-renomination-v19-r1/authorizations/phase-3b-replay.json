@@ -1,0 +1,15 @@
+{
+  "authorized": true,
+  "command_contract_sha256": "bc544eb468a8ae60dc34b9ad864251ee529638e7ede0b80955561ec82e7d2225",
+  "contract_freeze_audit_sha256": "b319b9b614728245f4f1744614edba3676213987a6c875012da1632b14eda9bc",
+  "council_session_id": "adv_20260803T072824_f903d4d6",
+  "created_at": "2026-08-05T01:01:34+02:00",
+  "deadline_policy": "claim_time_plus_21600",
+  "execution_claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3b-replay.execution-claim.json",
+  "max_runtime_seconds": 21600,
+  "one_execution_only": true,
+  "phase": "phase_3b_replay",
+  "published_synthesis_sha256": "e9e53b7c4d4f0a728be2143664d40cad4e9e173ea224112b4d596ddd88dc0065",
+  "retry_allowed": false,
+  "schema_version": "autoresearch-v19r.phase-authorization-v1"
+}

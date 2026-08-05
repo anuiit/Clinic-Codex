@@ -1,0 +1,14 @@
+{
+  "cache_path": "/home/sina/omxpro/clinic-codex/.omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches/fold-01-views08.pt",
+  "cache_sha256": "2ab57814e947c5162180b2c52da8dbe8f055d52ec87a32332414a5481559c3b7",
+  "final_test_read": false,
+  "fold": 1,
+  "learned_statistics_outer_fold_exposure": 0,
+  "oof_row_ids_sha256": "1b580b58483140094008b426b6a1320f1f4b51197418ec618c98cd5e932290d7",
+  "oof_rows": 48,
+  "schema_version": "autoresearch-self-supervised-v9.fold-cache.provenance",
+  "ssl_outer_fold_row_exposure": 0,
+  "train_row_ids_sha256": "2f22607a65eed822d5f535b2b5f91c35d0b36334787385fe00d401dafd689a0a",
+  "train_rows": 8091,
+  "views": 8
+}

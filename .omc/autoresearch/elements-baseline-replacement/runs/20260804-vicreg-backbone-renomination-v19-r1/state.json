@@ -1,0 +1,142 @@
+{
+  "authority_amendment": {
+    "explicit_user_resume": true,
+    "prior_v19_failure_audit_sha256": "6cfff7acdce3af4b8ef080bdf21dcf54788379c479a9f0f4322283d77f27a47b",
+    "prior_v19_runner_sha256": "14066b79538a5d3176bdf76f3a6475235da91480faf86a758c328234c6b60219",
+    "prior_v19_scientific_information_consumed": false,
+    "prior_v19_state_sha256": "193dd2106dfc4d0924cd26bba12d8e244d80f6e4732cad810f9e73f7d486e9b1",
+    "scope": "retry the infrastructure-failed model objective"
+  },
+  "council": {
+    "fable_status": "provider_api_error_before_inference",
+    "kimi_status": "ok_ratified_phase_3_interlocks",
+    "local_synthesis_file_sha256": "e9e53b7c4d4f0a728be2143664d40cad4e9e173ea224112b4d596ddd88dc0065",
+    "local_turn": 51,
+    "name": "elements-model-improvement",
+    "next_council_required_after_phase_3a_failure": true,
+    "next_council_required_after_phase_3b": false,
+    "next_council_required_before_phase_3": false,
+    "partial_turn_published": true,
+    "phase_2a_extraction_passed": true,
+    "phase_2b_c1_control_authorized": true,
+    "phase_2b_c1_control_passed": true,
+    "phase_3_authorized": true,
+    "phase_3a_authorized": true,
+    "phase_3b_authorized": true,
+    "published_synthesis_sha256": "e9e53b7c4d4f0a728be2143664d40cad4e9e173ea224112b4d596ddd88dc0065",
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 48,
+    "synthesis_path": ".omx/argos-council/elements-model-improvement/turns/051/synthesis.md"
+  },
+  "current_spec": "specs/iteration-0002.json",
+  "deadline": null,
+  "deadline_policy": "claim_time_plus_21600",
+  "evaluator": "evaluator-iteration-0002.json",
+  "final_test_read": false,
+  "fixed_smoke_geometry": {
+    "complete_batches": 3,
+    "effective_images_per_full_batch": 36,
+    "fold": 1,
+    "num_workers": 0,
+    "pin_memory_behavior_changed": false,
+    "row_batch_size": 4,
+    "train_rows": 12,
+    "views_including_base": 9
+  },
+  "iteration": 3,
+  "max_runtime_seconds": 21600,
+  "max_runtime_seconds_per_subphase": 21600,
+  "mission": "elements-baseline-replacement",
+  "next_action": "Return to Argos Council with the terminal failure audit. Do not retry v19-R1 or consume phase 3b.",
+  "permissions": {
+    "additional_local_retry_allowed": false,
+    "automatic_fallback_allowed": false,
+    "candidate_optimizer_steps_allowed_per_subphase": 59400,
+    "candidate_predictions_allowed_per_subphase": 1959,
+    "candidate_scores_allowed_per_subphase": 1959,
+    "control_predictions_before_candidate_gradient": 1959,
+    "final_test_reads_allowed": 0,
+    "phase_3a_executions_allowed": 1,
+    "phase_3b_executions_allowed": 1,
+    "real_feature_extractions_allowed": 0,
+    "runtime_writes_allowed": 0,
+    "source_image_reads_allowed": 0
+  },
+  "phase": "iteration_0003_phase_3a_terminal_failed",
+  "phase_2a_result": {
+    "cache_bytes": 558449317,
+    "cache_manifest_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+    "cache_manifest_sha256": "69961003a7dc3601655b27acf8caefef953db987676ed3697146fd36351a5a9b",
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "pass": true,
+    "runtime_unchanged": true,
+    "source_image_reads": 40613
+  },
+  "phase_2b_interlock": {
+    "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.json",
+    "authorization_sha256": "ce266e9fb7764a685f3e98a1c5de05cb5b70a2f6003826d26758bb2477a30f9b",
+    "claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.execution-claim.json",
+    "command_contract_sha256": "c2ed21c403113f671a2d76fc02d78f9817eaf5f7eea6f9a395d094b4ad2d0df1",
+    "freeze_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002-phase-2b-contract-freeze-audit.json",
+    "freeze_audit_sha256": "98742f84f3cedd1a06b63f6848542766b8d00c705cc6c77442ecf188228c0455"
+  },
+  "phase_2b_result": {
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "control_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/c1-control-replay-audit.json",
+    "control_audit_sha256": "3e240b0b06e1755d523df77c37caa5d8340819e012796bbafb99b2850017d327",
+    "exact_topk_match_count": 1959,
+    "final_test_read": false,
+    "mismatch_count": 0,
+    "pass": true,
+    "replayed_checkpoints": 15,
+    "runtime_unchanged": true,
+    "source_image_reads": 0
+  },
+  "phase_3_interlocks": {
+    "phase_3a": {
+      "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3a-train-evaluate.json",
+      "authorization_sha256": "b07f3b441a8f05631f9fc54ba0f3e9682266fc77a33937880d3178a823912e95",
+      "claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3a-train-evaluate.execution-claim.json",
+      "command_contract_sha256": "53685d91a97654bb69c5e59be28d580cc4f38ca174323484313803601ed8acd5",
+      "freeze_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0003-phase-3a-contract-freeze-audit.json",
+      "freeze_audit_sha256": "ba8ec01de7d89b63a82ef5141ed4483b5ee3171ace459d61ed46f3c00b625763"
+    },
+    "phase_3b": {
+      "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3b-replay.json",
+      "authorization_sha256": "57a05b9f7e967d29f553de19c90fc052407fdf82c6dd7f6a15df4840b806d38c",
+      "claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3b-replay.execution-claim.json",
+      "command_contract_sha256": "bc544eb468a8ae60dc34b9ad864251ee529638e7ede0b80955561ec82e7d2225",
+      "freeze_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0003-phase-3b-contract-freeze-audit.json",
+      "freeze_audit_sha256": "b319b9b614728245f4f1744614edba3676213987a6c875012da1632b14eda9bc"
+    },
+    "runner_sha256": "ce8b622ff1ac332d284c6299b37e33ff5c6636ea3a45d4746fcc4233ac4a6766",
+    "test_sha256": "ddbec971ce38423c32ff271f2e14e2e6af1ecc3b668bd89dc71c1dd8ef1c7104"
+  },
+  "phase_3a_failure": {
+    "audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0003-phase-3a-terminal-failure-audit.json",
+    "audit_sha256": "75e6bda279d470d161ceb7bef7cbe45e98a736c45c78defe258bf0233d02f473",
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "execution_claim_sha256": "31f2f0aff1d2bb136da728b64c6163b9ab77c24501da421710981a56e720f222",
+    "final_test_read": false,
+    "runtime_unchanged": true,
+    "scientific_candidate_information_consumed": false
+  },
+  "prior_run": "../20260804-vicreg-backbone-renomination-v19",
+  "promotion_eligible": false,
+  "run_id": "20260804-vicreg-backbone-renomination-v19-r1",
+  "runtime_sha256": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19r.state-v1",
+  "started_at": "2026-08-04T20:54:54+02:00",
+  "status": "terminal_failed",
+  "updated_at": "2026-08-05T01:07:24+02:00"
+}

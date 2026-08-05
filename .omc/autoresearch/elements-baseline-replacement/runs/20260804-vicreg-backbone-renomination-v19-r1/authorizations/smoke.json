@@ -1,0 +1,30 @@
+{
+  "authorized": true,
+  "command_contract_sha256": "4514ff8e178bc8c94ab5d7b2bf6b8e3b0217ffacbf071cc175394c600fde196e",
+  "contract_freeze_audit_sha256": "1f9167dca6327a5cb4a2e91db2e169b6f16375bd0c855d58f1c53860dc57e66e",
+  "council_session_id": "adv_20260803T072824_f903d4d6",
+  "created_at": "2026-08-04T21:59:33.785305+02:00",
+  "deadline_at": "2026-08-05T02:54:54+02:00",
+  "evaluator_sha256": "fdcd9e4f7d29793bb7790fc65682fb02db2df4381478ba6983acf3d37e255687",
+  "execution_claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/smoke.execution-claim.json",
+  "geometry": {
+    "effective_images_per_full_batch": 36,
+    "num_workers": 0,
+    "row_batch_size": 4,
+    "smoke_batches": 3,
+    "smoke_fold": 1,
+    "views_including_base": 9
+  },
+  "max_runtime_seconds": 21600,
+  "one_execution_only": true,
+  "phase": "train_only_pipeline_smoke",
+  "prior_v19_failure_audit_sha256": "6cfff7acdce3af4b8ef080bdf21dcf54788379c479a9f0f4322283d77f27a47b",
+  "published_synthesis_sha256": "6cfa054df45630aa518170b999079390f4f5378b243cdcb6beff32d4fb301262",
+  "retry_allowed": false,
+  "runner_sha256": "373a1bdf7996d67cef965d3ed64316294ad22322f4cdc056b6c710390932257d",
+  "schema_version": "autoresearch-v19r.smoke-authorization-v1",
+  "smoke_evaluator_sha256": "d0cb9929beb68cdc57eab07a6c9c068556346a759e508e96c386f2896f022466",
+  "spec_sha256": "e865a9a9d7d521df7e81168129a1f2f244df66422d5c45dd631dad9fb1765dfa",
+  "started_at": "2026-08-04T20:54:54+02:00",
+  "test_sha256": "99a034043fc1896b394c5bda3af6f70459e1f15905a165fa1f6c7d4977678368"
+}

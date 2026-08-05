@@ -1,0 +1,130 @@
+{
+  "artifacts": {
+    "phase_3a_claim_sha256": "d5ca7494308375204067dd0f425cb5092bfed3a10cb97f12a32f4623da7771da",
+    "phase_3a_summary": {
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003/summary.json",
+      "sha256": "5efcf3b24c6bb633c54a6743bec03adfc43488829451a0a87b17d18535af53b2"
+    },
+    "phase_3b_claim_sha256": "39a9a8c7733b214b6c682123cc0f5622dfca9b7f3c6d8fc80d679fc72faab246",
+    "phase_3b_summary": {
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-replay/summary.json",
+      "sha256": "90cca913cf491627ac745412a711bcbb1970a2216a7f1c91719456dfd0ede45a"
+    },
+    "replay_audit": {
+      "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003/replay-audit.json",
+      "sha256": "17354fa0acaccae432edae3485f9f336edb2cb828fdb984619d0686edfba096c"
+    }
+  },
+  "failed_at": "2026-08-05T01:59:48+02:00",
+  "final_test_read": false,
+  "next_action": "hold the terminal Argos Council; do not retry, amend, or create another v19 instrument",
+  "official_candidate_verdict": "not_issued",
+  "official_reason": "the preregistered replay gate requires byte-identical checkpoint files and did not pass",
+  "one_shot_execution_consumed": {
+    "additional_instrument_allowed_after_failure": false,
+    "phase_3a": true,
+    "phase_3b": true,
+    "retry_allowed": false
+  },
+  "operation_counts": {
+    "phase_3a": {
+      "cache_reextractions": 0,
+      "candidate_optimizer_steps": 59220,
+      "candidate_predictions": 1959,
+      "candidate_scores": 1959,
+      "control_predictions_before_candidate_gradient": 1959,
+      "runtime_writes": 0,
+      "source_image_reads": 0
+    },
+    "phase_3b": {
+      "cache_reextractions": 0,
+      "candidate_optimizer_steps": 59220,
+      "candidate_predictions": 1959,
+      "candidate_scores": 1959,
+      "control_predictions_before_candidate_gradient": 1959,
+      "runtime_writes": 0,
+      "source_image_reads": 0
+    }
+  },
+  "outcome": "terminal_deterministic_replay_gate_failure",
+  "pass": true,
+  "promotion_eligible": false,
+  "replay_gates": {
+    "cache_reextraction_count": 0,
+    "candidate_checkpoints_byte_identical": false,
+    "candidate_states_identical": true,
+    "diagnostics_byte_identical": false,
+    "normalized_audit_byte_identical": false,
+    "normalized_prediction_rows_byte_identical": true,
+    "replay_candidate_state_count": 15
+  },
+  "research_reference_only": true,
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-v19r2.phase-3b-terminal-failure-audit-v1",
+  "scientific_result_before_replay_gate": {
+    "b0_mission_anchor_pass": true,
+    "c1_noninferiority_pass": true,
+    "candidate_macro_top1": 0.11263445634192439,
+    "candidate_minus_b0_delta_top1": 0.02246043899948954,
+    "candidate_minus_c1_bootstrap_delta_top1_95": [
+      -0.0011376564277588153,
+      0.03416124929338605
+    ],
+    "candidate_minus_c1_delta_macro_top1": 0.03795732188851822,
+    "candidate_minus_c1_delta_top1": 0.011230219499744773,
+    "candidate_minus_c1_mcnemar_exact_p": 0.03895793340131187,
+    "candidate_minus_c1_positive_seed_count": 3,
+    "candidate_top1": 0.07503828483920368,
+    "counterfactual_claim": "unresolved_at_component_level_power",
+    "counterfactual_frozen_classifier_verdict_if_replay_had_passed": "supported_reference",
+    "counterfactual_is_not_an_official_verdict": true,
+    "engagement_pass": true,
+    "integrity_pass": true
+  },
+  "semantic_reproduction_audit": {
+    "all_normalized_differences_are_checkpoint_binary_hashes": true,
+    "candidate_state_hashes_identical": true,
+    "interpretation": "model tensors, checkpoint metadata, candidate states, and prediction rows reproduced exactly; the terminal gate failed only because the serialized checkpoint byte streams had different SHA-256 values",
+    "normalized_difference_count": 30,
+    "normalized_difference_paths": [
+      "$.candidate_checkpoint_sha256.1:17",
+      "$.candidate_checkpoint_sha256.1:42",
+      "$.candidate_checkpoint_sha256.1:73",
+      "$.candidate_checkpoint_sha256.2:17",
+      "$.candidate_checkpoint_sha256.2:42",
+      "$.candidate_checkpoint_sha256.2:73",
+      "$.candidate_checkpoint_sha256.3:17",
+      "$.candidate_checkpoint_sha256.3:42",
+      "$.candidate_checkpoint_sha256.3:73",
+      "$.candidate_checkpoint_sha256.4:17",
+      "$.candidate_checkpoint_sha256.4:42",
+      "$.candidate_checkpoint_sha256.4:73",
+      "$.candidate_checkpoint_sha256.5:17",
+      "$.candidate_checkpoint_sha256.5:42",
+      "$.candidate_checkpoint_sha256.5:73",
+      "$.diagnostics[0].checkpoint.sha256",
+      "$.diagnostics[1].checkpoint.sha256",
+      "$.diagnostics[2].checkpoint.sha256",
+      "$.diagnostics[3].checkpoint.sha256",
+      "$.diagnostics[4].checkpoint.sha256",
+      "$.diagnostics[5].checkpoint.sha256",
+      "$.diagnostics[6].checkpoint.sha256",
+      "$.diagnostics[7].checkpoint.sha256",
+      "$.diagnostics[8].checkpoint.sha256",
+      "$.diagnostics[9].checkpoint.sha256",
+      "$.diagnostics[10].checkpoint.sha256",
+      "$.diagnostics[11].checkpoint.sha256",
+      "$.diagnostics[12].checkpoint.sha256",
+      "$.diagnostics[13].checkpoint.sha256",
+      "$.diagnostics[14].checkpoint.sha256"
+    ],
+    "prediction_rows_byte_identical": true,
+    "semantic_checkpoint_payload_match_count": 15,
+    "semantic_checkpoint_payload_total": 15
+  }
+}

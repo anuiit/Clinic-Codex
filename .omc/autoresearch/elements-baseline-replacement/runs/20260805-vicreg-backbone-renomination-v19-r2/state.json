@@ -1,0 +1,110 @@
+{
+  "additional_instrument_allowed_after_failure": false,
+  "authority_amendment": {
+    "explicit_user_resume": true,
+    "prior_v19r1_scientific_information_consumed": false,
+    "prior_v19r1_terminal_failure_audit_sha256": "75e6bda279d470d161ceb7bef7cbe45e98a736c45c78defe258bf0233d02f473",
+    "scope": "new terminal R2 instrument for the confirmed inference-mode model-transfer defect"
+  },
+  "automatic_fallback_allowed": false,
+  "completed_at": "2026-08-05T01:59:48+02:00",
+  "council": {
+    "fable_status": "provider_api_error_before_inference",
+    "kimi_status": "ok_ratified_terminal_not_issued",
+    "local_turn": 53,
+    "next_council_required_after_terminal_phase": false,
+    "published_synthesis_sha256": "ae0d75b4bd2834dff677c93081f4375447e613d2edf41275073b0a6e52b48a8c",
+    "session_id": "adv_20260803T072824_f903d4d6",
+    "source_turn": 50,
+    "synthesis_path": ".omx/argos-council/elements-model-improvement/turns/053/synthesis.md"
+  },
+  "deadline_policy": "claim_time_plus_21600",
+  "expected_operation_counts_per_subphase": {
+    "cache_reextractions": 0,
+    "candidate_optimizer_steps": 59220,
+    "candidate_predictions": 1959,
+    "candidate_scores": 1959,
+    "control_predictions_before_candidate_gradient": 1959,
+    "runtime_writes": 0,
+    "source_image_reads": 0
+  },
+  "final_test_read": false,
+  "iteration": 3,
+  "max_runtime_seconds_per_subphase": 21600,
+  "mission": "elements-baseline-replacement",
+  "mission_status": "candidate_built_awaiting_independent_instrument",
+  "next_action": "No further local autoresearch cycle; preserve C1 as the best validated reference and seek an independent evaluation instrument.",
+  "phase": "iteration_0003_phase_3b_terminal_replay_gate_failure",
+  "phase_3a": {
+    "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3a-train-evaluate.json",
+    "authorization_sha256": "cc4b7ccf1ec2889c187caed81906d347e8f31a90aad1e016122346ee5d4f370b",
+    "claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3a-train-evaluate.execution-claim.json",
+    "claim_sha256": "d5ca7494308375204067dd0f425cb5092bfed3a10cb97f12a32f4623da7771da",
+    "freeze_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-phase-3a-contract-freeze-audit.json",
+    "freeze_audit_sha256": "9952d9c0f9380885046a9b86d57fc596ceddb342a912c425dfac942436d5eb79",
+    "summary_sha256": "5efcf3b24c6bb633c54a6743bec03adfc43488829451a0a87b17d18535af53b2"
+  },
+  "phase_3b": {
+    "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.json",
+    "authorization_sha256": "5a55219acc3e5e21ef39126901425adca60ac0b0533b8170a6e020947399e260",
+    "claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.execution-claim.json",
+    "claim_sha256": "39a9a8c7733b214b6c682123cc0f5622dfca9b7f3c6d8fc80d679fc72faab246",
+    "freeze_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-phase-3b-contract-freeze-audit.json",
+    "freeze_audit_sha256": "e583d3562be4bfb2295b46c13d3c0bd18db52b159bfe65d82856a4d0c035be97",
+    "replay_audit_sha256": "17354fa0acaccae432edae3485f9f336edb2cb828fdb984619d0686edfba096c",
+    "summary_sha256": "90cca913cf491627ac745412a711bcbb1970a2216a7f1c91719456dfd0ede45a"
+  },
+  "promotion_eligible": false,
+  "replay_gates": {
+    "cache_reextraction_count": 0,
+    "candidate_checkpoints_byte_identical": false,
+    "candidate_states_identical": true,
+    "diagnostics_byte_identical": false,
+    "normalized_audit_byte_identical": false,
+    "normalized_prediction_rows_byte_identical": true,
+    "replay_candidate_state_count": 15
+  },
+  "run_id": "20260805-vicreg-backbone-renomination-v19-r2",
+  "runner_sha256": "38c0879a9d58424e1ef5d2a139653edfd3bdf09ae1c89f31acfdd800cd8ec90d",
+  "runtime_sha256": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19r2.state-v1",
+  "scientific_result": {
+    "b0_mission_anchor_pass": true,
+    "c1_noninferiority_pass": true,
+    "candidate_macro_top1": 0.11263445634192439,
+    "candidate_minus_b0_delta_top1": 0.02246043899948954,
+    "candidate_minus_c1_bootstrap_delta_top1_95": [
+      -0.0011376564277588153,
+      0.03416124929338605
+    ],
+    "candidate_minus_c1_delta_macro_top1": 0.03795732188851822,
+    "candidate_minus_c1_delta_top1": 0.011230219499744773,
+    "candidate_minus_c1_mcnemar_exact_p": 0.03895793340131187,
+    "candidate_minus_c1_positive_seed_count": 3,
+    "candidate_top1": 0.07503828483920368,
+    "counterfactual_claim": "unresolved_at_component_level_power",
+    "counterfactual_frozen_classifier_verdict_if_replay_had_passed": "supported_reference",
+    "counterfactual_is_not_an_official_verdict": true,
+    "engagement_pass": true,
+    "integrity_pass": true
+  },
+  "started_at": "2026-08-05T01:24:46+02:00",
+  "status": "terminal_failed",
+  "terminal_council_completed_at": "2026-08-05T02:11:51+02:00",
+  "terminal_failure_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-phase-3b-terminal-failure-audit.json",
+  "terminal_failure_audit_sha256": "3ceba1be75ccf31ee0749e2f5b1cc6304e82c2f731e43be79cbce2924bd12f3b",
+  "test_sha256": "72622791d719782ec2de70543e079d6ae5411eb88ca36e6b8c0bbd1ad668896f",
+  "updated_at": "2026-08-05T02:11:51+02:00",
+  "upstream": {
+    "cache_manifest_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+    "cache_manifest_sha256": "69961003a7dc3601655b27acf8caefef953db987676ed3697146fd36351a5a9b",
+    "cache_reextraction_allowed": false,
+    "control_audit_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/c1-control-replay-audit.json",
+    "control_audit_sha256": "3e240b0b06e1755d523df77c37caa5d8340819e012796bbafb99b2850017d327",
+    "control_reexecution_required": false
+  }
+}

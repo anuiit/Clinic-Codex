@@ -1,0 +1,125 @@
+{
+  "schema_version": "autoresearch-vicreg-backbone-renomination-v19r.evaluator-v1",
+  "iteration": 2,
+  "status": "preregistered_before_real_pipeline_smoke_and_any_oof_operation",
+  "primary_claim": "exploratory pooled OOF top-1 v19-R1 minus exact canonical C1",
+  "paired_scope": {
+    "folds": 5,
+    "seeds": 3,
+    "unique_oof_rows": 653,
+    "prediction_rows": 1959
+  },
+  "integrity_gates": {
+    "spec_and_evaluator_hashes_match": true,
+    "canonical_v9_runner_hash_match": true,
+    "v9_recovery_audit_pass": true,
+    "canonical_v9_summary_and_prediction_hashes_match": true,
+    "b14_pin_and_source_inventory_hashes_match": true,
+    "runtime_hashes_match": true,
+    "phase_authorization_matches_command": true,
+    "c1_checkpoint_hash_match_count": 15,
+    "c1_same_process_topk_match_count": 1959,
+    "b14_cache_count": 5,
+    "b14_cache_row_order_hash_match_count": 5,
+    "b14_cache_byte_identical_readback_count": 5,
+    "b14_view_plan_hash_match_count": 5,
+    "oof_view_feature_count": 0,
+    "candidate_checkpoint_count": 15,
+    "paired_prediction_rows": 1959,
+    "paired_seed_count": 3,
+    "outer_fold_count": 5,
+    "episode_plan_sha256_matches_c1_count": 15,
+    "ssl_pair_plan_sha256_matches_c1_count": 15,
+    "ssl_outer_fold_row_exposure": 0,
+    "learned_statistics_outer_fold_exposure": 0,
+    "candidate_count": 1,
+    "finite_losses_logits_gradients_weights_and_embeddings": true,
+    "deterministic_replay_required": true,
+    "final_test_read": false,
+    "runtime_unchanged": true,
+    "automatic_promotion": false
+  },
+  "engagement_gates": {
+    "vicreg_end_epoch_loss_below_start_epoch_count": 15,
+    "candidate_final_state_differs_from_initial_count": 15,
+    "nonzero_embedding_movement_count": 15,
+    "candidate_vs_c1_discordant_prediction_rows_gt": 0
+  },
+  "b0_mission_anchor_gates": {
+    "delta_top1_gte": 0.01,
+    "delta_top1_component_bootstrap_lower_95_gt": 0,
+    "positive_seed_count_gte": 2,
+    "delta_macro_top1_gte": -0.005,
+    "delta_top3_gte": 0,
+    "minimum_fold_delta_top1_gte": -0.05
+  },
+  "c1_noninferiority_gates": {
+    "delta_top1_gte": -0.005,
+    "delta_top1_component_bootstrap_lower_95_gt": -0.01,
+    "delta_top3_gte": -0.01,
+    "delta_macro_top1_gte": -0.01
+  },
+  "verdict_tiers": {
+    "supported_strong": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.01,
+      "candidate_minus_c1_component_bootstrap_lower_95_gt": 0,
+      "promotion_eligible": false
+    },
+    "supported_reference": {
+      "all_prior_gates_pass": true,
+      "candidate_minus_c1_delta_top1_gte": 0.005,
+      "candidate_minus_c1_positive_seed_count_gte": 2,
+      "claim": "unresolved_at_component_level_power",
+      "promotion_eligible": false
+    },
+    "neutral_preservation": {
+      "b0_anchor_and_c1_noninferiority_pass": true,
+      "positive_tier_pass": false,
+      "claim": "preserves C1 but is not evidence of a better model",
+      "promotion_eligible": false
+    },
+    "not_supported": {
+      "integrity_valid": true,
+      "any_engagement_b0_or_c1_gate_fails": true,
+      "promotion_eligible": false
+    },
+    "invalid": {
+      "any_integrity_control_or_replay_gate_fails": true,
+      "candidate_results_interpretable": false,
+      "promotion_eligible": false
+    }
+  },
+  "diagnostics_only": {
+    "candidate_minus_c1_mcnemar": true,
+    "candidate_minus_b0_mcnemar": true,
+    "loss_trajectory_per_fold_seed": true,
+    "support_strata_three_bin": [
+      "n_y_lte_8",
+      "n_y_9_to_31",
+      "n_y_gte_32"
+    ],
+    "support_strata_binary": [
+      "n_y_lte_8",
+      "n_y_gt_8"
+    ],
+    "candidate_embedding_effective_rank": true,
+    "candidate_to_c1_embedding_rank_ratio": true,
+    "rank_ratio_below": 0.8,
+    "rank_action": "Council review, not automatic veto",
+    "extraction_duration": true,
+    "inference_latency_and_memory": true
+  },
+  "replay_gates": {
+    "cache_reextraction_count": 0,
+    "replay_candidate_state_count": 15,
+    "normalized_prediction_rows_byte_identical": true,
+    "candidate_checkpoints_byte_identical": true,
+    "normalized_audit_byte_identical": true
+  },
+  "pass_rule": "decision is supported_strong or supported_reference",
+  "score": "candidate_minus_c1 pooled top1",
+  "research_reference_only": true,
+  "independent_promotion_instrument_required": true,
+  "terminal_rule": "Any smoke, integrity, engagement, control, replay, infrastructure, or timeout failure closes v19-R1 without fallback; success also retires this local instrument after the single evaluation."
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "autoresearch-v19r.smoke-evaluator-v1",
+  "iteration": 1,
+  "score": null,
+  "pass_type": "strict boolean infrastructure gate only",
+  "required_output": {
+    "pass": "boolean",
+    "status": "pipeline_smoke_passed_awaiting_council|terminal_failed_pipeline_smoke",
+    "phase_2_allowed": false,
+    "retry_allowed": false,
+    "final_test_read": false
+  },
+  "fixed_geometry": {
+    "fold": 1,
+    "train_rows": 12,
+    "row_batch_size": 4,
+    "views_including_base": 9,
+    "effective_images_per_full_batch": 36,
+    "complete_batches": 3,
+    "num_workers": 0,
+    "pin_memory_behavior": "unchanged_from_v9_device_rule"
+  },
+  "integrity_gates": {
+    "authorization_valid": true,
+    "three_real_batches_completed": true,
+    "effective_images_per_batch_is_36": true,
+    "train_source_reads_are_12": true,
+    "zero_oof_source_reads": true,
+    "zero_predictions_and_scores": true,
+    "no_persistent_feature_cache": true,
+    "runtime_unchanged": true,
+    "final_test_unread": true
+  },
+  "forbidden_operations": {
+    "outer_fold_source_image_reads": 0,
+    "persistent_feature_vectors": 0,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "runtime_writes": 0,
+    "final_test_reads": 0,
+    "automatic_batch_fallback": false,
+    "additional_local_retry": false
+  },
+  "next_gate_if_pass": "Argos Council review before any phase-2 extraction authorization",
+  "next_gate_if_fail": "terminal retirement of v19-R1"
+}

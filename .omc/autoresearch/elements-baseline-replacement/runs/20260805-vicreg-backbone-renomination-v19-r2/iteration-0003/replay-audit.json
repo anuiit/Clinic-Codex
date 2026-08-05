@@ -1,0 +1,103 @@
+{
+  "execution_claim": {
+    "deadline_at": "2026-08-05T07:43:04.325799+02:00",
+    "deadline_policy": "claim_time_plus_21600",
+    "max_runtime_seconds": 21600,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.execution-claim.json",
+    "sha256": "39a9a8c7733b214b6c682123cc0f5622dfca9b7f3c6d8fc80d679fc72faab246",
+    "started_at": "2026-08-05T01:43:04.325799+02:00"
+  },
+  "final_test_read": false,
+  "gates": {
+    "cache_reextraction_count": 0,
+    "candidate_checkpoints_byte_identical": false,
+    "candidate_states_identical": true,
+    "diagnostics_byte_identical": false,
+    "normalized_audit_byte_identical": false,
+    "normalized_prediction_rows_byte_identical": true,
+    "replay_candidate_state_count": 15
+  },
+  "normalization_contract": {
+    "diagnostic_removed_keys": [
+      "checkpoint_path"
+    ],
+    "schema_version": "autoresearch-v19r.replay-normalization-v1",
+    "summary_removed_keys": [
+      "artifact_paths"
+    ]
+  },
+  "original": {
+    "normalized_summary_sha256": "32c06263e40f41d414768abfe38f0bb57c5632a778d287d18709903890e0dfc3",
+    "prediction_rows_sha256": "302f3538077b957a306a494c92d6899afa8078c291d0ff5022f8dbbad0f46602",
+    "summary_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003/summary.json",
+    "summary_sha256": "5efcf3b24c6bb633c54a6743bec03adfc43488829451a0a87b17d18535af53b2"
+  },
+  "pass": false,
+  "phase3a_handoff": {
+    "checkpoint_count": 15,
+    "diagnostic_count": 15,
+    "diagnostics_sha256": "3a57b19a5ac63b5240bbb1876fa77b5a02c5b6fc050508908d69c3720505843a",
+    "execution_claim_sha256": "d5ca7494308375204067dd0f425cb5092bfed3a10cb97f12a32f4623da7771da",
+    "prediction_row_count": 1959,
+    "prediction_rows_sha256": "302f3538077b957a306a494c92d6899afa8078c291d0ff5022f8dbbad0f46602",
+    "summary_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003/summary.json",
+    "summary_sha256": "5efcf3b24c6bb633c54a6743bec03adfc43488829451a0a87b17d18535af53b2"
+  },
+  "phase_authorization": {
+    "command_contract": {
+      "audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0003/collection-provenance-audit.json",
+      "authorization": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.json",
+      "b14_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/caches",
+      "b14_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/inputs/dinov2-vitb14-local-manifest.json",
+      "c1_cache_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/caches",
+      "c1_predictions": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/prediction_rows.jsonl",
+      "c1_summary": ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/paired_seed_summary.json",
+      "cache_manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/cache-manifest.json",
+      "command": "replay",
+      "control_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0002/c1-control-replay-audit.json",
+      "device": "cuda",
+      "evaluator": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/evaluator-iteration-0002.json",
+      "freeze_audit": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-phase-3b-contract-freeze-audit.json",
+      "image_batch_size": 4,
+      "manifest": ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl",
+      "num_workers": 0,
+      "output_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003",
+      "replay_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-replay",
+      "runner": "scripts/autoresearch_vicreg_backbone_v19r2.py",
+      "runtime_config": "backend/codex_model/config.json",
+      "runtime_projection": "backend/codex_model/weights/projection.pt",
+      "runtime_prototypes": "backend/codex_model/weights/prototypes.pt",
+      "source_inventory": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-source-inventory.jsonl",
+      "spec": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/specs/iteration-0002.json",
+      "supervised_device": "cpu"
+    },
+    "command_contract_sha256": "bf095a68c058a193edcad2a58607d8b4d5c533587aaf8e6fe299e14f96ccdcf9",
+    "contract_freeze_audit_sha256": "e583d3562be4bfb2295b46c13d3c0bd18db52b159bfe65d82856a4d0c035be97",
+    "deadline": {
+      "deadline_policy": "claim_time_plus_21600",
+      "max_runtime_seconds": 21600
+    },
+    "deadline_policy": "claim_time_plus_21600",
+    "execution_claim_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.execution-claim.json",
+    "one_execution_only": true,
+    "path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/authorizations/phase-3b-replay.json",
+    "phase": "phase_3b_replay",
+    "published_synthesis_sha256": "e6e262815bd2d52e4a01f760f0d0ded2851cad021420aee7fa1fbe106be8461b",
+    "retry_allowed": false,
+    "sha256": "5a55219acc3e5e21ef39126901425adca60ac0b0533b8170a6e020947399e260"
+  },
+  "promotion_eligible": false,
+  "replay": {
+    "normalized_summary_sha256": "5be15fd7c99a83723aeba93843466726173bc0255a65020dbb74077474b2afe7",
+    "prediction_rows_sha256": "302f3538077b957a306a494c92d6899afa8078c291d0ff5022f8dbbad0f46602",
+    "summary_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260805-vicreg-backbone-renomination-v19-r2/iteration-0003-replay/summary.json",
+    "summary_sha256": "90cca913cf491627ac745412a711bcbb1970a2216a7f1c91719456dfd0ede45a"
+  },
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "schema_version": "autoresearch-v19r.deterministic-replay-audit-v1"
+}

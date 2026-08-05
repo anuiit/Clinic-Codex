@@ -1,0 +1,20 @@
+# Decision log — v19-R1
+
+| Time (Europe/Paris) | Phase | Decision | Evidence |
+|---|---|---|---|
+| 2026-08-04 20:10 | Council gate | Treat the explicit user continuation as a narrow authority amendment after a zero-information infrastructure failure. Create a separate v19-R1 run; preserve v19 unchanged. | Argos session adv_20260803T072824_f903d4d6, source turn 44, local turn 47. |
+| 2026-08-04 20:10 | Execution geometry | Fix row batch at 4 and num_workers=0; keep the existing CUDA pin-memory rule and eight-view plan unchanged. No automatic fallback. | Council synthesis SHA-256 6cfa054df45630aa518170b999079390f4f5378b243cdcb6beff32d4fb301262. |
+| 2026-08-04 20:10 | Smoke scope | Require three complete forwards on 12 fold-1 training rows through the real v9.extract_features path. Forbid OOF image reads, caches, predictions, scores, gradients, runtime writes, and final-test reads. | Local synthesis file SHA-256 010eb6d61a06012742cc8e18944ac37f3f8276929ff809fa026df77fe3afb41b. |
+| 2026-08-04 20:50 | Implementation | Added a separate v19-R1 runner and tests. The same CLI batch/worker values flow into smoke and full precompute. | scripts/autoresearch_vicreg_backbone_v19r.py; backend/tests/test_autoresearch_vicreg_backbone_v19r.py. |
+| 2026-08-04 20:52 | Verification | CPU pipeline test observed exactly three forwards of shape (36, 3, 224, 224); injected failure stopped on call two; command-level failure audit forbids retry. | Targeted pytest: 5 passed. |
+| 2026-08-04 20:54 | Static contract | Frozen artifacts, 30 canonical checkpoints, 1,959 prediction rows, B/14 pin, and runtime hashes validated without data operations. | validate-contract: pass; all operation counts zero. |
+| 2026-08-04 20:56 | Smoke | The one-shot real CUDA smoke completed 3/3 full forwards at 36 images, with 576,701,440 peak allocated bytes and no persistent model artifact. | Smoke audit SHA-256 b476346181811adbcf7bd445590536d94e34a9e03af8ee6790b9954f5020b408. |
+| 2026-08-04 23:49 | Phase 2a | The one-shot B/14 extraction produced five byte-verified caches totaling 558,449,317 bytes and exactly 40,613 source reads, with no candidate operation. | Cache manifest SHA-256 69961003a7dc3601655b27acf8caefef953db987676ed3697146fd36351a5a9b. |
+| 2026-08-05 00:11 | Council gate | Authorize only phase 2b: one C1 replay, 15 checkpoints and 1,959 exact top-k control predictions; no candidate gradient, prediction, or score. | Published Council SHA-256 bb845aeceb9e51b1729aacd5fd056a6e9fa409ddb8b4ba5d95c6591ba4cf1a62; 27 regression tests passed. |
+| 2026-08-05 00:20 | Phase 2b | Replayed 15/15 C1 checkpoints and reproduced 1,959/1,959 top-k exactly, with zero mismatch, zero candidate operation, unchanged runtime, and no final-test read. | C1 audit SHA-256 3e240b0b06e1755d523df77c37caa5d8340819e012796bbafb99b2850017d327. |
+| 2026-08-05 00:57 | Phase 3 gate | Ratify distinct one-shot 3a/3b claims, adversarial handoff validation, non-recursive replay, claim-relative six-hour windows, and post-replay-only verdict. | Published Council SHA-256 e9e53b7c4d4f0a728be2143664d40cad4e9e173ea224112b4d596ddd88dc0065; 37 combined tests passed. |
+| 2026-08-05 01:02 | Phase 3 freeze | Freeze runner/test and both command contracts before the first gradient; authorize exactly one 3a followed immediately by one 3b without adaptation. | Runner ce8b622ff1ac332d284c6299b37e33ff5c6636ea3a45d4746fcc4233ac4a6766; freezes ba8ec01de7d89b63a82ef5141ed4483b5ee3171ace459d61ed46f3c00b625763 and b319b9b614728245f4f1744614edba3676213987a6c875012da1632b14eda9bc. |
+
+| 2026-08-05 01:04 | Phase 3a terminal | Stop before the first optimizer step: cached B/14 inference tensors cannot enter VICReg autograd. Do not retry v19-R1 and do not consume 3b. | Failure audit SHA-256 75e6bda279d470d161ceb7bef7cbe45e98a736c45c78defe258bf0233d02f473; claim 3a consumed, claim 3b absent, runtime unchanged, no candidate metric or final-test read. |
+
+The smoke, extraction, and C1 control passed. Phase 3a is terminally failed without scientific candidate information; v19-R1 is retired and a new instrument requires Council authorization.

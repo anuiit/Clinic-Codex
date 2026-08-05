@@ -1,0 +1,70 @@
+{
+  "failed_at": "2026-08-05T01:07:24+02:00",
+  "failure": {
+    "candidate_forward_attempts": 1,
+    "exception": "RuntimeError",
+    "fold": 1,
+    "message": "Inference tensors cannot be saved for backward. To work around you can make a clone to get a normal tensor and use it in autograd.",
+    "root_cause_hypothesis": "B/14 feature tensors serialized from inference-mode extraction retained inference-tensor semantics when loaded for VICReg autograd.",
+    "runner_call_site": "run_candidate_fold_seed -> v9.pretrain_vicreg -> model.net(first)",
+    "seed": 17,
+    "type": "pytorch_inference_tensor_autograd_boundary"
+  },
+  "final_test_read": false,
+  "new_instrument_requires_council": true,
+  "operation_counts": {
+    "cache_reextractions": 0,
+    "candidate_backward_steps": 0,
+    "candidate_checkpoints": 0,
+    "candidate_forward_attempts": 1,
+    "candidate_optimizer_steps": 0,
+    "candidate_predictions": 0,
+    "candidate_scores": 0,
+    "control_predictions_before_candidate_gradient": 1959,
+    "runtime_writes": 0,
+    "source_image_reads": 0
+  },
+  "output_dir": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/iteration-0003",
+  "output_files": [],
+  "pass": false,
+  "phase": "phase_3a_train_evaluate",
+  "phase_3a": {
+    "authorization_sha256": "b07f3b441a8f05631f9fc54ba0f3e9682266fc77a33937880d3178a823912e95",
+    "execution_claim": {
+      "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-3a-train-evaluate.json",
+      "authorization_sha256": "b07f3b441a8f05631f9fc54ba0f3e9682266fc77a33937880d3178a823912e95",
+      "command": "train-evaluate",
+      "command_contract_sha256": "53685d91a97654bb69c5e59be28d580cc4f38ca174323484313803601ed8acd5",
+      "consumed_at": "2026-08-05T01:04:49.134661+02:00",
+      "deadline_at": "2026-08-05T07:04:49.134661+02:00",
+      "deadline_policy": "claim_time_plus_21600",
+      "max_runtime_seconds": 21600,
+      "one_execution_only": true,
+      "retry_allowed": false,
+      "schema_version": "autoresearch-v19r.execution-claim-v1",
+      "started_at": "2026-08-05T01:04:49.134661+02:00"
+    },
+    "execution_claim_sha256": "31f2f0aff1d2bb136da728b64c6163b9ab77c24501da421710981a56e720f222",
+    "freeze_audit_sha256": "ba8ec01de7d89b63a82ef5141ed4483b5ee3171ace459d61ed46f3c00b625763",
+    "runner_sha256": "ce8b622ff1ac332d284c6299b37e33ff5c6636ea3a45d4746fcc4233ac4a6766",
+    "test_sha256": "ddbec971ce38423c32ff271f2e14e2e6af1ecc3b668bd89dc71c1dd8ef1c7104"
+  },
+  "phase_3b": {
+    "authorization_sha256": "57a05b9f7e967d29f553de19c90fc052407fdf82c6dd7f6a15df4840b806d38c",
+    "executed": false,
+    "execution_claim_absent": true
+  },
+  "promotion_eligible": false,
+  "retry_allowed": false,
+  "run_id": "20260804-vicreg-backbone-renomination-v19-r1",
+  "runtime_sha256_after": {
+    "config": "f2150a97ec7eee50a42ac1a108ae4bc092d46a6b8e4a2d91de59349560fbf18b",
+    "projection": "0ad6ce348eaf44c8844415a769b048b8f155017befa93f16254b1263b9241210",
+    "prototypes": "ffc52f03696f03780a01302708b53e319dc24069187a6fd1a2927ea537b1cc54"
+  },
+  "runtime_unchanged": true,
+  "same_run_retry_forbidden": true,
+  "schema_version": "autoresearch-v19r.phase-3a-terminal-failure-audit-v1",
+  "scientific_candidate_information_consumed": false,
+  "status": "terminal_failed_before_first_optimizer_step"
+}

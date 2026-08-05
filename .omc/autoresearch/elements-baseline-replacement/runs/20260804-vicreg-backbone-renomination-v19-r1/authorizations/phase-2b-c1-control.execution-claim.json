@@ -1,0 +1,10 @@
+{
+  "authorization_path": ".omc/autoresearch/elements-baseline-replacement/runs/20260804-vicreg-backbone-renomination-v19-r1/authorizations/phase-2b-c1-control.json",
+  "authorization_sha256": "ce266e9fb7764a685f3e98a1c5de05cb5b70a2f6003826d26758bb2477a30f9b",
+  "command": "replay-c1",
+  "command_contract_sha256": "c2ed21c403113f671a2d76fc02d78f9817eaf5f7eea6f9a395d094b4ad2d0df1",
+  "consumed_at": "2026-08-05T00:14:08.292782+02:00",
+  "one_execution_only": true,
+  "retry_allowed": false,
+  "schema_version": "autoresearch-v19r.execution-claim-v1"
+}
