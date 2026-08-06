@@ -29,6 +29,9 @@ class StubServices:
     def sample_index(self):
         return {"atl": [{"path": "/tmp/atl.png", "class_name": "atl"}]}
 
+    def load_classes(self):
+        return {"num_classes": 2, "class_names": ["atl", "tochtli"]}
+
 
 def _png_base64(size=(8, 6)):
     buf = io.BytesIO()
@@ -145,3 +148,71 @@ def test_crop_routes_reject_non_positive_bbox_dimensions(client, route, bbox):
 
     assert resp.status_code == 400
     assert resp.get_json()["error"]["code"] == "INVALID_BBOX"
+
+
+def test_similar_fills_asset_from_sample_index(client):
+    resp = client.post("/similar", json={"image_base64": _png_base64(), "bbox": [0, 0, 4, 4]})
+    assert resp.status_code == 200
+    results = resp.get_json()["results"]
+    assert results[0]["class_name"] == "atl"
+    assert results[0]["asset"] == "/samples/atl/atl.png"
+    # tochtli has no entry in the stub sample index: asset stays null.
+    assert results[1]["class_name"] == "tochtli"
+    assert results[1]["asset"] is None
+
+
+def test_samples_coverage_reports_class_exemplar_presence(client):
+    resp = client.get("/samples/coverage")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["total_classes"] == 2
+    assert body["covered_classes"] == 1
+    assert body["covered"] == ["atl"]
+
+
+class FileBackedSampleServices(StubServices):
+    def __init__(self, sample_file):
+        super().__init__()
+        self._sample_file = sample_file
+
+    def sample_index(self):
+        return {"atl": [{"path": str(self._sample_file), "class_name": "atl"}]}
+
+
+def test_sample_image_by_id_serves_indexed_file(tmp_path):
+    backend_root = tmp_path / "backend"
+    sample = backend_root / "data" / "elements_sample" / "0001-atl" / "atl.png"
+    sample.parent.mkdir(parents=True)
+    Image.new("RGB", (4, 4), color=(10, 20, 30)).save(sample, format="PNG")
+
+    app = create_app(
+        settings=Settings(testing=True, backend_root=backend_root),
+        services=FileBackedSampleServices(sample),
+    )
+    with app.test_client() as client:
+        resp = client.get("/samples/atl/atl.png")
+        assert resp.status_code == 200
+        assert resp.data == sample.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/samples/tochtli/atl.png",  # wrong class for this file
+        "/samples/atl/missing.png",  # unknown filename
+        "/samples/atl/..%2F..%2Fetc%2Fpasswd",  # traversal attempt
+        "/samples/atl/.hidden.png",  # dotfile rejected
+    ],
+)
+def test_sample_image_by_id_rejects_non_indexed_paths(tmp_path, url):
+    backend_root = tmp_path / "backend"
+    sample = backend_root / "data" / "elements_sample" / "0001-atl" / "atl.png"
+    sample.parent.mkdir(parents=True)
+    Image.new("RGB", (4, 4)).save(sample, format="PNG")
+
+    app = create_app(
+        settings=Settings(testing=True, backend_root=backend_root),
+        services=FileBackedSampleServices(sample),
+    )
+    with app.test_client() as client:
+        assert client.get(url).status_code == 404

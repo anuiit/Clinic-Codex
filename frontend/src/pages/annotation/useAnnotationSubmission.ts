@@ -96,6 +96,7 @@ export function useAnnotationSubmission({
           index: idx,
           bbox: el.bbox,
           class_name: el.class_name,
+          ...(el.note ? { note: el.note } : {}),
         })),
       };
       const result: SaveAnnotationResult = await saveAnnotation(payload);

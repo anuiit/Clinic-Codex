@@ -473,6 +473,9 @@ class AnnotationReviewStore:
 
     def iter_approved_annotations(self) -> Iterable[dict[str, Any]]:
         """Yield canonical annotations that are exactly approved and trainable."""
+        # Training export contract: the free-text research `note` field is
+        # deliberately NOT yielded here. Notes are annotator memos, not
+        # training data; keep them out of the classifier dataset.
         queue = self.list_queue()
         for analysis in queue["analyses"]:
             for element in analysis["elements"]:
@@ -685,6 +688,7 @@ class AnnotationReviewStore:
                     "index": index,
                     "class_name": annotation.get("class_name", ""),
                     "bbox": annotation.get("bbox", []),
+                    "note": annotation.get("note") if isinstance(annotation.get("note"), str) else None,
                     "crop_path": str(crop_path),
                     "crop_url": f"/admin/annotations/{analysis_id}/{index}/crop",
                     "crop_exists": crop_exists,

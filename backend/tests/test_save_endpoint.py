@@ -82,6 +82,18 @@ def test_save_annotation_happy_path(client):
     assert body["analysis_id"] == "test-endpoint-001"
 
 
+def test_save_annotation_accepts_optional_note(client):
+    payload = _valid_payload()
+    payload["annotations"][0]["note"] = "revers effacé"
+    resp = client.post(
+        "/save-annotation",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["status"] == "ok"
+
+
 @pytest.mark.parametrize(
     ("patch", "message"),
     [
@@ -108,6 +120,14 @@ def test_save_annotation_happy_path(client):
         (
             {"annotations": [{"index": 0, "class_name": "../atl", "bbox": [0, 0, 5, 5]}]},
             "annotations[0].class_name invalid",
+        ),
+        (
+            {"annotations": [{"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5], "note": 42}]},
+            "annotations[0].note invalid",
+        ),
+        (
+            {"annotations": [{"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5], "note": "x" * 2001}]},
+            "annotations[0].note invalid",
         ),
     ],
 )

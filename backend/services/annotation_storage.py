@@ -48,6 +48,26 @@ def sanitize_class_name(name: str) -> str:
     return name
 
 
+NOTE_MAX_LENGTH = 2000
+
+
+def sanitize_note(note) -> str | None:
+    """Research note attached to an element. Free text, never exported to the
+    training dataset (see scripts/export_approved_annotations.py)."""
+    if note is None:
+        return None
+    if not isinstance(note, str):
+        raise ValueError("note must be a string")
+    note = note.strip()
+    if not note:
+        return None
+    if "\x00" in note:
+        raise ValueError("note contains null byte")
+    if len(note) > NOTE_MAX_LENGTH:
+        raise ValueError(f"note exceeds {NOTE_MAX_LENGTH} characters")
+    return note
+
+
 def decode_image_data_url(
     data_url: str,
     *,
@@ -150,14 +170,16 @@ def save_annotation(
             crop.save(tmp_dir / "elements" / crop_filename, format="PNG")
 
             classes_seen.add(cls)
-            saved_annotations.append(
-                {
-                    "index": idx,
-                    "class_name": cls,
-                    "bbox": [x, y, w, h],
-                    "crop_path": str(target_dir / "elements" / crop_filename),
-                }
-            )
+            saved = {
+                "index": idx,
+                "class_name": cls,
+                "bbox": [x, y, w, h],
+                "crop_path": str(target_dir / "elements" / crop_filename),
+            }
+            note = sanitize_note(ann.get("note"))
+            if note is not None:
+                saved["note"] = note
+            saved_annotations.append(saved)
 
         metadata = {
             "analysis_id": analysis_id,

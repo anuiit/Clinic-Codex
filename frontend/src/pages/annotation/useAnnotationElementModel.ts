@@ -64,6 +64,22 @@ export function useAnnotationElementModel({
     setAnnotationStatus((prev) => ({ ...prev, [idx]: status }));
   };
 
+  const commitElementNote = (idx: number, note: string) => {
+    const trimmed = note.trim();
+    setElements((prev) =>
+      prev.map((el, elementIdx) => {
+        if (elementIdx !== idx) return el;
+        if (trimmed) {
+          return el.note === trimmed ? el : { ...el, note: trimmed };
+        }
+        if (el.note === undefined) return el;
+        const next = { ...el };
+        delete next.note;
+        return next;
+      }),
+    );
+  };
+
   const submitNamedElements = () => {
     setAnnotationStatus((prev) => {
       const next: Record<number, AnnotationStatus> = { ...prev };
@@ -143,6 +159,7 @@ export function useAnnotationElementModel({
     setListQuery,
     setNamingFocusToken,
     commitElementName,
+    commitElementNote,
     setElementValidation,
     submitNamedElements,
   };

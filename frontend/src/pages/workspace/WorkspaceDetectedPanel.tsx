@@ -1,7 +1,9 @@
 import type { KeyboardEvent } from "react";
 import { AlertCircle, CheckCircle2, ChevronLeft, Edit3, Info, Loader2 } from "lucide-react";
 import type { AnalysisRecord, TrustResult } from "../../types";
+import { adminAnnotationMediaUrl } from "../../services/api";
 import type { WorkspaceTrustState } from "./useWorkspaceViewport";
+import { useArchetypeAssets } from "./useArchetypeAssets";
 import {
   getCropPreviewSize,
   getWorkspaceElementClassName,
@@ -35,6 +37,7 @@ type WorkspaceDetectedPanelLabels = {
   rank: string;
   margin: string;
   topPredictions: string;
+  archetypeCoverage: string;
   correctElement: string;
   annotateRegion: string;
   proposalPanel: string;
@@ -158,6 +161,13 @@ function WorkspaceFocusedRegionPanel({
   const detailPreviewSize = getCropPreviewSize(element.bbox, 180);
   const initialPredictionDiffers = Boolean(trust && trust.top1_class !== element.class_name);
   const bboxSummary = element.bbox.map((value) => Math.round(value)).join(" · ");
+  const topKItems = trust?.top_k ?? element.top_k;
+  const archetypes = useArchetypeAssets(
+    record.id,
+    record.imageDataUrl,
+    element.bbox,
+    topKItems.map((item) => item.class_name),
+  );
 
   return (
     <div className="workspace-focused-panel flex h-full flex-col">
@@ -297,10 +307,37 @@ function WorkspaceFocusedRegionPanel({
             <div className="flex items-center justify-between">
               <h4 className="ui-title-md">{labels.topPredictions}</h4>
             </div>
+            {archetypes.status === "ready" && (
+              <div className="ui-text-meta" data-testid="archetype-coverage">
+                {labels.archetypeCoverage
+                  .replace("{covered}", String(archetypes.covered))
+                  .replace("{total}", String(archetypes.total))}
+              </div>
+            )}
             <div className="space-y-2">
-              {(trust?.top_k ?? element.top_k).map((item, i) => (
+              {topKItems.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="ui-text-meta w-4 text-right">{i + 1}</span>
+                  {archetypes.status === "ready" && (
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden border border-[color:var(--border-subtle)]"
+                      data-archetype-thumb={item.class_name}
+                      data-has-asset={archetypes.assets.get(item.class_name) ? "true" : "false"}
+                    >
+                      {archetypes.assets.get(item.class_name) ? (
+                        <img
+                          src={adminAnnotationMediaUrl(archetypes.assets.get(item.class_name) as string)}
+                          alt=""
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="ui-text-meta" aria-hidden="true">
+                          —
+                        </span>
+                      )}
+                    </span>
+                  )}
                   <div className="flex-1">
                     <div className="mb-0.5 flex justify-between text-sm">
                       <span className={i === 0 ? "font-medium text-[var(--text-body)]" : "text-[color:var(--text-muted)]"}>

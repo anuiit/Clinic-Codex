@@ -48,6 +48,9 @@ export interface ClassifyResult {
 
 export interface DetectedElement extends ClassifyResult {
   bbox: [number, number, number, number]; // [x, y, w, h]
+  // Free-text research note. Annotator memo only — never exported to the
+  // training dataset.
+  note?: string;
 }
 
 export interface SegmentResult {
@@ -116,6 +119,7 @@ export interface SaveAnnotationPayload {
     index: number;
     bbox: [number, number, number, number];
     class_name: string;
+    note?: string;
   }>;
 }
 
@@ -173,6 +177,7 @@ export interface AdminAnnotationElement {
   index: number;
   class_name: string;
   bbox: [number, number, number, number] | number[];
+  note?: string | null;
   crop_path: string;
   crop_url: string;
   crop_exists: boolean;

@@ -372,6 +372,7 @@ export default function WorkspacePage({
                   rank: t.rank,
                   margin: t.margin,
                   topPredictions: t.topPredictions,
+                  archetypeCoverage: t.archetypeCoverage,
                   proposalPanel: t.proposalPanel,
                   detectedElements: t.detectedElements,
                   annotateRecord: t.annotateRecord,

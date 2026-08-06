@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { Trash2 } from "lucide-react";
 import type { DetectedElement } from "../../types";
 import { appText } from "../../i18n/text";
@@ -20,6 +20,7 @@ interface AnnotationSelectedInspectorProps {
   namingFocusToken: number;
   labels: typeof appText.annotation;
   onCommitElementName: (idx: number, name: string) => void;
+  onCommitElementNote: (idx: number, note: string) => void;
   onSetElementValidation: (idx: number, submitted: boolean) => void;
   onRemoveElement: (idx: number) => void;
 }
@@ -36,9 +37,25 @@ export function AnnotationSelectedInspector({
   namingFocusToken,
   labels,
   onCommitElementName,
+  onCommitElementNote,
   onSetElementValidation,
   onRemoveElement,
 }: AnnotationSelectedInspectorProps) {
+  const [noteDraft, setNoteDraft] = useState(focusedElement?.note ?? "");
+
+  useEffect(() => {
+    setNoteDraft(focusedElement?.note ?? "");
+    // Reset the draft only when the selected element changes, not on every
+    // keystroke-driven elements update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedIdx]);
+
+  const commitNote = () => {
+    if (focusedIdx === null) return;
+    if (noteDraft.trim() === (focusedElement?.note ?? "")) return;
+    onCommitElementNote(focusedIdx, noteDraft);
+  };
+
   return (
     <section
       className={`${annotationStyles.owner} ${sidebarStyles.owner} annotation-selected-inspector relative flex shrink-0 flex-col overflow-visible rounded-none p-0`}
@@ -149,6 +166,26 @@ export function AnnotationSelectedInspector({
                 </span>
                 <Trash2 size={18} />
               </ActionButton>
+            </div>
+
+            <div className="annotation-inspector-note flex flex-col gap-1 px-3 py-2">
+              <label
+                htmlFor="annotation-element-note"
+                className="ui-text-meta font-semibold"
+              >
+                {labels.elementNote}
+              </label>
+              <textarea
+                id="annotation-element-note"
+                data-testid="annotation-element-note"
+                value={noteDraft}
+                onChange={(event) => setNoteDraft(event.target.value)}
+                onBlur={commitNote}
+                placeholder={labels.elementNotePlaceholder}
+                rows={2}
+                maxLength={2000}
+                className="ui-input min-h-[3rem] w-full resize-y px-2 py-1.5 text-sm"
+              />
             </div>
           </div>
         ) : (

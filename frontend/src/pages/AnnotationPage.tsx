@@ -298,6 +298,7 @@ export default function AnnotationPage({
             namingFocusToken={model.namingFocusToken}
             labels={t}
             onCommitElementName={model.commitElementName}
+            onCommitElementNote={model.commitElementNote}
             onSetElementValidation={(idx, submitted) =>
               model.setElementValidation(idx, submitted ? "validated" : "draft")
             }

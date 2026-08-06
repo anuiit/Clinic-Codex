@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, jsonify, request
 from backend.security.auth import current_user, require_csrf, require_permission
 
 from backend.app.errors import annotation_error_response
-from backend.services.annotation_storage import sanitize_class_name
+from backend.services.annotation_storage import sanitize_class_name, sanitize_note
 
 bp = Blueprint("annotations", __name__)
 
@@ -54,6 +54,12 @@ def _validate_annotation_payload(annotations: list[object]) -> str | None:
             return f"{prefix}.bbox values must be numeric"
         if bbox[2] <= 0 or bbox[3] <= 0:
             return f"{prefix}.bbox width and height must be positive"
+
+        if "note" in annotation:
+            try:
+                sanitize_note(annotation["note"])
+            except ValueError as exc:
+                return f"{prefix}.note invalid: {exc}"
 
     return None
 

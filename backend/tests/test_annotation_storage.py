@@ -35,6 +35,7 @@ from services.annotation_storage import (  # noqa: E402
     AnnotationDiskFullError,
     AnnotationPermissionError,
     decode_image_data_url,
+    sanitize_note,
     save_annotation,
 )
 
@@ -239,3 +240,56 @@ def test_resave_same_analysis_id_uses_unique_temp_directory(tmp_path, monkeypatc
     assert staged_names[0].startswith(f".tmp-{analysis_id}-")
     assert staged_names[1].startswith(f".tmp-{analysis_id}-")
     assert staged_names[0] != staged_names[1]
+
+
+def test_sanitize_note_validation():
+    assert sanitize_note(None) is None
+    assert sanitize_note("") is None
+    assert sanitize_note("   ") is None
+    assert sanitize_note("  lecture incertaine  ") == "lecture incertaine"
+    with pytest.raises(ValueError, match="must be a string"):
+        sanitize_note(42)
+    with pytest.raises(ValueError, match="null byte"):
+        sanitize_note("bad\x00note")
+    with pytest.raises(ValueError, match="exceeds"):
+        sanitize_note("x" * 2001)
+
+
+def test_save_annotation_persists_note_and_omits_absent_note(tmp_path):
+    base_dir = tmp_path / "annotations"
+    base_dir.mkdir()
+    analysis_id = "test-note1"
+
+    annotations = [
+        {"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5], "note": "contour partiel"},
+        {"index": 1, "class_name": "calli", "bbox": [2, 2, 4, 4]},
+    ]
+    result = save_annotation(
+        analysis_id,
+        _make_image(),
+        annotations,
+        base_dir=base_dir,
+        elements_dir=tmp_path / "training_data" / "Elements",
+    )
+    assert result["status"] == "ok"
+
+    metadata = json.loads((base_dir / analysis_id / "metadata.json").read_text())
+    by_index = {ann["index"]: ann for ann in metadata["annotations"]}
+    assert by_index[0]["note"] == "contour partiel"
+    assert "note" not in by_index[1]
+
+
+def test_save_annotation_rejects_invalid_note(tmp_path):
+    base_dir = tmp_path / "annotations"
+    base_dir.mkdir()
+
+    with pytest.raises(ValueError, match="note must be a string"):
+        save_annotation(
+            "test-note2",
+            _make_image(),
+            [{"index": 0, "class_name": "atl", "bbox": [0, 0, 5, 5], "note": 7}],
+            base_dir=base_dir,
+            elements_dir=tmp_path / "training_data" / "Elements",
+        )
+    # failed save must not leave the target directory behind
+    assert not (base_dir / "test-note2").exists()

@@ -4,9 +4,10 @@ import math
 import os
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request, send_file
+from flask import Blueprint, abort, current_app, jsonify, request, send_file
 
 from backend.app.services.crop_service import crop_bbox, decode_base64_image, validate_bbox
+from backend.services.annotation_storage import sanitize_class_name
 
 bp = Blueprint("similarity", __name__)
 legacy_bp = Blueprint("legacy_similarity", __name__)
@@ -71,6 +72,60 @@ def _band(sim):
     return "low"
 
 
+def _resolve_sample_path(class_name: str, filename: str) -> Path | None:
+    """Resolve an exemplar image from the sample index without ever exposing
+    or accepting a raw filesystem path (unlike legacy /sample-image)."""
+    try:
+        class_name = sanitize_class_name(class_name)
+    except ValueError:
+        return None
+    if not filename or Path(filename).name != filename or filename.startswith("."):
+        return None
+    data_dir = _settings().data_dir.resolve()
+    for sample in _services().sample_index().get(class_name, []):
+        candidate = Path(sample["path"])
+        if candidate.name != filename:
+            continue
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(data_dir)
+        except ValueError:
+            continue
+        if resolved.is_file():
+            return resolved
+    return None
+
+
+def _sample_url(class_name: str, path_str: str) -> str:
+    filename = Path(path_str).name
+    return f"/samples/{class_name}/{filename}"
+
+
+@bp.get("/samples/<class_name>/<path:filename>")
+def sample_image_by_id(class_name: str, filename: str):
+    resolved = _resolve_sample_path(class_name, filename)
+    if resolved is None:
+        abort(404)
+    return send_file(resolved)
+
+
+@bp.get("/samples/coverage")
+def samples_coverage():
+    """Coverage report: which classifier classes have exemplar images in the
+    local sample dataset. Powers the dev-gallery coverage indicator."""
+    index = _services().sample_index()
+    class_names = _services().load_classes()["class_names"]
+    covered = sorted(name for name in class_names if index.get(name))
+    return jsonify(
+        {
+            "status": "ok",
+            "total_classes": len(class_names),
+            "covered_classes": len(covered),
+            "covered": covered,
+        }
+    )
+
+
 @bp.post("/similar")
 def similar():
     data = request.get_json()
@@ -84,8 +139,10 @@ def similar():
         return limit_error
     result = _services().classify(crop, top_k=limit)
 
+    index = _services().sample_index()
     results = []
     for rank, item in enumerate(result.get("top_k", []), 1):
+        samples = index.get(item["class_name"], [])
         results.append(
             {
                 "rank": rank,
@@ -94,7 +151,7 @@ def similar():
                 "class_label": item.get("class_label"),
                 "similarity": item["confidence"],
                 "band": _band(item["confidence"]),
-                "asset": None,
+                "asset": _sample_url(item["class_name"], samples[0]["path"]) if samples else None,
             }
         )
 
