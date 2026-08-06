@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import AdminAnnotationsPage from './pages/AdminAnnotationsPage';
 import AnnotationPage from './pages/AnnotationPage';
 import WorkspacePage from './pages/WorkspacePage';
+import DevLabPage from './pages/DevLabPage';
 import type { ThemeMode } from './components/ThemeToggle';
 import type { AdminTab } from './pages/adminAnnotations/model';
 import { RuntimeVersionProvider } from './components/RuntimeVersionProvider';
@@ -144,6 +145,7 @@ function App() {
                   </RouteGuard>
                 )}
               />
+              <Route path="/dev" element={( <RouteGuard> <DevLabPage /> </RouteGuard> )} />
               </Routes>
             </main>
           </div>
