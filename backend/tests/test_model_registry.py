@@ -68,6 +68,8 @@ def test_registry_package_writes_manifest_checksums_model_card_and_index(tmp_pat
     assert "runtime/weights/prototypes.pt" in checksums_path.read_text(encoding="utf-8")
     assert "Model Card" in card_path.read_text(encoding="utf-8")
     assert index["aliases"]["candidate"] == "20260527T010203Z-nogit-deadbeef"
+    assert registry.resolve_runtime_package("candidate") == version_dir / "runtime"
+    assert registry.resolve_runtime_package("20260527T010203Z-nogit-deadbeef") == version_dir / "runtime"
     assert index["versions"]["20260527T010203Z-nogit-deadbeef"]["artifact_count"] == 3
     assert not list(registry.root.glob(".*.tmp-*"))
 
@@ -118,6 +120,32 @@ def test_registry_rejects_path_traversal_artifact_entries(tmp_path):
 
     with pytest.raises(ModelRegistryValidationError):
         registry.version_dir("../bad-version")
+    with pytest.raises(ModelRegistryValidationError):
+        registry.resolve_runtime_package("../candidate")
+
+
+def test_resolve_runtime_package_rejects_artifact_checksum_tampering(tmp_path):
+    registry = ModelRegistry(tmp_path / "backend" / "model_registry", repo_root=tmp_path)
+    source_dir = tmp_path / "source"
+    (source_dir / "weights").mkdir(parents=True)
+    (source_dir / "weights" / "prototypes.pt").write_bytes(b"prototype-bytes")
+    (source_dir / "weights" / "projection.pt").write_bytes(b"projection-bytes")
+    (source_dir / "config.json").write_text("{}", encoding="utf-8")
+    version_id = "20260527T010203Z-nogit-tampered"
+    registry.create_version_from_artifacts(
+        version_id,
+        artifact_sources={
+            "runtime/weights/prototypes.pt": source_dir / "weights" / "prototypes.pt",
+            "runtime/weights/projection.pt": source_dir / "weights" / "projection.pt",
+            "runtime/config.json": source_dir / "config.json",
+        },
+    )
+    (registry.version_dir(version_id) / "runtime" / "config.json").write_text(
+        '{"tampered": true}', encoding="utf-8"
+    )
+
+    with pytest.raises(ModelRegistryValidationError, match="checksum mismatch"):
+        registry.resolve_runtime_package(version_id)
 
 
 def test_registry_rejects_unsupported_index_schema(tmp_path):

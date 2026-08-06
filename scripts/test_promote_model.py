@@ -12,6 +12,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from backend.services.model_registry import ModelRegistry, atomic_write_json, sha256_file  # noqa: E402
 
+import scripts.promote_model as promote_model  # noqa: E402
+
 
 def _write_runtime(runtime_dir: Path, label: str) -> None:
     (runtime_dir / "weights").mkdir(parents=True, exist_ok=True)
@@ -225,3 +227,40 @@ def test_promote_model_rejects_manifest_path_traversal(tmp_path):
 
     assert result.returncode == 2
     assert "unsafe registry artifact path" in json.loads(result.stdout)["error"]
+
+
+def test_toctou_validation_inside_lock(tmp_path, monkeypatch):
+    runtime = tmp_path / "backend" / "codex_model"
+    _write_runtime(runtime, "original")
+    registry = ModelRegistry(tmp_path / "backend" / "model_registry", repo_root=tmp_path, runtime_model_dir=runtime)
+    version_id = "20260527T010203Z-test-candidate"
+    _create_candidate(registry, tmp_path, version_id)
+
+    calls = {"load_manifest": 0, "validate_artifacts": 0}
+    real_load = promote_model._load_manifest
+    real_validate = promote_model._validate_manifest_artifacts
+
+    def spy_load(registry_arg, vid):
+        calls["load_manifest"] += 1
+        return real_load(registry_arg, vid)
+
+    def spy_validate(registry_arg, manifest):
+        calls["validate_artifacts"] += 1
+        return real_validate(registry_arg, manifest)
+
+    monkeypatch.setattr(promote_model, "_load_manifest", spy_load)
+    monkeypatch.setattr(promote_model, "_validate_manifest_artifacts", spy_validate)
+
+    result = promote_model.promote_or_rollback(
+        registry=registry,
+        version_id=version_id,
+        dry_run=False,
+        action="promote",
+    )
+
+    assert result["action"] == "promote"
+    # The manifest and its artifacts are validated once before the lock (to
+    # build the dry-run/result plan) and re-validated once inside the lock
+    # before any runtime file is copied, closing the TOCTOU window.
+    assert calls["load_manifest"] == 2
+    assert calls["validate_artifacts"] == 2

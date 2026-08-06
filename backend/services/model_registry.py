@@ -29,6 +29,7 @@ RUNTIME_ARTIFACTS = (
     ("runtime/config.json", ("config.json",)),
 )
 _VERSION_PART_RE = re.compile(r"[^A-Za-z0-9_.-]+")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 
 class ModelRegistryError(RuntimeError):
@@ -115,6 +116,54 @@ def safe_relative_path(value: str | Path) -> Path:
     if pure.is_absolute() or not raw or ".." in pure.parts:
         raise ModelRegistryValidationError(f"unsafe registry artifact path: {value}")
     return Path(*pure.parts)
+
+def _resolve_file_within(base: Path, relative: str | Path) -> Path:
+    """Resolve an existing file while rejecting lexical and symlink escapes."""
+
+    rel = safe_relative_path(relative)
+    base_resolved = base.resolve(strict=True)
+    candidate = (base / rel).resolve(strict=True)
+    try:
+        candidate.relative_to(base_resolved)
+    except ValueError as exc:
+        raise ModelRegistryValidationError(
+            f"registry artifact escapes version directory: {relative}"
+        ) from exc
+    if not candidate.is_file():
+        raise ModelRegistryValidationError(f"missing artifact: {candidate}")
+    return candidate
+
+
+def _read_checksums(path: Path) -> dict[str, str]:
+    """Parse a checksum file and reject malformed or duplicate entries."""
+
+    if not path.is_file():
+        raise ModelRegistryValidationError(f"checksums file not found: {path}")
+    records: dict[str, str] = {}
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split(maxsplit=1)
+        if len(parts) != 2:
+            raise ModelRegistryValidationError(
+                f"invalid checksums line {line_number}: {raw_line!r}"
+            )
+        digest, raw_relative = parts
+        if _SHA256_RE.fullmatch(digest) is None:
+            raise ModelRegistryValidationError(
+                f"invalid SHA-256 on checksums line {line_number}"
+            )
+        relative = safe_relative_path(raw_relative.strip()).as_posix()
+        if relative in records:
+            raise ModelRegistryValidationError(
+                f"duplicate checksums entry: {relative}"
+            )
+        records[relative] = digest
+    return records
+
 
 
 def _sanitize_version_part(value: str, *, fallback: str) -> str:
@@ -406,10 +455,130 @@ class ModelRegistry:
         copied = self.copy_artifacts(version_id, artifact_sources)
         return self.write_manifest(version_id, status=status, artifact_paths=copied, metadata=metadata)
 
+    def resolve_runtime_package(self, reference: str) -> Path:
+        """Resolve a validated runtime package by registered version or alias."""
+
+        requested = safe_relative_path(reference)
+        if len(requested.parts) != 1:
+            raise ModelRegistryValidationError(f"invalid model version or alias: {reference}")
+        requested_name = requested.as_posix()
+        index = self.read_index()
+        if requested_name in DEFAULT_ALIASES:
+            resolved = index["aliases"].get(requested_name)
+            if not isinstance(resolved, str) or not resolved:
+                raise ModelRegistryValidationError(
+                    f"model registry alias is not assigned: {requested_name}"
+                )
+            version_id = resolved
+        else:
+            version_id = requested_name
+
+        safe_version = safe_relative_path(version_id)
+        if len(safe_version.parts) != 1:
+            raise ModelRegistryValidationError(f"invalid resolved model version: {version_id}")
+        version_id = safe_version.as_posix()
+        version_meta = index["versions"].get(version_id)
+        if not isinstance(version_meta, dict):
+            raise ModelRegistryValidationError(f"model version is not registered: {version_id}")
+
+        version_dir = self.version_dir(version_id)
+        try:
+            resolved_version_dir = version_dir.resolve(strict=True)
+            resolved_version_dir.relative_to(self.versions_dir.resolve(strict=True))
+        except (FileNotFoundError, ValueError) as exc:
+            raise ModelRegistryValidationError(
+                f"unsafe or missing model version directory: {version_dir}"
+            ) from exc
+
+        expected_metadata_paths = {
+            "manifest_path": (Path("versions") / version_id / "manifest.json").as_posix(),
+            "checksums_path": (Path("versions") / version_id / "checksums.sha256").as_posix(),
+            "runtime_path": (Path("versions") / version_id / "runtime").as_posix(),
+        }
+        for field, expected in expected_metadata_paths.items():
+            if version_meta.get(field) != expected:
+                raise ModelRegistryValidationError(f"registry {field} mismatch for {version_id}")
+
+        manifest_path = _resolve_file_within(version_dir, "manifest.json")
+        checksums_path = _resolve_file_within(version_dir, "checksums.sha256")
+        for label, path in (("manifest", manifest_path), ("checksums", checksums_path)):
+            expected_digest = version_meta.get(f"{label}_sha256")
+            if not isinstance(expected_digest, str) or _SHA256_RE.fullmatch(expected_digest) is None:
+                raise ModelRegistryValidationError(
+                    f"registry is missing a valid {label} digest for {version_id}"
+                )
+            actual_digest = sha256_file(path)
+            if actual_digest != expected_digest:
+                raise ModelRegistryValidationError(
+                    f"{label} digest mismatch for {version_id}: "
+                    f"expected {expected_digest}, got {actual_digest}"
+                )
+
+        manifest = read_json_object(manifest_path)
+        if manifest is None:
+            raise ModelRegistryValidationError(f"manifest not found: {manifest_path}")
+        if manifest.get("schema_version") != SCHEMA_VERSION:
+            raise ModelRegistryValidationError(
+                f"unsupported manifest schema_version for {version_id}: {manifest.get('schema_version')}"
+            )
+        if manifest.get("model_id") != self.model_id:
+            raise ModelRegistryValidationError(f"manifest model_id mismatch for {version_id}")
+        if manifest.get("version_id") != version_id:
+            raise ModelRegistryValidationError(f"manifest version_id mismatch for {version_id}")
+
+        artifacts = manifest.get("artifacts")
+        if not isinstance(artifacts, list):
+            raise ModelRegistryValidationError("manifest artifacts must be a list")
+        checksum_records = _read_checksums(checksums_path)
+        manifest_records: set[str] = set()
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                raise ModelRegistryValidationError("manifest artifact entries must be objects")
+            relative = safe_relative_path(str(artifact.get("path") or "")).as_posix()
+            if relative in manifest_records:
+                raise ModelRegistryValidationError(f"duplicate manifest artifact: {relative}")
+            expected_digest = artifact.get("sha256")
+            if not isinstance(expected_digest, str) or _SHA256_RE.fullmatch(expected_digest) is None:
+                raise ModelRegistryValidationError(f"manifest artifact has invalid SHA-256: {relative}")
+            artifact_path = _resolve_file_within(version_dir, relative)
+            actual_digest = sha256_file(artifact_path)
+            if actual_digest != expected_digest:
+                raise ModelRegistryValidationError(
+                    f"checksum mismatch for {relative}: expected {expected_digest}, got {actual_digest}"
+                )
+            if checksum_records.get(relative) != expected_digest:
+                raise ModelRegistryValidationError(f"checksums inventory mismatch for {relative}")
+            declared_size = artifact.get("size")
+            if not isinstance(declared_size, int) or declared_size != artifact_path.stat().st_size:
+                raise ModelRegistryValidationError(f"artifact size mismatch for {relative}")
+            manifest_records.add(relative)
+
+        checksum_only = sorted(set(checksum_records) - manifest_records)
+        if checksum_only:
+            raise ModelRegistryValidationError(
+                "checksums inventory contains undeclared artifact(s): " + ", ".join(checksum_only)
+            )
+        for required_relative, _runtime_parts in RUNTIME_ARTIFACTS:
+            if required_relative not in manifest_records:
+                raise ModelRegistryValidationError(
+                    f"required runtime artifact is not declared: {required_relative}"
+                )
+
+        runtime_dir = (version_dir / "runtime").resolve(strict=True)
+        try:
+            runtime_dir.relative_to(resolved_version_dir)
+        except ValueError as exc:
+            raise ModelRegistryValidationError(
+                f"runtime package escapes version directory: {runtime_dir}"
+            ) from exc
+        if not runtime_dir.is_dir():
+            raise ModelRegistryValidationError(f"runtime package is not a directory: {runtime_dir}")
+        return runtime_dir
+
     def import_current_runtime(self, *, version_id: str | None = None, force: bool = False) -> dict[str, Any]:
         """Copy current runtime files into an immutable ``original`` package.
 
-        Runtime files in ``backend/codex_model`` are copied, never moved or
+        Runtime files in ``backend/codex_model`` are copied, never moved o
         modified.  The first imported original becomes the promoted pointer until
         an explicit promotion changes it.
         """

@@ -1,0 +1,43 @@
+{
+  "schema_version": "r2-e2e-promotion-spec-v1",
+  "model_version_id": "20260805T112535Z-vicreg-full-data-r2",
+  "offline_dataset": {
+    "minimum_rows": 600,
+    "minimum_classes": 100,
+    "minimum_cases_when_available": 100,
+    "require_pixel_hash_disjoint": true,
+    "require_case_or_specimen_disjoint_when_available": true
+  },
+  "quality": {
+    "top1_delta_min": 0.01,
+    "top1_paired_bootstrap_95_lower_strictly_greater_than": 0.0,
+    "macro_top1_delta_min": 0.0,
+    "top3_delta_min": 0.0,
+    "mcnemar_exact_p_max": 0.05
+  },
+  "rejection": {
+    "fixed_threshold": 0.35,
+    "maximum_expected_calibration_error": 0.1,
+    "accepted_accuracy_delta_min": 0.0,
+    "rejection_rate_absolute_delta_max": 0.05
+  },
+  "performance": {
+    "p95_latency_ratio_max": 2.0,
+    "candidate_error_rate_max": 0.001
+  },
+  "shadow": {
+    "minimum_requests": 500,
+    "candidate_error_rate_max": 0.01
+  },
+  "canary": {
+    "minimum_requests": 200,
+    "candidate_error_rate_max": 0.005,
+    "rollback_rehearsal_required": true
+  },
+  "promotion": {
+    "all_gates_required": true,
+    "report_must_reference_build_spec_sha256": true,
+    "report_must_reference_candidate_manifest_sha256": true,
+    "atomic_tool_only": true
+  }
+}

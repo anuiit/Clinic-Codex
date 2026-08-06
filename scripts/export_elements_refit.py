@@ -34,11 +34,11 @@ from codex_pipeline.models.projection_head import ProjectionHead, get_device
 from codex_pipeline.models.prototypical import compute_prototypes
 
 
-EXPECTED_STATE_SHAPES = {
-    "net.0.weight": (384, 384),
-    "net.0.bias": (384,),
-    "net.3.weight": (128, 384),
-    "net.3.bias": (128,),
+EXPECTED_STATE_KEYS = {
+    "net.0.weight",
+    "net.0.bias",
+    "net.3.weight",
+    "net.3.bias",
 }
 
 
@@ -135,17 +135,61 @@ def _load_state_dict(checkpoint: Any) -> dict[str, torch.Tensor]:
             state_dict = checkpoint.get(key)
             if isinstance(state_dict, dict):
                 return state_dict
-        if all(key in checkpoint for key in EXPECTED_STATE_SHAPES):
+        if all(key in checkpoint for key in EXPECTED_STATE_KEYS):
             return checkpoint
     raise ValueError("checkpoint does not contain a model state dict")
 
 
-def _validate_state_dict(state_dict: dict[str, torch.Tensor]) -> None:
-    if set(state_dict) != set(EXPECTED_STATE_SHAPES):
+def _validate_state_dict(
+    state_dict: dict[str, torch.Tensor],
+    *,
+    input_dim: int,
+    embedding_dim: int,
+) -> None:
+    if set(state_dict) != EXPECTED_STATE_KEYS:
         raise ValueError("checkpoint state dict is not runtime compatible")
-    for key, expected_shape in EXPECTED_STATE_SHAPES.items():
+    expected_shapes = {
+        "net.0.weight": (input_dim, input_dim),
+        "net.0.bias": (input_dim,),
+        "net.3.weight": (embedding_dim, input_dim),
+        "net.3.bias": (embedding_dim,),
+    }
+    for key, expected_shape in expected_shapes.items():
         if tuple(state_dict[key].shape) != expected_shape:
             raise ValueError(f"checkpoint tensor shape mismatch for {key}")
+
+
+def _model_contract(
+    cache: dict[str, Any],
+    state_dict: dict[str, torch.Tensor],
+    runtime_config: dict[str, Any],
+) -> dict[str, Any]:
+    features = cache["features"]
+    if features.ndim != 2:
+        raise ValueError("feature cache features must be a 2D tensor")
+    input_dim = int(features.shape[1])
+    embedding_dim = int(state_dict["net.3.weight"].shape[0])
+    if input_dim not in {384, 768}:
+        raise ValueError(f"unsupported Elements feature dimension: {input_dim}")
+    if embedding_dim != 128:
+        raise ValueError(f"unsupported Elements embedding dimension: {embedding_dim}")
+    expected_backbone = {384: "dinov2_vits14", 768: "dinov2_vitb14"}[input_dim]
+    cache_backbone = cache.get("backbone")
+    if cache_backbone is not None and str(cache_backbone) != expected_backbone:
+        raise ValueError("feature cache backbone does not match its hidden dimension")
+    cache_hidden_dim = cache.get("hidden_dim")
+    if cache_hidden_dim is not None and int(cache_hidden_dim) != input_dim:
+        raise ValueError("feature cache hidden_dim does not match its feature tensor")
+    image_size = int(cache.get("image_size", runtime_config.get("image_size", 224)))
+    if image_size != 224:
+        raise ValueError(f"unsupported Elements image size: {image_size}")
+    _validate_state_dict(state_dict, input_dim=input_dim, embedding_dim=embedding_dim)
+    return {
+        "backbone": expected_backbone,
+        "hidden_dim": input_dim,
+        "embedding_dim": embedding_dim,
+        "image_size": image_size,
+    }
 
 
 def _normalize_class_names(raw: dict[int, str] | list[str]) -> dict[int, str]:
@@ -240,7 +284,7 @@ def export_elements_refit(
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state_dict = _load_state_dict(checkpoint)
-    _validate_state_dict(state_dict)
+    model_contract = _model_contract(cache, state_dict, runtime_config)
     checkpoint_payload = checkpoint if isinstance(checkpoint, dict) else {}
     metric_context = str(
         checkpoint_payload.get(
@@ -248,9 +292,31 @@ def export_elements_refit(
             "training_feature_cache_fit_diagnostic_not_holdout_efficacy",
         )
     )
-    promotion_eligible = bool(checkpoint_payload.get("promotion_eligible", False))
+    if checkpoint_payload.get("promotion_eligible") is True:
+        raise ValueError("refit exporter only accepts promotion-ineligible checkpoints")
+    promotion_eligible = False
     runtime_teacher_projection_path = RUNTIME_MODEL_DIR / "weights" / "projection.pt"
     training_metadata = _build_training_metadata(checkpoint_payload, runtime_teacher_projection_path)
+    promotion_metadata: dict[str, Any] = {
+        "requires_manual_review": True,
+        "eligible": False,
+    }
+    promotion_contract = checkpoint_payload.get("promotion_contract")
+    if promotion_contract is not None:
+        required_promotion_keys = {
+            "e2e_report_required",
+            "e2e_spec_path",
+            "e2e_spec_sha256",
+            "build_spec_path",
+            "build_spec_sha256",
+        }
+        if not isinstance(promotion_contract, dict):
+            raise TypeError("checkpoint promotion_contract must be an object")
+        if set(promotion_contract) != required_promotion_keys:
+            raise ValueError("checkpoint promotion_contract keys do not match the registry ABI")
+        if promotion_contract.get("e2e_report_required") is not True:
+            raise ValueError("checkpoint promotion_contract must require an E2E report")
+        promotion_metadata.update(promotion_contract)
 
     version_id = version_id or registry.build_version_id(run_id="elements-refit")
     version_dir = registry.version_dir(version_id)
@@ -259,7 +325,10 @@ def export_elements_refit(
     version_dir.mkdir(parents=True, exist_ok=False)
 
     device = get_device(device_name)
-    model = ProjectionHead(384, 128).to(device)
+    model = ProjectionHead(
+        model_contract["hidden_dim"],
+        model_contract["embedding_dim"],
+    ).to(device)
     model.load_state_dict(state_dict)
     model.eval()
 
@@ -277,7 +346,7 @@ def export_elements_refit(
         "prototypes": prototypes.cpu(),
         "class_names": runtime_class_map,
         "class_labels": runtime_class_labels,
-        "embedding_dim": 128,
+        "embedding_dim": model_contract["embedding_dim"],
     }
     projection_path = weights_dir / "projection.pt"
     prototypes_path = weights_dir / "prototypes.pt"
@@ -287,8 +356,16 @@ def export_elements_refit(
     runtime_config_out = dict(runtime_config)
     runtime_config_out["num_classes"] = len(class_names_list)
     runtime_config_out["class_names"] = class_names_list
-    runtime_config_out["embedding_dim"] = 128
-    runtime_config_out["hidden_dim"] = 384
+    runtime_config_out["backbone"] = model_contract["backbone"]
+    runtime_config_out["embedding_dim"] = model_contract["embedding_dim"]
+    runtime_config_out["hidden_dim"] = model_contract["hidden_dim"]
+    runtime_config_out["image_size"] = model_contract["image_size"]
+    runtime_config_out["rejection_threshold_status"] = str(
+        checkpoint_payload.get(
+            "rejection_threshold_status",
+            "legacy_inherited_unvalidated",
+        )
+    )
     config_path = runtime_dir / "config.json"
     atomic_write_json(config_path, runtime_config_out)
 
@@ -313,6 +390,8 @@ def export_elements_refit(
             "class_count": len(class_names_list),
             "class_order_sha256": _sha256_json(class_names_list),
             "class_labels_sha256": _sha256_json(class_labels_list),
+            "backbone": model_contract["backbone"],
+            "hidden_dim": model_contract["hidden_dim"],
         },
         "runtime": {
             "config_path": str(runtime_config_path.resolve()),
@@ -358,15 +437,16 @@ def export_elements_refit(
         },
         "training": training_metadata,
         "base_models": {
-            "projection_head": "ProjectionHead(384, 128)",
+            "backbone": model_contract["backbone"],
+            "projection_head": (
+                f"ProjectionHead({model_contract['hidden_dim']}, "
+                f"{model_contract['embedding_dim']})"
+            ),
             "prototype_space": "cosine_mean",
         },
         "metrics": metrics,
         "metrics_context": metric_context,
-        "promotion": {
-            "requires_manual_review": True,
-            "eligible": promotion_eligible,
-        },
+        "promotion": promotion_metadata,
     }
     manifest = registry.write_manifest(version_id, status="candidate", artifact_paths=artifacts, metadata=metadata)
 

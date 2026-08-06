@@ -246,3 +246,122 @@ def test_export_elements_refit_refuses_backend_codex_model(tmp_path: Path) -> No
             "version-123",
             "cpu",
         )
+
+
+def test_export_elements_refit_supports_b14_and_carries_r2_promotion_contract(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    registry_root = tmp_path / "model_registry"
+    runtime_config = _write_runtime_config(tmp_path / "runtime.json")
+    runtime_prototypes = _write_runtime_prototypes(tmp_path / "runtime-prototypes.pt")
+    features = torch.eye(286, 768, dtype=torch.float32)
+    feature_cache = tmp_path / "b14-cache.pt"
+    torch.save(
+        {
+            "features": features,
+            "labels": torch.arange(286, dtype=torch.long),
+            "class_names": {index: f"class_{index}" for index in range(286)},
+            "backbone": "dinov2_vitb14",
+            "hidden_dim": 768,
+            "image_size": 224,
+        },
+        feature_cache,
+    )
+    checkpoint = tmp_path / "b14-checkpoint.pt"
+    promotion_contract = {
+        "e2e_report_required": True,
+        "e2e_spec_path": "backend/model_registry/specs/r2-e2e-promotion-v1.json",
+        "e2e_spec_sha256": "e" * 64,
+        "build_spec_path": "backend/model_registry/specs/r2-full-data-production-v1.json",
+        "build_spec_sha256": "b" * 64,
+    }
+    torch.save(
+        {
+            "model_state_dict": ProjectionHead(768, 128).state_dict(),
+            "spec": {
+                "objective": "vicreg_then_supervised_episodic_full_data_r2_build",
+                "initialization": "fresh_deterministic",
+                "seed": 7,
+                "teacher_weight": 0.0,
+                "hidden_teacher_weight": 0.0,
+            },
+            "promotion_contract": promotion_contract,
+            "promotion_eligible": False,
+            "rejection_threshold_status": "legacy_inherited_unvalidated",
+        },
+        checkpoint,
+    )
+    monkeypatch.setattr(
+        module,
+        "compute_cache_metrics",
+        lambda *args, **kwargs: {
+            "prototype_top1": 0.5,
+            "prototype_macro_top1": 0.6,
+            "prototype_top3": 0.7,
+        },
+    )
+
+    result = module.export_elements_refit(
+        checkpoint,
+        feature_cache,
+        registry_root,
+        runtime_config,
+        runtime_prototypes,
+        "20260805T112535Z-vicreg-full-data-r2",
+        "cpu",
+    )
+
+    version_dir = registry_root / "versions/20260805T112535Z-vicreg-full-data-r2"
+    config = json.loads((version_dir / "runtime/config.json").read_text(encoding="utf-8"))
+    projection = torch.load(
+        version_dir / "runtime/weights/projection.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+    prototypes = torch.load(
+        version_dir / "runtime/weights/prototypes.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+    manifest = json.loads((version_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    assert result["promotion_eligible"] is False
+    assert result["prototype_count"] == 286
+    assert config["backbone"] == "dinov2_vitb14"
+    assert config["hidden_dim"] == 768
+    assert config["embedding_dim"] == 128
+    assert config["rejection_threshold_status"] == "legacy_inherited_unvalidated"
+    assert tuple(projection["net.0.weight"].shape) == (768, 768)
+    assert tuple(projection["net.3.weight"].shape) == (128, 768)
+    assert tuple(prototypes["prototypes"].shape) == (286, 128)
+    assert manifest["base_models"]["backbone"] == "dinov2_vitb14"
+    assert manifest["base_models"]["projection_head"] == "ProjectionHead(768, 128)"
+    assert manifest["promotion"] == {
+        "requires_manual_review": True,
+        "eligible": False,
+        **promotion_contract,
+    }
+
+
+def test_export_elements_refit_rejects_promotion_eligible_checkpoint(
+    tmp_path: Path,
+) -> None:
+    runtime_config = _write_runtime_config(tmp_path / "runtime.json")
+    runtime_prototypes = _write_runtime_prototypes(tmp_path / "prototypes.pt")
+    feature_cache = _write_feature_cache(tmp_path / "cache.pt")
+    checkpoint = _write_checkpoint(tmp_path / "checkpoint.pt")
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    payload["promotion_eligible"] = True
+    torch.save(payload, checkpoint)
+
+    with pytest.raises(ValueError, match="promotion-ineligible"):
+        module.export_elements_refit(
+            checkpoint,
+            feature_cache,
+            tmp_path / "registry",
+            runtime_config,
+            runtime_prototypes,
+            "version-123",
+            "cpu",
+        )

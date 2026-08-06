@@ -35,6 +35,7 @@ from backend.services.model_registry import (  # noqa: E402
     sha256_file,
     utc_now_iso,
 )
+from scripts.evaluate_r2_e2e import E2EEvaluationError, validate_promotion_report  # noqa: E402
 
 REQUIRED_RUNTIME_FILES = {
     "runtime/weights/prototypes.pt": ("weights", "prototypes.pt"),
@@ -368,11 +369,29 @@ def promote_or_rollback(
     version_id: str,
     dry_run: bool,
     action: str,
+    e2e_report_path: Path | None = None,
 ) -> dict[str, Any]:
     if not version_id:
         raise PromotionError("no target version available")
     manifest = _load_manifest(registry, version_id)
     artifacts = _validate_manifest_artifacts(registry, manifest)
+    e2e_report: dict[str, Any] | None = None
+    promotion = manifest.get("promotion")
+    e2e_required = isinstance(promotion, dict) and bool(promotion.get("e2e_report_required"))
+    if action == "promote" and e2e_required:
+        if e2e_report_path is None:
+            raise PromotionError(
+                "candidate requires a passing E2E report; pass --e2e-report before promotion"
+            )
+        try:
+            e2e_report = validate_promotion_report(
+                e2e_report_path,
+                manifest=manifest,
+                manifest_path=registry.version_dir(version_id) / "manifest.json",
+                repo_root=registry.repo_root,
+            )
+        except E2EEvaluationError as exc:
+            raise PromotionError(f"invalid E2E promotion report: {exc}") from exc
     index = registry.read_index()
     previous_version = index.get("promoted_version") or index["aliases"].get("promoted")
     plan = _runtime_copy_plan(registry, version_id)
@@ -387,6 +406,13 @@ def promote_or_rollback(
         "artifact_count": len(artifacts),
         "runtime_dir": str(registry.runtime_model_dir),
     }
+    if e2e_report is not None:
+        result["e2e_report"] = {
+            "path": str(e2e_report_path),
+            "schema_version": e2e_report["schema_version"],
+            "report_payload_sha256": e2e_report["integrity"]["report_payload_sha256"],
+            "overall_pass": True,
+        }
     if dry_run:
         result["would_import_original"] = not bool(index["aliases"].get("original"))
         result["would_snapshot_runtime"] = True
@@ -394,6 +420,26 @@ def promote_or_rollback(
         return result
 
     with promotion_lock(registry):
+        # Re-validate every immutable binding inside the lock. The manifest,
+        # its artifacts, and the E2E report were read before the lock was
+        # acquired; an operator or concurrent process could have mutated them
+        # in between. Re-loading here closes that TOCTOU window before any
+        # runtime file is copied.
+        manifest = _load_manifest(registry, version_id)
+        artifacts = _validate_manifest_artifacts(registry, manifest)
+        if action == "promote" and e2e_required:
+            try:
+                e2e_report = validate_promotion_report(
+                    e2e_report_path,
+                    manifest=manifest,
+                    manifest_path=registry.version_dir(version_id) / "manifest.json",
+                    repo_root=registry.repo_root,
+                )
+            except E2EEvaluationError as exc:
+                raise PromotionError(f"invalid E2E promotion report: {exc}") from exc
+        plan = _runtime_copy_plan(registry, version_id)
+        result["copy_plan"] = plan
+        result["artifact_count"] = len(artifacts)
         if not registry.read_index()["aliases"].get("original"):
             registry.import_current_runtime()
             previous_version = registry.read_index().get("promoted_version") or previous_version
@@ -452,6 +498,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON output.")
     parser.add_argument("--registry-dir", default=str(REPO_ROOT / "backend" / "model_registry"))
     parser.add_argument("--runtime-dir", default=None)
+    parser.add_argument(
+        "--e2e-report",
+        type=Path,
+        default=None,
+        help="Passing, hash-bound E2E report required by guarded candidates such as R2.",
+    )
     return parser
 
 
@@ -477,7 +529,13 @@ def main(argv: list[str] | None = None) -> int:
     action = "rollback" if args.rollback else "promote"
     version_id = resolve_rollback_target(registry, args.version_id) if args.rollback else (args.version_id or "")
     try:
-        result = promote_or_rollback(registry=registry, version_id=version_id, dry_run=args.dry_run, action=action)
+        result = promote_or_rollback(
+            registry=registry,
+            version_id=version_id,
+            dry_run=args.dry_run,
+            action=action,
+            e2e_report_path=args.e2e_report,
+        )
     except (PromotionError, ModelRegistryValidationError) as exc:
         if args.json:
             print(json.dumps({"ok": False, "action": action, "error": str(exc)}, indent=2, sort_keys=True))

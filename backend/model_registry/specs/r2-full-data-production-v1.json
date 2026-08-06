@@ -1,0 +1,64 @@
+{
+  "schema_version": "r2-full-data-production-spec-v1",
+  "version_id": "20260805T112535Z-vicreg-full-data-r2",
+  "build_only": true,
+  "runtime_write_allowed": false,
+  "automatic_promotion_allowed": false,
+  "final_test_read_allowed": false,
+  "model": {
+    "backbone": "dinov2_vitb14",
+    "hidden_dim": 768,
+    "embedding_dim": 128,
+    "image_size": 224,
+    "num_classes": 286,
+    "rejection_threshold": 0.35,
+    "rejection_threshold_status": "legacy_inherited_unvalidated"
+  },
+  "corpus": {
+    "rows": 9990,
+    "classes": 286,
+    "components": 300,
+    "order": "row_id_lexicographic",
+    "quarantined_rows": 49
+  },
+  "cache": {
+    "replicas": 2,
+    "views": 8,
+    "view_seed": 20260803,
+    "row_batch_size": 4,
+    "persistent_dtype": "float16",
+    "strict_determinism": true,
+    "semantic_replica_equality_required": true,
+    "fold_reference_cosine_min": 0.9999,
+    "fold_reference_cosine_median_min": 0.999999,
+    "expected_gpu_name": "NVIDIA GeForce RTX 3070"
+  },
+  "training": {
+    "seed": 1706651702,
+    "replicas": 2,
+    "ssl": {
+      "epochs": 30,
+      "batch_size": 256,
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0001
+    },
+    "supervised": {
+      "epochs": 30,
+      "episodes_per_epoch": 100,
+      "n_way": 20,
+      "k_shot": 3,
+      "q_queries": 5,
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "temperature": 0.1,
+      "warmup_epochs": 5
+    }
+  },
+  "export": {
+    "registry_status": "candidate",
+    "promotion_eligible": false,
+    "requires_manual_review": true,
+    "metric_context": "full_training_cache_fit_diagnostic_not_efficacy",
+    "runtime_layout": "runtime_root_with_config_and_weights_subdirectory"
+  }
+}

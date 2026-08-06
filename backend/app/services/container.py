@@ -20,6 +20,7 @@ except ImportError:  # pragma: no cover - compatibility when backend dir is sys.
     from services.annotation_storage import decode_image_data_url, save_annotation  # type: ignore
     from services.annotation_review import AnnotationReviewStore  # type: ignore
     from services.training_jobs import AdminTrainingService, RequestLaunchContext  # type: ignore
+from backend.app.services.classifier_rollout import ClassifierRollout
 
 
 def _ensure_backend_root_on_path(settings: Settings) -> None:
@@ -38,6 +39,7 @@ class DefaultServices:
     def __init__(self, settings: Settings):
         self.settings = settings
         self._classifier = None
+        self._classifier_rollout = ClassifierRollout(settings, self.get_classifier)
         self._segmenter = None
         self._annotation_review_store: AnnotationReviewStore | None = None
         self._admin_training_service: AdminTrainingService | None = None
@@ -56,10 +58,10 @@ class DefaultServices:
         return self._classifier
 
     def classify(self, image: Image.Image | np.ndarray, **kwargs):
-        return self.get_classifier().classify(image, **kwargs)
+        return self._classifier_rollout.classify(image, **kwargs)
 
     def classify_batch(self, images: list[Image.Image | np.ndarray]):
-        return self.get_classifier().classify_batch(images)
+        return self._classifier_rollout.classify_batch(images)
 
     def get_segmenter(self):
         self._raise_for_missing_mobile_sam_checkpoint()
@@ -170,11 +172,11 @@ class DefaultServices:
         return self._sample_index
 
     def readiness(self) -> dict[str, Any]:
-        return readiness_report(self.settings)
+        return readiness_report(self.settings, rollout=self._classifier_rollout)
 
     def _raise_for_missing_classifier_assets(self) -> None:
         for check in readiness_report(self.settings)["checks"]:
-            if check["name"].startswith("classifier_") and not check["available"]:
+            if check["name"] in {"classifier_prototypes", "classifier_projection"} and not check["available"]:
                 raise ModelAssetUnavailable(
                     asset=check["name"],
                     path=check["path"],
@@ -218,10 +220,24 @@ def mobile_sam_checkpoint_check(settings: Settings) -> dict[str, Any]:
     )
 
 
-def readiness_report(settings: Settings) -> dict[str, Any]:
+def readiness_report(settings: Settings, *, rollout: ClassifierRollout | None = None) -> dict[str, Any]:
     checks = [*classifier_asset_checks(settings), mobile_sam_checkpoint_check(settings)]
-    ready = all(check["available"] for check in checks)
-    return {"status": "ready" if ready else "not_ready", "ready": ready, "checks": checks}
+    rollout_report = rollout.readiness() if rollout is not None else {
+        "requested_mode": settings.classifier_rollout_mode,
+        "active_mode": "off",
+        "degraded": settings.classifier_rollout_mode != "off",
+        "candidate_reference": settings.classifier_candidate_reference,
+        "worker_state": "not_started",
+        "blocker": None if settings.classifier_rollout_mode == "off" else "rollout_not_initialized",
+        "metrics": {},
+    }
+    ready = all(check["available"] for check in checks) and not rollout_report["degraded"]
+    return {
+        "status": "ready" if ready else "not_ready",
+        "ready": ready,
+        "checks": checks,
+        "classifier_rollout": rollout_report,
+    }
 
 
 def sample_class_name(class_dir_name: str) -> str:
