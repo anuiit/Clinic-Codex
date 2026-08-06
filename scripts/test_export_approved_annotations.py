@@ -83,3 +83,35 @@ def test_export_approved_annotations_clean_removes_stale_output(tmp_path):
     export_approved_annotations(annotations_dir, output_dir, clean=True)
 
     assert not stale.exists()
+
+
+def test_export_excludes_research_note_from_training_manifest(tmp_path):
+    """F2 contract: element notes are annotator memos, never training data."""
+    annotations_dir = tmp_path / "annotations"
+    save_annotation(
+        "noted-export-1",
+        _make_image(),
+        [
+            {"index": 0, "class_name": "atl", "bbox": [0, 0, 4, 4], "note": "lecture douteuse"},
+        ],
+        base_dir=annotations_dir,
+        elements_dir=annotations_dir.parent / "training_data" / "Elements",
+    )
+    store = AnnotationReviewStore(annotations_dir)
+    store.set_status("noted-export-1", 0, "approved")
+
+    # The review queue surfaces the note for human reviewers...
+    queue = store.list_queue()
+    element = queue["analyses"][0]["elements"][0]
+    assert element["note"] == "lecture douteuse"
+
+    # ...but neither the approved row stream nor the export manifest carry it.
+    approved_row = next(iter(store.iter_approved_annotations()))
+    assert "note" not in approved_row
+
+    output_dir = tmp_path / "approved" / "Elements"
+    summary = export_approved_annotations(annotations_dir, output_dir)
+    assert "note" not in summary["rows"][0]
+    persisted = json.loads((output_dir / "_approved_export_manifest.json").read_text())
+    assert all("note" not in row for row in persisted["rows"])
+    assert '"note"' not in json.dumps(persisted)
