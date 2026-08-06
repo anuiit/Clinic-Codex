@@ -110,3 +110,4 @@ reports/
 _legacy/frontend_integration/examples/sample_outputs/
 brave_*.png
 triage_dataset_train_proposal.html
+annotations/
