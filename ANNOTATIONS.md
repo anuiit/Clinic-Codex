@@ -18,7 +18,7 @@ Only **admin-approved** submitted elements are eligible for retraining. Browser 
 6. Click **Envoyer pour entraînement** or export from a localStorage dump with `scripts/export_annotations.py`; the backend saves those elements as **pending admin review**.
 7. Open `/admin/annotations` locally. Use **Review** to approve, reject, or correct class/bbox values; ordinary corrections return to pending unless you choose **Save & approve**.
 8. Use **Dataset** to inspect trainable approved crops, approved-but-not-trainable diagnostics, rejected items, and pending items before training.
-9. Use **Training** for a dry run/full local run when `ENABLE_ADMIN_TRAINING_JOBS=1` is set, or run `bash scripts/retrain.sh` / `pwsh -NoProfile -File scripts/retrain.ps1` from the repository root. Dry runs print and validate the approved-only command plan; full runs create a candidate version under `backend/model_registry/versions/<version_id>/`.
+9. Build a cumulative snapshot from the existing corpus and current approvals, configure `ADMIN_TRAINING_SNAPSHOT_DIR`, then use **Training** for a dry run/full local warm-start run when `ENABLE_ADMIN_TRAINING_JOBS=1` is set. Full runs create a candidate version under `backend/model_registry/versions/<version_id>/`.
 10. Promote the candidate with `backend/.venv/bin/python scripts/promote_model.py <version_id>`.
 11. Restart the backend to use the promoted weights.
 
@@ -155,15 +155,17 @@ Use **Dataset** as a read-only preflight view before training. It derives its ro
 - rejected rows;
 - pending rows.
 
-Filters and class distributions are UI-only helpers. The retraining bridge still uses the backend approved-only iterator, not client-side filtering.
+Filters and class distributions are UI-only helpers. The snapshot builder reads the backend approved-only iterator, never client-side filtering.
 
 ### Training tab
 
-The Training tab always shows approved-only counts, class distribution, resolved paths, artifact status, and the latest job/log tail. Starting a run is intentionally disabled unless all launch guards pass:
+The Training tab shows current approved counts, cumulative snapshot state, resolved paths, artifacts, and the latest job/log tail. Starting a run is intentionally disabled unless all launch guards pass:
 
 - set `ENABLE_ADMIN_TRAINING_JOBS=1` before starting the backend;
 - access the backend from a loopback client (`localhost`, `127.0.0.1`, or `::1`);
 - use a local `Host` header and local `Origin` header;
+- configure a valid `training-snapshot.v2` through `ADMIN_TRAINING_SNAPSHOT_DIR`;
+- keep its review-index hash current and provide the pinned backbone plus current projection;
 - keep `scripts/retrain.sh` present.
 
 Launch payloads are limited to:
@@ -177,7 +179,7 @@ Launch payloads are limited to:
 }
 ```
 
-Unknown fields, nonlocal requests, invalid devices, invalid batch sizes, concurrent launch attempts, and concurrent running jobs are rejected. The backend starts only the allowlisted command `bash scripts/retrain.sh` (plus `--dry-run` for dry runs) with a small allowlisted environment including `MODEL_VERSION_ID` and `MODEL_REGISTRY_DIR`. Job status/logs are written under `backend/training_runs/<run_id>/`, and the summary surfaces local registry aliases plus manifest/checksum health.
+Unknown fields, nonlocal requests, invalid devices, invalid batch sizes, stale snapshots, concurrent launch attempts, and concurrent running jobs are rejected. The backend starts only the allowlisted `bash scripts/retrain.sh` command with the configured snapshot, backbone pin, warm-start projection, and optional `--dry-run`. Job status/logs are written under `backend/training_runs/<run_id>/`, and the summary surfaces the snapshot hash, local registry aliases, and manifest/checksum health.
 If a backend restart leaves behind a `running` dry-run without its in-memory process handle, or a full run whose lock PID and recorded process identity cannot still confirm the original retrain process, the next job read marks it failed so a stale local status file does not permanently block the launcher.
 
 The browser Training tab launcher is Bash-only (`scripts/retrain.sh`). Native Windows users should use the PowerShell command-line path shown below unless they are running through WSL/Git Bash.
@@ -210,50 +212,36 @@ backend/.venv/bin/python scripts/export_annotations.py analyses.json \
 
 ## 5. Retrain
 
-Once submitted crops have been approved under `/admin/annotations`, use the Training tab for a guarded local dry run/full run or run one retraining command from the repository root. Retraining now produces an immutable **candidate** package under `backend/model_registry/versions/<version_id>/`; it does **not** overwrite `backend/codex_model/`.
+Once submitted crops have been approved under `/admin/annotations`, rebuild the immutable cumulative snapshot, then use the Training tab for a guarded local dry run/full run. Retraining warm-starts from the current projection and produces an immutable **candidate** package under `backend/model_registry/versions/<version_id>/`; it does **not** overwrite `backend/codex_model/`.
 
-Training tab launch is off by default:
+Build or refresh the snapshot first:
 
 ```bash
+backend/.venv/bin/python scripts/build_training_snapshot.py \
+  --parent-manifest backend/training_corpus/snapshots/<previous-id>/snapshot_manifest.json \
+  --exclude-conflicts --allow-underfilled-holdouts --json
+
+export ADMIN_TRAINING_SNAPSHOT_DIR="$PWD/backend/training_corpus/snapshots/<snapshot-id>"
+export ADMIN_TRAINING_BACKBONE_MANIFEST="$PWD/backend/training_corpus/backbone-pins/dinov2-vits14-local.json"
 ENABLE_ADMIN_TRAINING_JOBS=1 bash scripts/run-dev.sh
 ```
 
 If the tab reports `disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches`,
-use the command-line alternative below or restart the backend with the feature flag enabled. Keep this
+restart the backend with the feature flag enabled. Keep this
 as an explicit local opt-in rather than a committed dev-script default.
 
-Linux/macOS:
+The admin launcher supplies the cumulative paths automatically. `scripts/retrain.sh` and `scripts/retrain.ps1` expose the same explicit snapshot arguments for CLI use. Their no-argument mode remains an approved-only compatibility path.
 
-```bash
-bash scripts/retrain.sh
-```
-
-Windows/PowerShell:
-
-```powershell
-pwsh -NoProfile -File scripts/retrain.ps1
-```
-
-Dry-run the step list without running the pipeline:
-
-```bash
-bash scripts/retrain.sh --dry-run
-```
-
-```powershell
-pwsh -NoProfile -File scripts/retrain.ps1 -DryRun
-```
-
-Both retraining scripts execute the same approved-only classifier stages with repo-root anchored explicit paths:
+The cumulative path executes these classifier stages:
 
 | Step | Script | Purpose |
 | --- | --- | --- |
-| 1/6 | `scripts/export_approved_annotations.py` | Materialize only admin-approved, non-stale crops into `backend/training_data/approved/Elements`. |
-| 2/6 | `build_metadata.py` | Build `backend/training_data/approved/metadata.csv` from the generated Elements dataset. |
-| 3/6 | `precompute_embeddings.py` | Compute DINOv2 embeddings to `backend/training_data/approved/precomputed/features.pt`. |
-| 4/6 | `train.py` | Train projection/classifier checkpoints into `backend/model_registry/versions/<version_id>/checkpoints`. |
-| 5/6 | `evaluate.py --export-prototypes` | Export `backend/model_registry/versions/<version_id>/prototypes/prototypes.pt`. |
-| 6/6 | `export_model.py` | Export backend-loadable candidate files under `backend/model_registry/versions/<version_id>/runtime/`. Runtime writes are refused unless the bootstrap-only `--allow-runtime-write` flag is used outside retraining. |
+| 1/6 | prepared snapshot | Validate the immutable Elements, metadata, checksums, class order, and source manifests. |
+| 2/6 | prepared metadata | Reuse the snapshot's persisted train/dev/locked-test assignments. |
+| 3/6 | `precompute_embeddings.py` | Compute DINOv2 embeddings with the pinned local backbone. |
+| 4/6 | `train.py --init-projection` | Warm-start projection/classifier checkpoints from the current model. |
+| 5/6 | `evaluate.py --split-strategy persisted` | Evaluate the persisted split and export train-only prototypes. |
+| 6/6 | `export_model.py` | Export backend-loadable candidate files and cumulative provenance under `backend/model_registry/versions/<version_id>/runtime/`. |
 
 No MobileSAM/segmentation retraining is run by these scripts.
 
@@ -307,7 +295,7 @@ The default export is validated-only. Validate at least one named element, or pa
 
 ### Why did retraining skip my submitted element?
 
-The retraining bridge is approved-only. Check `/admin/annotations`: the element must be approved, its source metadata/crop must still exist, and any stale source fingerprint must be reapproved after replacement.
+Check `/admin/annotations`: the element must be approved, its source metadata/crop must still exist, and any stale source fingerprint must be reapproved after replacement. Then rebuild the cumulative snapshot; the Training tab intentionally rejects a snapshot whose review-index hash is stale.
 
 ### What dataset size is required?
 

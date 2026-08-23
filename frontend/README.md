@@ -29,7 +29,7 @@ Analysis records are stored locally in the browser through an IndexedDB-backed s
 7. Open `/admin/annotations` locally:
    - **Review** approves/rejects each submitted crop and can correct class/bbox evidence.
    - **Dataset** shows which approved crops are actually trainable and why any approved rows are excluded.
-   - **Training** shows approved-only stats, artifact status, latest job/log tail, and a guarded dry-run/full-run form only after the local backend is explicitly started with `ENABLE_ADMIN_TRAINING_JOBS=1`.
+   - **Training** shows current approvals plus cumulative snapshot state, artifact status, latest job/log tail, and a guarded dry-run/full-run form only after the local backend is explicitly configured and started with `ENABLE_ADMIN_TRAINING_JOBS=1`.
 
 Draft elements are never sent for training by the frontend. A label that is empty or `unknown` is treated as unnamed.
 
@@ -56,12 +56,12 @@ operator opts in. Do not commit the flag as a default in dev scripts. When enabl
 launcher is a Bash-only wrapper around `scripts/retrain.sh`; native Windows users should run
 `pwsh -NoProfile -File scripts/retrain.ps1` directly unless they are using WSL/Git Bash.
 
-Dry runs validate the approved-only export/training wiring. Full runs create a candidate package
+Dry runs validate the cumulative snapshot, pinned backbone, and warm-start wiring. Full runs create a candidate package
 under `backend/model_registry/versions/<version_id>/`; they do not modify the live
 `backend/codex_model/` runtime. Activate a candidate by inspecting the manifest/model-card/checksums,
 running `backend/.venv/bin/python scripts/promote_model.py <version_id>`, and restarting the backend.
-If `MODEL_DIR` is set, the Training tab warns that promoting `backend/codex_model/` may not affect
-the loaded runtime until `MODEL_DIR` is unset or promotion targets the matching explicit runtime path.
+If `MODEL_DIR` is set, the Training tab blocks admin retraining so the class configuration and
+warm-start projection cannot come from different runtime packages.
 
 ## Commands
 

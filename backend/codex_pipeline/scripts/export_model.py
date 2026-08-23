@@ -46,6 +46,37 @@ def _optional_hash(path: Path | None) -> str | None:
     return _sha256_file(path)
 
 
+def _optional_file_provenance(path: Path | None, *, label: str) -> dict[str, str] | None:
+    if path is None:
+        return None
+    if not path.is_file():
+        raise FileNotFoundError(f"{label} does not exist: {path}")
+    return {"path": str(path.resolve()), "sha256": _sha256_file(path)}
+
+
+def _snapshot_provenance(path: Path | None) -> dict[str, Any] | None:
+    if path is None or not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("schema_version") != "training-snapshot.v2":
+        return None
+    checksums_path = path.parent / "checksums.json"
+    return {
+        "schema_version": payload.get("schema_version"),
+        "snapshot_id": payload.get("snapshot_id"),
+        "content_sha256": payload.get("content_sha256"),
+        "class_order_sha256": payload.get("class_order_sha256"),
+        "ready_for_training": payload.get("ready_for_training"),
+        "promotion_evaluation_ready": payload.get("promotion_evaluation_ready"),
+        "manifest_sha256": _sha256_file(path),
+        "checksums_sha256": _optional_hash(checksums_path),
+        "split_counts": payload.get("split_counts"),
+    }
+
+
 def _is_relative_to(path: Path, base: Path) -> bool:
     try:
         path.resolve().relative_to(base.resolve())
@@ -91,7 +122,16 @@ def export_model(
     version_id: str | None = None,
     metadata_csv_path: Path | None = None,
     approved_manifest_path: Path | None = None,
+    training_config_path: Path | None = None,
+    features_path: Path | None = None,
+    features_provenance_path: Path | None = None,
+    checkpoint_path: Path | None = None,
+    init_projection_path: Path | None = None,
+    training_manifest_path: Path | None = None,
+    checkpoint_selection: str | None = None,
 ) -> dict[str, Path]:
+    if checkpoint_selection not in {None, "best", "latest"}:
+        raise ValueError("checkpoint_selection must be 'best' or 'latest'")
     project_root = Path(__file__).resolve().parents[2]  # backend/
     runtime_model_dir = runtime_model_dir or project_root / "codex_model"
     config_out_path = config_out_path or config_template_path
@@ -103,6 +143,24 @@ def export_model(
     )
     weights_dir.mkdir(parents=True, exist_ok=True)
     config_out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    data_provenance = {
+        "features_cache": _optional_file_provenance(features_path, label="features cache"),
+        "features_provenance": _optional_file_provenance(
+            features_provenance_path, label="features provenance"
+        ),
+    }
+    training_provenance = {
+        "config": _optional_file_provenance(training_config_path, label="training config"),
+        "checkpoint": _optional_file_provenance(checkpoint_path, label="training checkpoint"),
+        "checkpoint_selection": checkpoint_selection,
+        "init_projection": _optional_file_provenance(
+            init_projection_path, label="initial projection"
+        ),
+        "training_manifest": _optional_file_provenance(
+            training_manifest_path, label="training manifest"
+        ),
+    }
 
     # --------------------------------------------------------- load full artefact
     print(f"Loading: {src_path}")
@@ -168,6 +226,8 @@ def export_model(
             "config_template": str(config_template_path),
             "config_out": str(config_out_path),
             "allow_runtime_write": allow_runtime_write,
+            "data": data_provenance,
+            "training": training_provenance,
             "artifacts": {
                 "prototypes": {"path": str(proto_dest), "sha256": _sha256_file(proto_dest)},
                 "projection": {"path": str(proj_dest), "sha256": _sha256_file(proj_dest)},
@@ -193,6 +253,13 @@ def export_model(
             metadata_csv_path=metadata_csv_path,
             approved_manifest_path=approved_manifest_path,
             config_template_path=config_template_path,
+            training_config_path=training_config_path,
+            features_path=features_path,
+            features_provenance_path=features_provenance_path,
+            checkpoint_path=checkpoint_path,
+            init_projection_path=init_projection_path,
+            training_manifest_path=training_manifest_path,
+            checkpoint_selection=checkpoint_selection,
         )
         print(f"Wrote registry    → {registry_manifest}")
 
@@ -227,6 +294,13 @@ def _write_registry_manifest(
     metadata_csv_path: Path | None,
     approved_manifest_path: Path | None,
     config_template_path: Path,
+    training_config_path: Path | None,
+    features_path: Path | None,
+    features_provenance_path: Path | None,
+    checkpoint_path: Path | None,
+    init_projection_path: Path | None,
+    training_manifest_path: Path | None,
+    checkpoint_selection: str | None,
 ) -> Path:
     repo_root = project_root.parent
     if str(repo_root) not in sys.path:
@@ -235,6 +309,23 @@ def _write_registry_manifest(
 
     registry = ModelRegistry(registry_dir, repo_root=repo_root, runtime_model_dir=project_root / "codex_model")
     artifact_paths = [path for path in artifact_paths if path is not None and path.is_file()]
+    version_dir = registry.version_dir(version_id)
+    for optional_artifact in (
+        training_config_path,
+        features_path,
+        features_provenance_path,
+        checkpoint_path,
+        init_projection_path,
+        training_manifest_path,
+    ):
+        if (
+            optional_artifact is not None
+            and optional_artifact.is_file()
+            and _is_relative_to(optional_artifact, version_dir)
+        ):
+            artifact_paths.append(optional_artifact)
+    artifact_paths = list(dict.fromkeys(path.resolve() for path in artifact_paths))
+    snapshot = _snapshot_provenance(approved_manifest_path)
     metadata: dict[str, Any] = {
         "source": {
             "git_commit": registry.git_short(),
@@ -245,13 +336,36 @@ def _write_registry_manifest(
             "approved_export_manifest_sha256": _optional_hash(approved_manifest_path),
             "metadata_csv_path": str(metadata_csv_path) if metadata_csv_path else None,
             "metadata_csv_sha256": _optional_hash(metadata_csv_path),
+            "training_snapshot": snapshot,
+            "features_cache": _optional_file_provenance(features_path, label="features cache"),
+            "features_provenance": _optional_file_provenance(
+                features_provenance_path, label="features provenance"
+            ),
         },
         "training": {
             "command": "scripts/retrain.sh or scripts/retrain.ps1",
             "config_template": str(config_template_path),
+            "config": _optional_file_provenance(training_config_path, label="training config"),
+            "checkpoint": _optional_file_provenance(checkpoint_path, label="training checkpoint"),
+            "checkpoint_selection": checkpoint_selection,
+            "init_projection": _optional_file_provenance(
+                init_projection_path, label="initial projection"
+            ),
+            "training_manifest": _optional_file_provenance(
+                training_manifest_path, label="training manifest"
+            ),
         },
         "metrics": {"prototype_export": "completed"},
     }
+    if snapshot is not None:
+        metadata["promotion"] = {
+            "blocked": True,
+            "gate": "p4_locked_test_promotion_contract",
+            "reason": (
+                "P3 training-snapshot.v2 candidates are not promotable until P4 "
+                "seals and validates a complete locked-test promotion contract"
+            ),
+        }
     registry.write_manifest(
         version_id,
         status="candidate",
@@ -308,6 +422,42 @@ def main() -> None:
         default=None,
         help="Approved export manifest path for registry provenance.",
     )
+    parser.add_argument(
+        "--training-config",
+        default=None,
+        help="Optional training YAML recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--features",
+        default=None,
+        help="Optional cached features.pt recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--features-provenance",
+        default=None,
+        help="Optional features-cache provenance JSON recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        default=None,
+        help="Optional selected checkpoint recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--init-projection",
+        default=None,
+        help="Optional warm-start projection recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--training-manifest",
+        default=None,
+        help="Optional training_manifest.json recorded with its SHA-256.",
+    )
+    parser.add_argument(
+        "--checkpoint-selection",
+        choices=("best", "latest"),
+        default=None,
+        help="Fixed checkpoint selection policy used by evaluation and export.",
+    )
     args = parser.parse_args()
     config_template = Path(args.config or args.config_template)
     config_out = Path(args.config or args.config_out) if (args.config or args.config_out) else config_template
@@ -325,8 +475,21 @@ def main() -> None:
             version_id=args.version_id,
             metadata_csv_path=Path(args.metadata_csv) if args.metadata_csv else None,
             approved_manifest_path=Path(args.approved_manifest) if args.approved_manifest else None,
+            training_config_path=Path(args.training_config) if args.training_config else None,
+            features_path=Path(args.features) if args.features else None,
+            features_provenance_path=(
+                Path(args.features_provenance) if args.features_provenance else None
+            ),
+            checkpoint_path=Path(args.checkpoint) if args.checkpoint else None,
+            init_projection_path=(
+                Path(args.init_projection) if args.init_projection else None
+            ),
+            training_manifest_path=(
+                Path(args.training_manifest) if args.training_manifest else None
+            ),
+            checkpoint_selection=args.checkpoint_selection,
         )
-    except (RuntimeWriteRefusedError, RuntimeError) as exc:
+    except (RuntimeWriteRefusedError, RuntimeError, OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(2)
 

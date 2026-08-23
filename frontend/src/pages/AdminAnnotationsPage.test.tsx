@@ -172,6 +172,22 @@ function trainingSummary(
         promoted_version: "20260527T010203Z-demo",
       },
     },
+    training_snapshot: {
+      configured: true,
+      valid: true,
+      snapshot_id: "snapshot-test",
+      snapshot_manifest_sha256: "snapshot-sha",
+      row_count: 9266,
+      class_count: 286,
+      live_annotation_count: 7,
+      ready_for_training: true,
+      promotion_evaluation_ready: false,
+      split_counts: { train: 9128, dev: 56, locked_test: 82 },
+      paths: {
+        manifest: "/repo/backend/training_corpus/snapshots/snapshot-test/snapshot_manifest.json",
+      },
+      errors: [],
+    },
     latest_job: null,
     ...overrides,
   };
@@ -482,7 +498,7 @@ describe("AdminAnnotationsPage", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /assistant d'entraînement local/i,
+        name: /réentraînement cumulatif local/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/lancement bloqué/i).length).toBeGreaterThan(0);
@@ -563,7 +579,7 @@ describe("AdminAnnotationsPage", () => {
       within(summary).getByText(/essai à blanc sélectionné/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByText(/sans écrire d'artefact/i),
+      within(summary).getByText(/sans lancer l'entraînement/i),
     ).toBeInTheDocument();
     expect(within(summary).getAllByText(/auto/i).length).toBeGreaterThan(0);
     expect(within(summary).getByText("16")).toBeInTheDocument();
@@ -577,10 +593,10 @@ describe("AdminAnnotationsPage", () => {
       within(summary).getByText(/entraînement complet sélectionné/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByText(/paquet candidat local/i),
+      within(summary).getByText(/candidat local/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getAllByText(/promotion explicite/i).length,
+      within(summary).getAllByText(/contrat d'évaluation promotion/i).length,
     ).toBeGreaterThan(0);
     expect(within(summary).getByText(/cpu/i)).toBeInTheDocument();
     expect(within(summary).getByText("8")).toBeInTheDocument();

@@ -119,7 +119,10 @@ def _write_runtime(runtime_dir: Path, label: str) -> None:
     (runtime_dir / "weights").mkdir(parents=True, exist_ok=True)
     (runtime_dir / "weights" / "prototypes.pt").write_bytes(f"{label}-prototypes".encode())
     (runtime_dir / "weights" / "projection.pt").write_bytes(f"{label}-projection".encode())
-    _write_json(runtime_dir / "config.json", {"model_version": label, "class_names": [label]})
+    _write_json(
+        runtime_dir / "config.json",
+        {"model_version": label, "num_classes": 1, "class_names": ["class-a"]},
+    )
 
 
 def _guarded_registry(tmp_path: Path) -> tuple[ModelRegistry, Path]:

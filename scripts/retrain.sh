@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# retrain.sh — approved-only classifier retraining with explicit repo-root paths.
-# Usage: bash scripts/retrain.sh [--dry-run] [--elements-dir <Elements>] [--approved-manifest <snapshot.json>] [--config <training.yaml>]
+# retrain.sh — classifier retraining from approved data or a cumulative snapshot.
+# Usage: bash scripts/retrain.sh [options]
 
 set -euo pipefail
 
@@ -44,13 +44,18 @@ DEVICE="${DEVICE:-cuda}"
 DRY_RUN=0
 ELEMENTS_DIR_OVERRIDE=""
 APPROVED_MANIFEST_OVERRIDE=""
+METADATA_CSV_OVERRIDE=""
+BACKBONE_MANIFEST_OVERRIDE=""
 CONFIG_OVERRIDE=""
+INIT_PROJECTION=""
+EVAL_ONLY=0
+CHECKPOINT_SELECTION_CLI=""
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/retrain.sh [--dry-run] [--elements-dir <Elements>] [--approved-manifest <snapshot.json>] [--config <training.yaml>]
+Usage: bash scripts/retrain.sh [--dry-run] [--elements-dir <Elements>] [--approved-manifest <snapshot.json>] [--metadata-csv <metadata.csv>] [--backbone-manifest <pin.json>] [--config <training.yaml>] [--init-projection <projection.pt>] [--eval-only] [--checkpoint-selection best|latest]
 
-Runs approved-only classifier/prototype retraining:
+Runs classifier/prototype retraining. Without snapshot arguments it:
   1. export approved annotation crops to backend/training_data/approved/Elements
   2. build metadata CSV from that generated Elements directory
   3. precompute DINOv2 embeddings to backend/training_data/approved/precomputed/features.pt
@@ -64,8 +69,12 @@ No runtime backend/codex_model artifacts are modified; run scripts/promote_model
 CUDA is required by default. Set DEVICE=cpu only for an intentional CPU run.
 
 --elements-dir uses an already materialized training snapshot instead of
-exporting admin annotations. When used, --approved-manifest must point to that
-snapshot's provenance manifest (for example import_snapshot.json).
+exporting admin annotations. It requires --approved-manifest and --metadata-csv
+from the same immutable training-snapshot.v2 directory. The default recipe for
+this path is config/snapshot.yaml (persisted train/dev/locked_test split), and
+--backbone-manifest must bind the local DINOv2-S/14 source and weights.
+--eval-only requires --init-projection and performs descriptive dev evaluation
+without fitting. --checkpoint-selection defaults to best for compatibility.
 EOF
 }
 
@@ -85,9 +94,33 @@ while [[ $# -gt 0 ]]; do
       APPROVED_MANIFEST_OVERRIDE="$2"
       shift 2
       ;;
+    --metadata-csv)
+      [[ $# -ge 2 ]] || { echo "ERROR: --metadata-csv requires a path" >&2; exit 2; }
+      METADATA_CSV_OVERRIDE="$2"
+      shift 2
+      ;;
+    --backbone-manifest)
+      [[ $# -ge 2 ]] || { echo "ERROR: --backbone-manifest requires a path" >&2; exit 2; }
+      BACKBONE_MANIFEST_OVERRIDE="$2"
+      shift 2
+      ;;
     --config)
       [[ $# -ge 2 ]] || { echo "ERROR: --config requires a path" >&2; exit 2; }
       CONFIG_OVERRIDE="$2"
+      shift 2
+      ;;
+    --init-projection)
+      [[ $# -ge 2 ]] || { echo "ERROR: --init-projection requires a path" >&2; exit 2; }
+      INIT_PROJECTION="$2"
+      shift 2
+      ;;
+    --eval-only)
+      EVAL_ONLY=1
+      shift
+      ;;
+    --checkpoint-selection)
+      [[ $# -ge 2 ]] || { echo "ERROR: --checkpoint-selection requires best or latest" >&2; exit 2; }
+      CHECKPOINT_SELECTION_CLI="$2"
       shift 2
       ;;
     -h|--help)
@@ -102,8 +135,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -n "$APPROVED_MANIFEST_OVERRIDE" && -z "$ELEMENTS_DIR_OVERRIDE" ]]; then
-  echo "ERROR: --approved-manifest requires --elements-dir" >&2
+if [[ -n "$CHECKPOINT_SELECTION_CLI" && "$CHECKPOINT_SELECTION_CLI" != "best" && "$CHECKPOINT_SELECTION_CLI" != "latest" ]]; then
+  echo "ERROR: --checkpoint-selection must be best or latest" >&2
+  exit 2
+fi
+if [[ "$EVAL_ONLY" -eq 1 && -z "$INIT_PROJECTION" ]]; then
+  echo "ERROR: --eval-only requires --init-projection" >&2
+  exit 2
+fi
+
+if [[ ( -n "$APPROVED_MANIFEST_OVERRIDE" || -n "$METADATA_CSV_OVERRIDE" || -n "$BACKBONE_MANIFEST_OVERRIDE" ) && -z "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  echo "ERROR: snapshot provenance options require --elements-dir" >&2
   exit 2
 fi
 
@@ -119,14 +161,62 @@ if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
     echo "ERROR: --elements-dir requires --approved-manifest for candidate provenance" >&2
     exit 2
   fi
+  if [[ -z "$METADATA_CSV_OVERRIDE" ]]; then
+    echo "ERROR: --elements-dir requires --metadata-csv from the immutable snapshot" >&2
+    exit 2
+  fi
+  if [[ -z "$BACKBONE_MANIFEST_OVERRIDE" ]]; then
+    echo "ERROR: --elements-dir requires --backbone-manifest for reproducible DINOv2 features" >&2
+    exit 2
+  fi
+  BACKBONE_MANIFEST="$(cd "$(dirname "$BACKBONE_MANIFEST_OVERRIDE")" 2>/dev/null && pwd -P || printf '%s' "$(dirname "$BACKBONE_MANIFEST_OVERRIDE")")/$(basename "$BACKBONE_MANIFEST_OVERRIDE")"
   TRAINING_WORK_DIR="$VERSION_DIR/training_data"
-  METADATA_CSV="$TRAINING_WORK_DIR/metadata.csv"
+  METADATA_CSV="$(cd "$(dirname "$METADATA_CSV_OVERRIDE")" 2>/dev/null && pwd -P || printf '%s' "$(dirname "$METADATA_CSV_OVERRIDE")")/$(basename "$METADATA_CSV_OVERRIDE")"
   PRECOMPUTED_DIR="$TRAINING_WORK_DIR/precomputed"
   FEATURES_FILE="$PRECOMPUTED_DIR/features.pt"
+  if [[ -z "$CONFIG_OVERRIDE" ]]; then
+    CONFIG="$BACKEND_DIR/codex_pipeline/config/snapshot.yaml"
+  fi
 else
   APPROVED_MANIFEST="$ELEMENTS_DIR/_approved_export_manifest.json"
   TRAINING_WORK_DIR="$APPROVED_ROOT"
 fi
+
+resolve_checkpoint_selection() {
+  "$PYTHON" - "$CONFIG" "$CHECKPOINT_SELECTION_CLI" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+config_path = Path(sys.argv[1])
+cli_selection = sys.argv[2] or None
+try:
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+except (OSError, yaml.YAMLError) as exc:
+    raise SystemExit(f"ERROR: could not read training config {config_path}: {exc}") from exc
+if not isinstance(config, dict):
+    raise SystemExit(f"ERROR: training config must be a YAML mapping: {config_path}")
+training = config.get("training", {})
+if not isinstance(training, dict):
+    raise SystemExit(f"ERROR: training config 'training' must be a mapping: {config_path}")
+config_selection = training.get("checkpoint_selection")
+if config_selection is not None and config_selection not in {"best", "latest"}:
+    raise SystemExit(
+        "ERROR: training.checkpoint_selection must be best or latest, "
+        f"got {config_selection!r}"
+    )
+if cli_selection and config_selection and cli_selection != config_selection:
+    raise SystemExit(
+        "ERROR: --checkpoint-selection conflicts with preregistered "
+        f"training.checkpoint_selection={config_selection}"
+    )
+print(cli_selection or config_selection or "best")
+PY
+}
+
+CHECKPOINT_SELECTION="$(resolve_checkpoint_selection)"
+SELECTED_CHECKPOINT="$CHECKPOINT_DIR/$CHECKPOINT_SELECTION.pt"
 
 run_step() {
   local label="$1"
@@ -181,6 +271,8 @@ if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
   if [[ "$DRY_RUN" -eq 0 ]]; then
     [[ -d "$ELEMENTS_DIR" ]] || { echo "ERROR: Elements directory does not exist: $ELEMENTS_DIR" >&2; exit 2; }
     [[ -f "$APPROVED_MANIFEST" ]] || { echo "ERROR: approved manifest does not exist: $APPROVED_MANIFEST" >&2; exit 2; }
+    [[ -f "$METADATA_CSV" ]] || { echo "ERROR: snapshot metadata does not exist: $METADATA_CSV" >&2; exit 2; }
+    [[ -f "$BACKBONE_MANIFEST" ]] || { echo "ERROR: backbone manifest does not exist: $BACKBONE_MANIFEST" >&2; exit 2; }
     [[ -f "$CONFIG" ]] || { echo "ERROR: training config does not exist: $CONFIG" >&2; exit 2; }
   fi
 else
@@ -191,11 +283,8 @@ else
 fi
 
 if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
-  run_step "[2/6] build_metadata" \
-    "$PYTHON" "$PIPELINE/build_metadata.py" \
-    --elements-dir "$ELEMENTS_DIR" \
-    --output "$METADATA_CSV" \
-    --absolute-paths
+  echo "=== [2/6] use_snapshot_metadata ==="
+  printf '+ snapshot metadata: %q\n' "$METADATA_CSV"
 else
   run_step "[2/6] build_metadata" \
     "$PYTHON" "$PIPELINE/build_metadata.py" \
@@ -207,34 +296,68 @@ run_step "[3/6] precompute_embeddings" \
   "$PYTHON" "$PIPELINE/precompute_embeddings.py" \
   --config "$CONFIG" \
   --metadata-csv "$METADATA_CSV" \
+  --runtime-config "$CLASSIFIER_CONFIG_TEMPLATE" \
+  ${ELEMENTS_DIR_OVERRIDE:+--snapshot-manifest "$APPROVED_MANIFEST"} \
+  ${ELEMENTS_DIR_OVERRIDE:+--backbone-manifest "$BACKBONE_MANIFEST"} \
   --batch-size "$BATCH_SIZE" \
   --device "$DEVICE" \
   --output-dir "$PRECOMPUTED_DIR"
 
-run_step "[4/6] train" \
-  "$PYTHON" "$PIPELINE/train.py" \
-  --config "$CONFIG" \
-  --features "$FEATURES_FILE" \
+TRAIN_COMMAND=(
+  "$PYTHON" "$PIPELINE/train.py"
+  --config "$CONFIG"
+  --features "$FEATURES_FILE"
   --checkpoint-dir "$CHECKPOINT_DIR"
+)
+if [[ -n "$INIT_PROJECTION" ]]; then
+  TRAIN_COMMAND+=(--init-projection "$INIT_PROJECTION")
+fi
+if [[ "$EVAL_ONLY" -eq 1 ]]; then
+  TRAIN_COMMAND+=(--eval-only)
+fi
+run_step "[4/6] train" "${TRAIN_COMMAND[@]}"
 
-run_step "[5/6] evaluate_export_prototypes" \
-  "$PYTHON" "$PIPELINE/evaluate.py" \
-  --checkpoint "$CHECKPOINT_DIR/best.pt" \
-  --features "$FEATURES_FILE" \
-  --export-prototypes \
-  --prototype-dir "$PROTOTYPE_DIR"
+if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  run_step "[5/6] evaluate_export_prototypes" \
+    "$PYTHON" "$PIPELINE/evaluate.py" \
+    --checkpoint "$SELECTED_CHECKPOINT" \
+    --features "$FEATURES_FILE" \
+    --split-strategy persisted \
+    --prototype-split train \
+    --skip-few-shot \
+    --export-prototypes \
+    --prototype-dir "$PROTOTYPE_DIR"
+else
+  run_step "[5/6] evaluate_export_prototypes" \
+    "$PYTHON" "$PIPELINE/evaluate.py" \
+    --checkpoint "$SELECTED_CHECKPOINT" \
+    --features "$FEATURES_FILE" \
+    --export-prototypes \
+    --prototype-dir "$PROTOTYPE_DIR"
+fi
 
-run_step "[6/6] export_model" \
-  "$PYTHON" "$PIPELINE/export_model.py" \
-  --prototypes "$PROTOTYPE_FILE" \
-  --weights-dir "$WEIGHTS_DIR" \
-  --config-template "$CLASSIFIER_CONFIG_TEMPLATE" \
-  --config-out "$CLASSIFIER_CONFIG" \
-  --manifest-out "$EXPORT_MANIFEST" \
-  --registry-dir "$MODEL_REGISTRY_DIR" \
-  --version-id "$MODEL_VERSION_ID" \
-  --metadata-csv "$METADATA_CSV" \
+EXPORT_COMMAND=(
+  "$PYTHON" "$PIPELINE/export_model.py"
+  --prototypes "$PROTOTYPE_FILE"
+  --weights-dir "$WEIGHTS_DIR"
+  --config-template "$CLASSIFIER_CONFIG_TEMPLATE"
+  --config-out "$CLASSIFIER_CONFIG"
+  --manifest-out "$EXPORT_MANIFEST"
+  --registry-dir "$MODEL_REGISTRY_DIR"
+  --version-id "$MODEL_VERSION_ID"
+  --metadata-csv "$METADATA_CSV"
   --approved-manifest "$APPROVED_MANIFEST"
+  --training-config "$CONFIG"
+  --features "$FEATURES_FILE"
+  --features-provenance "${FEATURES_FILE}.prov.json"
+  --checkpoint "$SELECTED_CHECKPOINT"
+  --training-manifest "$CHECKPOINT_DIR/training_manifest.json"
+  --checkpoint-selection "$CHECKPOINT_SELECTION"
+)
+if [[ -n "$INIT_PROJECTION" ]]; then
+  EXPORT_COMMAND+=(--init-projection "$INIT_PROJECTION")
+fi
+run_step "[6/6] export_model" "${EXPORT_COMMAND[@]}"
 
 echo "=== Candidate model version created: $MODEL_VERSION_ID ==="
 echo "=== Inspect: $VERSION_DIR ==="

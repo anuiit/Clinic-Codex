@@ -30,6 +30,8 @@ bash scripts/run-dev.sh
 | `MODEL_DIR` | auto-detected | Optional classifier weights/config directory. |
 | `ENABLE_LEGACY_ENDPOINTS` | `true` | Keep sample/demo endpoints `/sample-image` and `/similar-samples` available during Phase 1 compatibility. |
 | `ENABLE_ADMIN_TRAINING_JOBS` | `false` | Enables the local-only `/admin/training/jobs` launcher when the request also passes loopback Host/Origin guards. |
+| `ADMIN_TRAINING_SNAPSHOT_DIR` | unset | Absolute path to the immutable `training-snapshot.v2` used by the Training tab. Required when launches are enabled. |
+| `ADMIN_TRAINING_BACKBONE_MANIFEST` | local backbone pin | Optional absolute path to the DINOv2 pin manifest. |
 
 Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`; decoded images are also capped by `MAX_IMAGE_PIXELS` and `MAX_IMAGE_DIMENSION`.
 
@@ -47,7 +49,7 @@ Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`; decoded images 
 | `/admin/annotations/<analysis_id>/<index>/modify` | `POST` | `{ "class_name": string, "bbox": [x,y,w,h], "approve_after_save"?: boolean, "status"?: "approved" \| "rejected" \| "pending" }` | rewrites metadata/crop evidence and records a fresh review decision |
 | `/admin/annotations/<analysis_id>/image` | `GET` | none | local original image for visual review |
 | `/admin/annotations/<analysis_id>/<index>/crop` | `GET` | none | local crop image for visual review |
-| `/admin/training/summary` | `GET` | none | local-only approved-data summary, script/config paths, artifact state, launch guard reasons, latest job |
+| `/admin/training/summary` | `GET` | none | local-only cumulative-snapshot summary, script/config paths, artifact state, launch guard reasons, latest job |
 | `/admin/training/jobs/latest` | `GET` | none | latest local training job, or `null` |
 | `/admin/training/jobs/<run_id>` | `GET` | none | one local training job with log tail and artifact state |
 | `/admin/training/jobs` | `POST` | `{ "dry_run": boolean, "device": "auto" \| "cpu" \| "mps" \| "cuda", "batch_size": number, "notes"?: string }` | starts allowlisted `bash scripts/retrain.sh` when enabled and local |
@@ -173,15 +175,30 @@ The page has three tabs:
 
 - **Review** approves, rejects, or corrects class/bbox evidence.
 - **Dataset** shows trainable approved crops plus pending/rejected/diagnostic exclusions.
-- **Training** shows approved-only counts, resolved config/script paths, artifact state, and latest job/log tail.
+- **Training** shows approved counts plus cumulative snapshot state, resolved paths, artifacts, and the latest job/log tail.
 
-Approved crops are then consumed by the retraining pipeline. You can run it from the shell:
+The guarded Training tab uses the existing projection as a warm start and the
+configured cumulative snapshot (legacy + external + current approved
+annotations). It fails closed when the review index or the canonical set of
+trainable crops has changed since that snapshot was built. Unset `MODEL_DIR`
+before using the admin launcher so config and warm-start weights come from the
+same default runtime package.
 
-```bash
-bash scripts/retrain.sh
-# or on Windows / PowerShell
-pwsh -NoProfile -File scripts/retrain.ps1
-```
+Build or refresh the snapshot before enabling the launcher:
+
+~~~bash
+backend/.venv/bin/python scripts/build_training_snapshot.py \
+  --parent-manifest backend/training_corpus/snapshots/<previous-id>/snapshot_manifest.json \
+  --exclude-conflicts --allow-underfilled-holdouts --json
+
+export ADMIN_TRAINING_SNAPSHOT_DIR="$PWD/backend/training_corpus/snapshots/<snapshot-id>"
+export ADMIN_TRAINING_BACKBONE_MANIFEST="$PWD/backend/training_corpus/backbone-pins/dinov2-vits14-local.json"
+export ENABLE_ADMIN_TRAINING_JOBS=1
+~~~
+
+`--allow-underfilled-holdouts` produces a research-only snapshot. Its model
+candidate is deliberately blocked from promotion until the locked-test
+promotion contract is complete.
 
 Or, for local development only, enable the guarded Training tab launcher before starting the backend:
 
@@ -195,27 +212,20 @@ When no current annotation is trainable, summary/start also report
 `no_trainable_annotations: approve at least one current annotation before launching retraining` so the
 operator approves data before creating a run.
 
-`POST /admin/training/jobs` still rejects non-loopback clients, nonlocal `Host`/`Origin` headers, unknown payload fields, invalid device/batch values, and concurrent runs. Accepted jobs run only `bash scripts/retrain.sh` with optional `--dry-run`; status JSON and logs are written below `backend/training_runs/<run_id>/`. Each job records `model_version_id`, candidate registry paths, and the allowlisted `MODEL_VERSION_ID`/`MODEL_REGISTRY_DIR` environment passed to the script. `/admin/training/summary` also reports registry aliases, manifest/checksum health, the effective classifier weights directory, and any interrupted-promotion marker.
+`POST /admin/training/jobs` still rejects non-loopback clients, nonlocal `Host`/`Origin` headers, unknown payload fields, invalid device/batch values, stale snapshots, and concurrent runs. Accepted jobs run only `bash scripts/retrain.sh` with the configured snapshot, backbone pin, warm-start projection, and optional `--dry-run`; status JSON and logs are written below `backend/training_runs/<run_id>/`. Each job records the snapshot hash, `model_version_id`, candidate registry paths, and the allowlisted `MODEL_VERSION_ID`/`MODEL_REGISTRY_DIR` environment. `/admin/training/summary` also reports registry aliases, manifest/checksum health, the effective classifier weights directory, and any interrupted-promotion marker.
 If the backend restarts and later finds a persisted `running` dry-run without its in-memory process handle, or a full run whose lock PID and recorded process identity cannot still confirm the original retrain process, it marks that job failed instead of blocking future local launches forever. A short-lived atomic launch guard also rejects simultaneous start requests before a `status.json` record exists.
 
 The browser Training tab launcher is Bash-only. Native Windows users should run `scripts/retrain.ps1` directly unless they are using WSL/Git Bash.
 
-Both scripts run:
+With snapshot arguments, both scripts run:
 
-1. `scripts/export_approved_annotations.py` → `backend/training_data/approved/Elements`
-   with `_approved_export_manifest.json` containing exported rows, source fingerprints, and deterministic train/val/test split provenance
-2. `backend/codex_pipeline/scripts/build_metadata.py` → `backend/training_data/approved/metadata.csv`
-3. `backend/codex_pipeline/scripts/precompute_embeddings.py` → `backend/training_data/approved/precomputed/features.pt`
-4. `backend/codex_pipeline/scripts/train.py` → `backend/model_registry/versions/<version_id>/checkpoints`
-5. `backend/codex_pipeline/scripts/evaluate.py --export-prototypes` → `backend/model_registry/versions/<version_id>/prototypes/prototypes.pt`
-6. `backend/codex_pipeline/scripts/export_model.py` → `backend/model_registry/versions/<version_id>/runtime/`, `manifest.json`, `model-card.md`, and `checksums.sha256`
+1. validate the immutable snapshot, class order, source checksums, and pinned DINOv2 backbone;
+2. precompute snapshot embeddings;
+3. warm-start `train.py` from the current `projection.pt`;
+4. evaluate with the persisted train/dev/locked-test split and export prototypes;
+5. export an immutable candidate plus snapshot provenance under `backend/model_registry/versions/<version_id>/`.
 
-Dry-run the explicit stage list without training:
-
-```bash
-bash scripts/retrain.sh --dry-run
-pwsh -NoProfile -File scripts/retrain.ps1 -DryRun
-```
+The admin launcher supplies these arguments automatically. Direct no-argument script use remains the approved-only compatibility path. Dry-run the cumulative stage list with the explicit command in the root README.
 
 No MobileSAM/segmentation retraining is performed by `scripts/retrain.*`.
 

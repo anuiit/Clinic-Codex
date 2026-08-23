@@ -2,6 +2,8 @@
 
 Date: 2026-07-07
 
+Implementation update: 2026-08-23
+
 This note captures the current decisions and analysis about making Clinic Codex support a complete admin workflow for model retraining, model management, manual testing, comparison, promotion, and rollback.
 
 ## 1. Product goal
@@ -35,41 +37,11 @@ Review / Dataset
 
 ## 2. Current behavior
 
-The current training script does **not** fine-tune from the last promoted/best model by default.
+The guarded admin path now trains from an immutable cumulative snapshot containing the existing corpus plus current approved annotations. It pins the local DINOv2 backbone, reuses persisted train/dev/locked-test assignments, and warm-starts `train.py` from the current classifier projection. Prototypes are recalculated from the snapshot's train split, and the immutable candidate records snapshot, backbone, feature, training, and checkpoint provenance.
 
-It does this instead:
+The runtime model under `backend/codex_model/` is never overwritten by training. Promotion remains an explicit CLI action through `scripts/promote_model.py`, and research-only snapshots with underfilled holdouts produce candidates that are blocked from promotion.
 
-```text
-DINOv2 pretrained frozen backbone
-+ approved annotations exported for this run
-→ recompute features
-→ train a new projection head from scratch
-→ recompute prototypes
-→ export a candidate model package
-```
-
-Important details:
-
-- `scripts/retrain.sh` calls `train.py` without `--resume`.
-- `train.py` supports `--resume`, but the current retrain workflow does not use it.
-- DINOv2 is used as a pretrained frozen feature extractor.
-- The trainable part is mainly the small projection head, and prototypes are recalculated.
-- The candidate is written under `backend/model_registry/versions/<version_id>/`.
-- The runtime model under `backend/codex_model/` is not overwritten by training.
-- Promotion is currently CLI-only through `scripts/promote_model.py`.
-
-So the current behavior is best described as:
-
-```text
-retrain from scratch on the currently approved training data,
-using a frozen pretrained DINOv2 backbone.
-```
-
-It is **not** currently:
-
-```text
-continue training from the last promoted model.
-```
+The no-argument `scripts/retrain.*` path remains available only as an approved-only compatibility workflow; the Training tab always supplies cumulative snapshot arguments.
 
 ## 3. Does retraining need the original dataset?
 

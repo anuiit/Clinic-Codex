@@ -21,6 +21,21 @@ function trainingLaunchReasonLabel(reason: string) {
   if (reason.includes("running")) {
     return "Un essai est déjà en cours : attendez sa fin avant d'en démarrer un autre.";
   }
+  if (reason.startsWith("training_snapshot_stale:")) {
+    return "Le snapshot cumulatif ne contient pas les dernières validations : reconstruisez-le avant le réentraînement.";
+  }
+  if (reason.startsWith("training_model_dir_override_unsupported:")) {
+    return "MODEL_DIR est actif : désactivez cet override avant le réentraînement admin.";
+  }
+  if (reason.includes("training_snapshot")) {
+    return "Snapshot cumulatif indisponible ou invalide : vérifiez sa configuration locale.";
+  }
+  if (reason.includes("training_backbone")) {
+    return "Le pin local DINOv2 requis pour un réentraînement reproductible est absent.";
+  }
+  if (reason.includes("training_warmstart")) {
+    return "Le modèle existant ne fournit pas la projection nécessaire au warm-start.";
+  }
   return reason.replaceAll("_", " ");
 }
 
@@ -135,8 +150,8 @@ export function TrainingTab() {
     : "Prêt pour essai local";
   const launchMode = dryRun ? "Essai à blanc sélectionné" : "Entraînement complet sélectionné";
   const launchModeCopy = dryRun
-    ? "L'essai à blanc vérifie l'export des seuls éléments validés, la préparation locale et le chemin de génération du candidat sans écrire d'artefact d'exécution."
-    : "L'entraînement complet crée un paquet candidat local. Il ne remplace jamais le modèle actif sans promotion explicite et redémarrage.";
+    ? "L'essai à blanc vérifie le snapshot cumulatif, le modèle existant et le chemin de génération du candidat sans lancer l'entraînement."
+    : "Le réentraînement part du modèle existant et du snapshot cumulatif incluant les validations. Il crée uniquement un candidat local.";
   const modelConfig = isRecord(summary.parameters.config.model)
     ? summary.parameters.config.model
     : {};
@@ -146,6 +161,7 @@ export function TrainingTab() {
   const backbone = formatPrimitiveValue(modelConfig.backbone ?? "ResNet18 · baseline");
   const epochs = formatPrimitiveValue(trainingConfig.num_epochs ?? 30);
   const splitCounts = summary.data.split_counts as AdminTrainingSummary["data"]["split_counts"] | undefined;
+  const snapshotSplits = summary.training_snapshot.split_counts;
   if (!splitCounts) {
     return (
       <section className={`${styles.owner} admin-tab-stack`}>
@@ -161,7 +177,7 @@ export function TrainingTab() {
       <AdminSection as="div" variant="summary">
         <p className="ui-text-eyebrow">Entraînement</p>
         <h2 className="text-lg font-semibold text-[color:var(--text-heading)]">
-          Assistant d'entraînement local
+          Réentraînement cumulatif local
         </h2>
         <p className="ui-text-caption">
           Le lancement reste volontairement protégé. Cette page sert d'assistant guidé : un administrateur technique ouvre
@@ -177,8 +193,9 @@ export function TrainingTab() {
       </section>
 
       <section className="admin-train-checks" aria-label="Préflight d'entraînement">
-        <div className="admin-train-check ok"><i>✓</i><b>Images validées</b><small>{summary.data.approved}</small></div>
-        <div className="admin-train-check ok"><i>✓</i><b>Split train/val/test</b><small>{splitCounts.train}/{splitCounts.val}/{splitCounts.test}</small></div>
+        <div className={`admin-train-check ${summary.training_snapshot.valid ? "ok" : "warn"}`}><i>{summary.training_snapshot.valid ? "✓" : "!"}</i><b>Snapshot cumulatif</b><small>{summary.training_snapshot.row_count ?? "—"}</small></div>
+        <div className="admin-train-check ok"><i>✓</i><b>Nouvelles validations prises en compte</b><small>{summary.training_snapshot.live_annotation_count ?? "—"}</small></div>
+        <div className={`admin-train-check ${snapshotSplits ? "ok" : "warn"}`}><i>{snapshotSplits ? "✓" : "!"}</i><b>Split train/dev/test verrouillé</b><small>{snapshotSplits ? `${snapshotSplits.train}/${snapshotSplits.dev}/${snapshotSplits.locked_test}` : "—"}</small></div>
         <div className="admin-train-check warn"><i>!</i><b>À vérifier</b><small>{summary.data.pending}</small></div>
         <div className="admin-train-check warn"><i>!</i><b>Exclues</b><small>{splitCounts.excluded}</small></div>
         <div className="admin-train-check ok"><i>✓</i><b>GPU local</b><small>{device}</small></div>
@@ -203,10 +220,10 @@ export function TrainingTab() {
 
       {modelDirOverrideActive ? (
         <div role="alert" className="ui-alert ui-alert--accent p-2">
-          <strong>Chemin de modèle personnalisé actif.</strong>
+          <strong>Réentraînement bloqué : chemin de modèle personnalisé actif.</strong>
           <p className="mt-2 text-sm">
-            La promotion vers <code>backend/codex_model/</code> peut ne pas toucher le modèle chargé tant que <code>MODEL_DIR</code>
-            n'est pas retiré ou que la promotion ne cible pas ce chemin exact.
+            Retirez <code>MODEL_DIR</code> avant le lancement pour que la configuration et la projection viennent du même
+            package runtime.
           </p>
         </div>
       ) : null}
@@ -220,7 +237,7 @@ export function TrainingTab() {
       <ol className="admin-workflow-steps" aria-label="Parcours d'entraînement">
         <li>
           <strong>1. Vérifier les éléments</strong>
-          <span>Seuls les éléments validés et à jour sont utilisés.</span>
+          <span>Le snapshot doit inclure le corpus existant et toutes les validations à jour.</span>
         </li>
         <li>
           <strong>2. Essai à blanc d'abord</strong>
@@ -298,9 +315,16 @@ export function TrainingTab() {
           <div>
             <dt className="ui-text-caption">Utilisera</dt>
             <dd>
-              {summary.data.trainable} élément prêt
-              {summary.data.trainable === 1 ? "" : "s"}
+              {summary.training_snapshot.row_count ?? "—"} images cumulées
             </dd>
+          </div>
+          <div>
+            <dt className="ui-text-caption">Snapshot</dt>
+            <dd>{summary.training_snapshot.snapshot_id ?? "Non configuré"}</dd>
+          </div>
+          <div>
+            <dt className="ui-text-caption">Validations live prises en compte</dt>
+            <dd>{summary.training_snapshot.live_annotation_count ?? "—"}</dd>
           </div>
           <div>
             <dt className="ui-text-caption">Classes</dt>
@@ -332,7 +356,7 @@ export function TrainingTab() {
           </div>
           <div>
             <dt className="ui-text-caption">Activation</dt>
-            <dd>Promotion explicite du candidat, puis redémarrage</dd>
+            <dd>Bloquée tant que le contrat d'évaluation promotion n'est pas complet</dd>
           </div>
         </dl>
       </AdminSection>

@@ -121,13 +121,13 @@ export function TrainingConsole({
   summary: AdminTrainingSummary;
   job: AdminTrainingJob | null;
 }) {
-  const split = summary.data.split_counts;
+  const split = summary.training_snapshot.split_counts;
   return (
     <section className="admin-training-console" aria-label="Console d'entraînement">
-      <div><span className="ok">✓</span> dataset loaded: {summary.data.trainable} images incluses</div>
-      <div><span className="ok">✓</span> split locked: train {split.train} · val {split.val} · test {split.test}</div>
+      <div><span className="ok">✓</span> snapshot loaded: {summary.training_snapshot.row_count ?? "—"} images cumulées</div>
+      <div><span className="ok">✓</span> warm-start: modèle existant + {summary.training_snapshot.live_annotation_count ?? "—"} validations live</div>
+      {split ? <div><span className="ok">✓</span> split locked: train {split.train} · dev {split.dev} · locked test {split.locked_test}</div> : null}
       {summary.data.pending > 0 ? <div><span className="warn">!</span> {summary.data.pending} images restent à vérifier</div> : null}
-      {split.excluded > 0 ? <div><span className="warn">!</span> {split.excluded} images exclues du run</div> : null}
       <div><span className="run">→</span> {job?.status === "running" ? "training run active" : "ready to train"}</div>
     </section>
   );

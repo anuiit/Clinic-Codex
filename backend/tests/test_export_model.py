@@ -132,6 +132,132 @@ def test_export_model_can_register_candidate_manifest(tmp_path):
     assert index["aliases"]["candidate"] == "v1"
 
 
+def test_export_model_binds_snapshot_v2_provenance_and_blocks_promotion(tmp_path):
+    version_dir = tmp_path / "backend" / "model_registry" / "versions" / "v1"
+    prototype_src = version_dir / "prototypes" / "prototypes.pt"
+    runtime_dir = tmp_path / "backend" / "codex_model"
+    runtime_config = runtime_dir / "config.json"
+    snapshot_dir = tmp_path / "snapshot"
+    snapshot_dir.mkdir()
+    snapshot_manifest = snapshot_dir / "snapshot_manifest.json"
+    snapshot_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "training-snapshot.v2",
+                "snapshot_id": "snapshot-test",
+                "content_sha256": "a" * 64,
+                "class_order_sha256": "b" * 64,
+                "ready_for_training": True,
+                "promotion_evaluation_ready": False,
+                "split_counts": {"train": 10, "dev": 2, "locked_test": 2},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (snapshot_dir / "checksums.json").write_text("{}", encoding="utf-8")
+    metadata_csv = snapshot_dir / "metadata.csv"
+    metadata_csv.write_text("class_label,element_name\n0,atl\n", encoding="utf-8")
+    _write_prototype_fixture(prototype_src)
+    _write_config(runtime_config, model_version="runtime-original")
+
+    export_model(
+        prototype_src,
+        version_dir / "runtime" / "weights",
+        runtime_config,
+        config_out_path=version_dir / "runtime" / "config.json",
+        runtime_model_dir=runtime_dir,
+        registry_dir=tmp_path / "backend" / "model_registry",
+        version_id="v1",
+        metadata_csv_path=metadata_csv,
+        approved_manifest_path=snapshot_manifest,
+    )
+
+    manifest = json.loads((version_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["data"]["training_snapshot"]["snapshot_id"] == "snapshot-test"
+    assert manifest["data"]["training_snapshot"]["manifest_sha256"]
+    assert manifest["data"]["training_snapshot"]["promotion_evaluation_ready"] is False
+    assert manifest["promotion"]["blocked"] is True
+    assert manifest["promotion"]["gate"] == "p4_locked_test_promotion_contract"
+    assert "P4" in manifest["promotion"]["reason"]
+    assert "e2e_report_required" not in manifest["promotion"]
+
+
+def test_export_model_records_training_inputs_and_inventories_versioned_files(tmp_path):
+    version_dir = tmp_path / "backend" / "model_registry" / "versions" / "v2"
+    prototype_src = version_dir / "prototypes" / "prototypes.pt"
+    runtime_dir = tmp_path / "backend" / "codex_model"
+    runtime_config = runtime_dir / "config.json"
+    training_config = version_dir / "training" / "snapshot-research.yaml"
+    features = version_dir / "training_data" / "precomputed" / "features.pt"
+    features_provenance = Path(str(features) + ".prov.json")
+    checkpoint = version_dir / "checkpoints" / "latest.pt"
+    init_projection = version_dir / "inputs" / "historical-projection.pt"
+    training_manifest = version_dir / "checkpoints" / "training_manifest.json"
+    for path, content in (
+        (training_config, "training:\n  seed: 42\n"),
+        (features, "synthetic-features"),
+        (features_provenance, '{"schema_version":"features-cache.v1"}\n'),
+        (checkpoint, "synthetic-checkpoint"),
+        (init_projection, "synthetic-initial-projection"),
+        (training_manifest, '{"schema_version":"baseline-training.v1"}\n'),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    _write_prototype_fixture(prototype_src)
+    _write_config(runtime_config, model_version="runtime-original")
+
+    outputs = export_model(
+        prototype_src,
+        version_dir / "runtime" / "weights",
+        runtime_config,
+        config_out_path=version_dir / "runtime" / "config.json",
+        runtime_model_dir=runtime_dir,
+        manifest_out_path=version_dir / "export_model_manifest.json",
+        registry_dir=tmp_path / "backend" / "model_registry",
+        version_id="v2",
+        training_config_path=training_config,
+        features_path=features,
+        features_provenance_path=features_provenance,
+        checkpoint_path=checkpoint,
+        init_projection_path=init_projection,
+        training_manifest_path=training_manifest,
+        checkpoint_selection="latest",
+    )
+
+    export_manifest = json.loads(outputs["manifest"].read_text(encoding="utf-8"))
+    assert export_manifest["training"]["config"]["path"] == str(training_config.resolve())
+    assert export_manifest["training"]["checkpoint"]["sha256"]
+    assert export_manifest["training"]["checkpoint_selection"] == "latest"
+    assert export_manifest["training"]["init_projection"]["sha256"]
+    assert export_manifest["training"]["training_manifest"]["path"] == str(
+        training_manifest.resolve()
+    )
+    assert export_manifest["data"]["features_cache"]["path"] == str(features.resolve())
+    assert export_manifest["data"]["features_provenance"]["sha256"]
+
+    registry_manifest = json.loads(outputs["registry_manifest"].read_text(encoding="utf-8"))
+    assert registry_manifest["training"]["config"]["sha256"]
+    assert registry_manifest["training"]["checkpoint"]["path"] == str(checkpoint.resolve())
+    assert registry_manifest["training"]["checkpoint_selection"] == "latest"
+    assert registry_manifest["training"]["init_projection"]["path"] == str(
+        init_projection.resolve()
+    )
+    assert registry_manifest["training"]["training_manifest"]["sha256"]
+    assert registry_manifest["data"]["features_cache"]["sha256"]
+    assert registry_manifest["data"]["features_provenance"]["path"] == str(
+        features_provenance.resolve()
+    )
+    inventory = {record["path"] for record in registry_manifest["artifacts"]}
+    assert {
+        "training/snapshot-research.yaml",
+        "training_data/precomputed/features.pt",
+        "training_data/precomputed/features.pt.prov.json",
+        "checkpoints/latest.pt",
+        "inputs/historical-projection.pt",
+        "checkpoints/training_manifest.json",
+    }.issubset(inventory)
+
+
 def test_export_model_refuses_runtime_write_without_explicit_opt_in(tmp_path):
     prototype_src = tmp_path / "prototypes" / "prototypes.pt"
     runtime_dir = tmp_path / "backend" / "codex_model"

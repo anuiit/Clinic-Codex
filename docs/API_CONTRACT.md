@@ -35,7 +35,7 @@ The backend currently exposes several compatibility error shapes. Clients must m
 | `POST` | `/admin/annotations/<analysis_id>/<index>/modify` | JSON `{ class_name, bbox, approve_after_save?, status? }` | `{ status: "ok", element, counts, warning, local_only }` | flat `{ status: "error", error }` for validation/not-found | `modifyAdminAnnotationElement(...)` |
 | `GET` | `/admin/annotations/<analysis_id>/image` | none | local original image bytes | flat `{ status: "error", error }` for validation/not-found | `adminAnnotationMediaUrl(...)` |
 | `GET` | `/admin/annotations/<analysis_id>/<index>/crop` | none | local crop image bytes | flat `{ status: "error", error }` for validation/not-found | `adminAnnotationMediaUrl(...)` |
-| `GET` | `/admin/training/summary` | none | local-only approved-data summary, parameters, paths, artifacts, latest job, launch guard reasons | flat `{ status: "error", error }` only for unexpected route failures | `getAdminTrainingSummary()` |
+| `GET` | `/admin/training/summary` | none | local-only approved-data and cumulative-snapshot summary, parameters, paths, artifacts, latest job, launch guard reasons | flat `{ status: "error", error }` only for unexpected route failures | `getAdminTrainingSummary()` |
 | `GET` | `/admin/training/jobs/latest` | none | `{ status: "ok", local_only: true, job }` where `job` may be `null` | flat `{ status: "error", error }` only for unexpected route failures | `getLatestAdminTrainingJob()` |
 | `GET` | `/admin/training/jobs/<run_id>` | none | `{ status: "ok", local_only: true, job }` | flat `{ status: "error", error }` for invalid/not-found run id | none |
 | `POST` | `/admin/training/jobs` | JSON `{ dry_run, device, batch_size, notes? }` | `202 { status: "ok", local_only: true, job }` | flat `{ status: "error", error }` for disabled/nonlocal/validation/conflict | `startAdminTrainingJob(...)` |
@@ -392,7 +392,7 @@ Validation/not-found errors use the flat admin shape, for example:
 
 ### Local admin training summary and jobs
 
-These endpoints are **local/dev-only** and **not production-secured**. Summary is visible to local admin UI callers, but launching a job is disabled unless `ENABLE_ADMIN_TRAINING_JOBS=1` and request locality checks pass. The job runner is not a shell executor; it starts only the allowlisted command `bash scripts/retrain.sh` with optional `--dry-run` and an allowlisted environment (`BATCH_SIZE`, `DEVICE`, `PYTHONUNBUFFERED`, plus process `PATH`/`HOME`).
+These endpoints are **local/dev-only** and **not production-secured**. Summary is visible to local admin UI callers, but launching a job is disabled unless `ENABLE_ADMIN_TRAINING_JOBS=1`, request locality checks pass, and `ADMIN_TRAINING_SNAPSHOT_DIR` points to a current valid `training-snapshot.v2`. The job runner is not a shell executor; it starts only `bash scripts/retrain.sh` with allowlisted snapshot, backbone, warm-start, and optional `--dry-run` arguments plus an allowlisted environment (`BATCH_SIZE`, `DEVICE`, `MODEL_VERSION_ID`, `MODEL_REGISTRY_DIR`, `PYTHONUNBUFFERED`, and process `PATH`/`HOME`).
 
 `GET /admin/training/summary` success:
 
@@ -427,11 +427,25 @@ These endpoints are **local/dev-only** and **not production-secured**. Summary i
   },
   "paths": {
     "script": ".../scripts/retrain.sh",
-    "approved_elements_dir": ".../backend/training_data/approved/Elements",
+    "training_snapshot_dir": ".../backend/training_corpus/snapshots/snapshot-test",
     "runs_dir": ".../backend/training_runs"
   },
   "artifacts": {
     "classifier_config": { "path": ".../backend/codex_model/config.json", "exists": true }
+  },
+  "training_snapshot": {
+    "configured": true,
+    "valid": true,
+    "snapshot_id": "snapshot-test",
+    "snapshot_manifest_sha256": "...",
+    "row_count": 9266,
+    "class_count": 286,
+    "live_annotation_count": 7,
+    "live_annotations_sha256": "...",
+    "ready_for_training": true,
+    "promotion_evaluation_ready": false,
+    "split_counts": { "train": 9128, "dev": 56, "locked_test": 82 },
+    "errors": []
   },
   "latest_job": null
 }
@@ -467,11 +481,11 @@ Accepted response (`202`):
     "finished_at": null,
     "exit_code": null,
     "pid": 4242,
-    "command": ["bash", ".../scripts/retrain.sh", "--dry-run"],
+    "command": ["bash", ".../scripts/retrain.sh", "--elements-dir", ".../snapshot/Elements", "--approved-manifest", ".../snapshot/snapshot_manifest.json", "--metadata-csv", ".../snapshot/metadata.csv", "--backbone-manifest", ".../dinov2-vits14-local.json", "--config", ".../snapshot-warmstart.yaml", "--init-projection", ".../projection.pt", "--dry-run"],
     "cwd": ".../clinic-codex",
     "env": { "BATCH_SIZE": "8", "DEVICE": "cpu", "PYTHONUNBUFFERED": "1" },
     "log_path": ".../backend/training_runs/20260526T150000Z-ab12cd34/train.log",
-    "approved_export_manifest_hash": null,
+    "training_snapshot_manifest_hash": "...",
     "log_tail": [],
     "artifacts": {}
   }
@@ -492,9 +506,10 @@ Known `POST /admin/training/jobs` errors:
 | `403` | `non_loopback_remote_addr` | Request did not originate from loopback. |
 | `403` | `nonlocal_host` | `Host` was not loopback/localhost. |
 | `403` | `nonlocal_origin` | `Origin` was not local. |
+| `403` | `training_snapshot_*` | The configured cumulative snapshot is missing, invalid, or stale against the current review index. |
 | `409` | `training job already running` | A latest job is still `running`; concurrent starts are rejected. |
 
-Retraining remains approved-only: the script first materializes `backend/training_data/approved/Elements` through `scripts/export_approved_annotations.py`, then runs classifier-only stages. No MobileSAM/segmentation retraining is exposed, and new weights are not hot-reloaded; restart the backend after a successful full run.
+The admin path retrains the classifier from the immutable cumulative snapshot and warm-starts from the current projection. A snapshot becomes stale whenever the review index or canonical trainable crop set changes and must be rebuilt before launching again. Launch is also blocked while `MODEL_DIR` is set so config and projection cannot come from different runtime packages. No MobileSAM/segmentation retraining is exposed, and new weights are not hot-reloaded; explicitly promote a valid candidate and restart the backend.
 
 ## Legacy Endpoints
 

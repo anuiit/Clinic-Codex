@@ -18,9 +18,17 @@ def sha256_file(path: Path) -> str:
 
 
 def sha256_tree(root: Path) -> str:
-    """Hash the local torch.hub source excluding its mutable Git metadata."""
+    """Hash stable torch.hub source files, excluding generated metadata/caches."""
     digest = hashlib.sha256()
-    for path in sorted(candidate for candidate in root.rglob("*") if candidate.is_file() and ".git" not in candidate.parts):
+    excluded_dirs = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+    excluded_suffixes = {".pyc", ".pyo"}
+    for path in sorted(
+        candidate
+        for candidate in root.rglob("*")
+        if candidate.is_file()
+        and not excluded_dirs.intersection(candidate.relative_to(root).parts)
+        and candidate.suffix.lower() not in excluded_suffixes
+    ):
         digest.update(path.relative_to(root).as_posix().encode("utf-8"))
         digest.update(b"\0")
         with path.open("rb") as handle:

@@ -67,3 +67,44 @@ def validate_metadata_class_order(metadata, class_names: list[str]) -> None:
             "metadata class order does not match the runtime contract; "
             f"expected {len(class_names)} ordered classes, got {len(names)}"
         )
+
+
+def validate_metadata_class_subset(metadata, class_names: list[str]) -> None:
+    """Require every observed label/name pair to match the runtime ABI.
+
+    This is intended for immutable evaluation sets that legitimately cover a
+    strict subset of the runtime taxonomy. Training snapshots must continue to
+    use :func:`validate_metadata_class_order`.
+    """
+
+    required_columns = {"class_label", "element_name"}
+    missing = required_columns - set(metadata.columns)
+    if missing:
+        raise ValueError(f"metadata is missing columns: {sorted(missing)}")
+    observed: dict[int, str] = {}
+    for label, name in metadata[["class_label", "element_name"]].itertuples(index=False):
+        try:
+            normalized_label = int(label)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"metadata has non-integral class label: {label!r}") from exc
+        if normalized_label != label:
+            raise ValueError(f"metadata has non-integral class label: {label!r}")
+        if not 0 <= normalized_label < len(class_names):
+            raise ValueError(f"metadata class label is outside runtime taxonomy: {normalized_label}")
+        if not isinstance(name, str) or not name:
+            raise ValueError(
+                f"metadata has invalid element name for label {normalized_label}: {name!r}"
+            )
+        expected = class_names[normalized_label]
+        if name != expected:
+            raise ValueError(
+                f"metadata label/name differs from runtime contract: "
+                f"{normalized_label} maps to {name!r}, expected {expected!r}"
+            )
+        previous = observed.setdefault(normalized_label, name)
+        if previous != name:
+            raise ValueError(
+                f"metadata maps class label {normalized_label} to conflicting names"
+            )
+    if not observed:
+        raise ValueError("metadata class subset is empty")

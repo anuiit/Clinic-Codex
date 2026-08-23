@@ -141,6 +141,17 @@ def _validate_manifest_artifacts(registry: ModelRegistry, manifest: dict[str, An
             raise PromotionError("manifest artifact entries must be objects")
         rel = safe_relative_path(str(artifact.get("path", "")))
         path = version_dir / rel
+        resolved_version_dir = version_dir.resolve()
+        try:
+            resolved_path = path.resolve(strict=True)
+            resolved_path.relative_to(resolved_version_dir)
+        except (FileNotFoundError, OSError, ValueError) as exc:
+            raise PromotionError(f"manifest artifact escapes version directory: {rel.as_posix()}") from exc
+        cursor = path
+        while cursor != version_dir:
+            if cursor.is_symlink():
+                raise PromotionError(f"manifest artifact path contains a symlink: {rel.as_posix()}")
+            cursor = cursor.parent
         if not path.is_file():
             raise PromotionError(f"manifest artifact missing: {rel.as_posix()}")
         expected = str(artifact.get("sha256") or "")
@@ -164,6 +175,63 @@ def _validate_manifest_artifacts(registry: ModelRegistry, manifest: dict[str, An
         if required not in seen:
             raise PromotionError(f"required runtime artifact missing from manifest: {required}")
     return records
+
+
+def _read_class_order(config_path: Path, *, label: str) -> list[str]:
+    config = read_json_object(config_path)
+    if config is None:
+        raise PromotionError(f"{label} runtime config is missing or invalid JSON: {config_path}")
+    class_names = config.get("class_names")
+    if not isinstance(class_names, list) or not class_names:
+        raise PromotionError(f"{label} runtime config must contain a non-empty class_names list")
+    if any(not isinstance(name, str) or not name for name in class_names):
+        raise PromotionError(f"{label} runtime class_names must contain non-empty strings")
+    if len(set(class_names)) != len(class_names):
+        raise PromotionError(f"{label} runtime class_names contains duplicates")
+    num_classes = config.get("num_classes", len(class_names))
+    if num_classes != len(class_names):
+        raise PromotionError(
+            f"{label} runtime num_classes mismatch: {num_classes} != {len(class_names)}"
+        )
+    return class_names
+
+
+def _validate_runtime_class_order(registry: ModelRegistry, version_id: str) -> None:
+    target_path = registry.version_dir(version_id) / "runtime" / "config.json"
+    target_order = _read_class_order(target_path, label="candidate")
+    index = registry.read_index()
+    original_version = index["aliases"].get("original")
+    if original_version:
+        reference_path = registry.version_dir(original_version) / "runtime" / "config.json"
+    else:
+        missing = [
+            str(registry.runtime_model_dir.joinpath(*runtime_parts))
+            for runtime_parts in REQUIRED_RUNTIME_FILES.values()
+            if not registry.runtime_model_dir.joinpath(*runtime_parts).is_file()
+        ]
+        if missing:
+            raise PromotionError("missing required artifact(s) in current runtime: " + ", ".join(missing))
+        reference_path = registry.runtime_model_dir / "config.json"
+    reference_order = _read_class_order(reference_path, label="reference")
+    if target_order != reference_order:
+        raise PromotionError(
+            "candidate runtime class order differs from the historical ABI "
+            f"({len(target_order)} candidate classes vs {len(reference_order)} reference classes)"
+        )
+
+
+def _validate_promotion_policy(manifest: dict[str, Any], *, action: str) -> bool:
+    """Reject explicit gates and return whether the existing R2 E2E guard applies."""
+    if action != "promote":
+        return False
+    promotion = manifest.get("promotion")
+    if not isinstance(promotion, dict):
+        return False
+    if "blocked" in promotion and promotion.get("blocked") is not False:
+        reason = promotion.get("reason")
+        detail = reason if isinstance(reason, str) and reason.strip() else "no unblock contract is recorded"
+        raise PromotionError(f"candidate promotion is explicitly blocked: {detail}")
+    return bool(promotion.get("e2e_report_required"))
 
 
 def _copy_atomic(source: Path, dest: Path) -> None:
@@ -375,9 +443,9 @@ def promote_or_rollback(
         raise PromotionError("no target version available")
     manifest = _load_manifest(registry, version_id)
     artifacts = _validate_manifest_artifacts(registry, manifest)
+    _validate_runtime_class_order(registry, version_id)
     e2e_report: dict[str, Any] | None = None
-    promotion = manifest.get("promotion")
-    e2e_required = isinstance(promotion, dict) and bool(promotion.get("e2e_report_required"))
+    e2e_required = _validate_promotion_policy(manifest, action=action)
     if action == "promote" and e2e_required:
         if e2e_report_path is None:
             raise PromotionError(
@@ -427,7 +495,13 @@ def promote_or_rollback(
         # runtime file is copied.
         manifest = _load_manifest(registry, version_id)
         artifacts = _validate_manifest_artifacts(registry, manifest)
+        _validate_runtime_class_order(registry, version_id)
+        e2e_required = _validate_promotion_policy(manifest, action=action)
         if action == "promote" and e2e_required:
+            if e2e_report_path is None:
+                raise PromotionError(
+                    "candidate requires a passing E2E report; pass --e2e-report before promotion"
+                )
             try:
                 e2e_report = validate_promotion_report(
                     e2e_report_path,

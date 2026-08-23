@@ -20,7 +20,7 @@ def _write_runtime(runtime_dir: Path, label: str) -> None:
     (runtime_dir / "weights" / "prototypes.pt").write_bytes(f"{label}-prototypes".encode("utf-8"))
     (runtime_dir / "weights" / "projection.pt").write_bytes(f"{label}-projection".encode("utf-8"))
     (runtime_dir / "config.json").write_text(
-        json.dumps({"model_version": label, "class_names": [label]}),
+        json.dumps({"model_version": label, "num_classes": 1, "class_names": ["class-a"]}),
         encoding="utf-8",
     )
 
@@ -82,6 +82,65 @@ def test_promote_model_dry_run_validates_without_mutating_runtime(tmp_path):
     assert (runtime / "config.json").read_text(encoding="utf-8") == before
     index = json.loads(registry.index_path.read_text(encoding="utf-8"))
     assert index["aliases"]["promoted"] is None
+
+
+def test_promote_model_rejects_candidate_class_order_drift(tmp_path):
+    runtime = tmp_path / "backend" / "codex_model"
+    _write_runtime(runtime, "original")
+    registry = ModelRegistry(
+        tmp_path / "backend" / "model_registry", repo_root=tmp_path, runtime_model_dir=runtime
+    )
+    version_id = "20260527T010203Z-test-candidate"
+    source = tmp_path / "candidate-source" / version_id
+    _write_runtime(source, "candidate")
+    (source / "config.json").write_text(
+        json.dumps({"model_version": "candidate", "num_classes": 1, "class_names": ["class-b"]}),
+        encoding="utf-8",
+    )
+    registry.create_version_from_artifacts(
+        version_id,
+        artifact_sources={
+            "runtime/weights/prototypes.pt": source / "weights" / "prototypes.pt",
+            "runtime/weights/projection.pt": source / "weights" / "projection.pt",
+            "runtime/config.json": source / "config.json",
+        },
+    )
+
+    result = _run_promote(tmp_path, version_id, "--dry-run")
+
+    assert result.returncode == 2
+    assert "class order differs" in json.loads(result.stdout)["error"]
+    assert json.loads((runtime / "config.json").read_text(encoding="utf-8"))["model_version"] == "original"
+
+
+def test_promote_model_rejects_explicit_p3_snapshot_block_before_copy(tmp_path):
+    runtime = tmp_path / "backend" / "codex_model"
+    _write_runtime(runtime, "original")
+    registry = ModelRegistry(
+        tmp_path / "backend" / "model_registry", repo_root=tmp_path, runtime_model_dir=runtime
+    )
+    version_id = "20260527T010203Z-p3-snapshot"
+    _create_candidate(registry, tmp_path, version_id)
+    manifest_path = registry.version_dir(version_id) / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["promotion"] = {
+        "blocked": True,
+        "gate": "p4_locked_test_promotion_contract",
+        "reason": "P4 must seal the complete locked-test promotion contract",
+    }
+    atomic_write_json(manifest_path, manifest)
+    index = registry.read_index()
+    index["versions"][version_id]["manifest_sha256"] = sha256_file(manifest_path)
+    registry.write_index(index)
+    before = (runtime / "config.json").read_bytes()
+
+    result = _run_promote(tmp_path, version_id)
+
+    assert result.returncode == 2
+    assert "explicitly blocked" in json.loads(result.stdout)["error"]
+    assert (runtime / "config.json").read_bytes() == before
+    assert not registry.snapshots_dir.exists()
+    assert not (registry.root / promote_model.PROMOTION_MARKER).exists()
 
 
 def test_promote_model_promotes_and_rolls_back_with_snapshots(tmp_path):

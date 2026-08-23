@@ -250,6 +250,24 @@ export interface AdminTrainingJob {
   log_path?: string;
   log_tail?: string[];
   artifacts?: Record<string, unknown>;
+  training_snapshot?: AdminTrainingSnapshot;
+  training_snapshot_manifest_hash?: string | null;
+}
+
+export interface AdminTrainingSnapshot {
+  configured: boolean;
+  valid: boolean;
+  snapshot_id: string | null;
+  snapshot_manifest_sha256: string | null;
+  row_count: number | null;
+  class_count: number | null;
+  live_annotation_count: number | null;
+  live_annotations_sha256?: string | null;
+  ready_for_training: boolean;
+  promotion_evaluation_ready: boolean;
+  split_counts: Record<"train" | "dev" | "locked_test", number> | null;
+  paths: Record<string, string | null>;
+  errors: string[];
 }
 
 export interface AdminTrainingSummary {
@@ -281,6 +299,7 @@ export interface AdminTrainingSummary {
   };
   paths: Record<string, string | boolean | null>;
   artifacts: Record<string, unknown>;
+  training_snapshot: AdminTrainingSnapshot;
   latest_job?: AdminTrainingJob | null;
 }
 

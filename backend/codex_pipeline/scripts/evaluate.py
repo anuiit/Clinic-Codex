@@ -131,6 +131,23 @@ def main():
         help="Explicit prototype export directory. Overrides paths.prototype_dir from checkpoint config.",
     )
     parser.add_argument("--num-episodes", type=int, default=500)
+    parser.add_argument(
+        "--split-strategy",
+        choices=("per_class", "source_group", "persisted"),
+        default=None,
+        help="Split strategy used when --prototype-split is train or val.",
+    )
+    parser.add_argument(
+        "--prototype-split",
+        choices=("all", "train", "val"),
+        default="all",
+        help="Rows used to compute exported prototypes. Snapshot training must use train.",
+    )
+    parser.add_argument(
+        "--skip-few-shot",
+        action="store_true",
+        help="Skip episodic evaluation (useful for sparse persisted dev splits).",
+    )
     args = parser.parse_args()
 
     # Load checkpoint
@@ -149,7 +166,16 @@ def main():
 
     # --- Load cached features (no augmentation for eval) ---
     print(f"\nLoading features from {args.features}...")
-    dataset, data_info = CachedFeatureDataset.from_file(args.features, split=None)
+    requested_split = None if args.prototype_split == "all" else args.prototype_split
+    if requested_split is not None and args.split_strategy is None:
+        parser.error("--prototype-split train/val requires --split-strategy")
+    dataset, data_info = CachedFeatureDataset.from_file(
+        args.features,
+        split=requested_split,
+        split_strategy=args.split_strategy or "per_class",
+        val_fraction=cfg["data"]["val_fraction"],
+        seed=int(train_cfg["seed"]),
+    )
     class_names = data_info["class_names"]
     print(f"  {len(dataset)} features across {dataset.num_classes} classes")
 
@@ -166,13 +192,16 @@ def main():
     n_way = train_cfg["n_way"]
     q_queries = train_cfg["q_queries"]
 
-    print(f"\nFew-shot evaluation ({n_way}-way, {args.num_episodes} episodes):")
-    for k in cfg["evaluation"]["k_shot_values"]:
-        acc = evaluate_few_shot(
-            model, dataset, criterion, device,
-            n_way, k, q_queries, args.num_episodes,
-        )
-        print(f"  {k}-shot accuracy: {acc:.3f}")
+    if args.skip_few_shot:
+        print("\nFew-shot evaluation skipped by request.")
+    else:
+        print(f"\nFew-shot evaluation ({n_way}-way, {args.num_episodes} episodes):")
+        for k in cfg["evaluation"]["k_shot_values"]:
+            acc = evaluate_few_shot(
+                model, dataset, criterion, device,
+                n_way, k, q_queries, args.num_episodes,
+            )
+            print(f"  {k}-shot accuracy: {acc:.3f}")
 
     # --- Compute all embeddings for prototype analysis ---
     print("\nComputing embeddings for all features...")
@@ -209,8 +238,18 @@ def main():
     # --- Overall stats ---
     all_vars = list(analysis["class_variances"].values())
     print(f"\nOverall prototype quality:")
-    print(f"  Mean intra-class variance:   {sum(all_vars)/len(all_vars):.4f}")
-    print(f"  Median intra-class variance: {sorted(all_vars)[len(all_vars)//2]:.4f}")
+    mean_intra = sum(all_vars) / len(all_vars) if all_vars else None
+    median_intra = sorted(all_vars)[len(all_vars) // 2] if all_vars else None
+    print(
+        f"  Mean intra-class variance:   {mean_intra:.4f}"
+        if mean_intra is not None
+        else "  Mean intra-class variance:   n/a (all classes have one prototype row)"
+    )
+    print(
+        f"  Median intra-class variance: {median_intra:.4f}"
+        if median_intra is not None
+        else "  Median intra-class variance: n/a (all classes have one prototype row)"
+    )
 
     # Average inter-class similarity (excluding diagonal)
     sim_mat = analysis["similarity_matrix"]
@@ -218,7 +257,10 @@ def main():
     mask = ~torch.eye(n, dtype=torch.bool)
     avg_inter = sim_mat[mask].mean().item()
     print(f"  Mean inter-class similarity: {avg_inter:.4f}")
-    print(f"  Separation ratio:            {avg_inter / (sum(all_vars)/len(all_vars)):.2f}x")
+    if mean_intra not in (None, 0.0):
+        print(f"  Separation ratio:            {avg_inter / mean_intra:.2f}x")
+    else:
+        print("  Separation ratio:            n/a")
 
     # --- Export prototypes ---
     if args.export_prototypes:
@@ -254,6 +296,8 @@ def main():
             "prototypes_sha256": sha256_file(proto_path),
             "seed": int(train_cfg["seed"]),
             "class_count": len(analysis["class_labels"]),
+            "prototype_split": args.prototype_split,
+            "split_strategy": args.split_strategy,
         }
         (proto_dir / "provenance.json").write_text(
             json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"

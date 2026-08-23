@@ -1,0 +1,36 @@
+# P4 B1 preregistered warm-start recipe for immutable training-snapshot.v2.
+# Research/non-promotion only. Fixed before execution: do not tune on dev or
+# locked_test. locked_test is never used for fitting or checkpoint selection.
+paths:
+  elements_dir: "./Elements"
+  metadata_csv: "./metadata.csv"
+  checkpoint_dir: "./checkpoints"
+  prototype_dir: "./prototypes"
+data:
+  image_size: 224
+  min_images_per_class: 2
+  val_fraction: 0.15
+  split_strategy: "persisted"
+  num_workers: 0
+model:
+  backbone: "dinov2_vits14"
+  embedding_dim: 128
+  freeze_blocks: 9
+  pretrained: true
+training:
+  episodes_per_epoch: 100
+  num_epochs: 3
+  n_way: 20
+  k_shot: 3
+  q_queries: 5
+  learning_rate: 0.00001
+  weight_decay: 0.0001
+  lr_scheduler: "cosine"
+  warmup_epochs: 0
+  temperature: 0.1
+  device: "cuda"
+  seed: 42
+  checkpoint_selection: "latest"
+evaluation:
+  k_shot_values: [1, 3, 5]
+  num_eval_episodes: 100
