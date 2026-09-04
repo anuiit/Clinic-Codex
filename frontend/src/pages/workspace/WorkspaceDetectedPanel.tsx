@@ -219,12 +219,8 @@ function WorkspaceFocusedRegionPanel({
               className="workspace-trust-loading space-y-3"
               data-testid="workspace-trust-loading"
             >
-              <div className="ui-text-eyebrow">
-                {labels.initialProposal}
-              </div>
-              <div className="ui-title-sm truncate">
-                {element.class_name}
-              </div>
+              <div className="ui-text-eyebrow">{labels.initialProposal}</div>
+              <div className="ui-title-sm truncate">{element.class_name}</div>
               <div className="workspace-trust-skeleton h-7 w-3/4 rounded-lg" />
               <div className="flex gap-2">
                 <div className="workspace-trust-skeleton h-8 flex-1 rounded-lg" />
