@@ -20,6 +20,10 @@ sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_contract_is_hash_pinned_before_network_and_has_six_exact_sources() -> None:
     contract = module.validate_contract()
     assert {
@@ -34,6 +38,10 @@ def test_contract_is_hash_pinned_before_network_and_has_six_exact_sources() -> N
     assert contract["manifest"]["transport"]["follow_redirects"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_manifest_contains_only_structured_endpoint_types_and_no_item_urls() -> None:
     contract = module.validate_contract()
     for source in contract["manifest"]["sources"]:
@@ -246,6 +254,10 @@ def _two_source_journal(contract: dict, tmp_path: Path) -> dict:
     }
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_local_replay_recomputes_two_validated_sources_from_raw_bytes(
     tmp_path: Path,
 ) -> None:
@@ -265,6 +277,10 @@ def test_local_replay_recomputes_two_validated_sources_from_raw_bytes(
     assert validated == {"library_of_congress", "bne_linked_data"}
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_replay_detects_tampered_validation_claim(tmp_path: Path) -> None:
     contract = module.validate_contract()
     journal = _two_source_journal(contract, tmp_path)
@@ -278,6 +294,10 @@ def test_replay_detects_tampered_validation_claim(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_replay_detects_raw_evidence_tampering(tmp_path: Path) -> None:
     contract = module.validate_contract()
     journal = _two_source_journal(contract, tmp_path)
@@ -287,6 +307,10 @@ def test_replay_detects_raw_evidence_tampering(tmp_path: Path) -> None:
     assert "raw_evidence_mismatch:1" in audit["integrity_violations"]
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_evaluation_output_replay_is_byte_identical(tmp_path: Path) -> None:
     contract = module.validate_contract()
     journal = _two_source_journal(contract, tmp_path)
@@ -304,6 +328,10 @@ def test_evaluation_output_replay_is_byte_identical(tmp_path: Path) -> None:
     assert evaluation["final_test_read"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-validation-manifest-iteration-0004.json",
+)
 def test_actual_frozen_iteration_recomputes_from_the_request_journal() -> None:
     contract = module.validate_contract()
     output_dir = module.DEFAULT_OUTPUT_DIR

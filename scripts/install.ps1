@@ -7,6 +7,7 @@ Each stage is checkpointed. If interrupted, re-run is safe (idempotent).
 param()
 
 $ErrorActionPreference = 'Stop'
+$env:PYTHONUTF8 = '1'
 
 $ScriptPath = $MyInvocation.MyCommand.Path
 $ScriptDir  = Split-Path -Parent $ScriptPath
@@ -47,19 +48,21 @@ function New-RandomSecret {
     }
 }
 function Initialize-BackendEnv([string]$Path) {
-    if (Test-Path -LiteralPath $Path) {
-        Log '  backend/.env present - preserving existing configuration'
-        return
-    }
-
-    $content = @(
+    $defaults = @(
         '# Generated once by scripts/install.ps1 for local development.',
         'ENABLE_LEGACY_ENDPOINTS=true',
-        'ENABLE_ADMIN_TRAINING_JOBS=false',
+        'ENABLE_ADMIN_TRAINING_JOBS=true',
+        'ALLOW_LOCAL_ADMIN_SELF_REVIEW=true',
         'AUTH_REQUIRED=true',
         "AUTH_SECRET_KEY=$(New-RandomSecret)",
         'AUTH_COOKIE_SECURE=false'
-    ) -join [Environment]::NewLine
+    )
+    $existing = if (Test-Path -LiteralPath $Path) { [System.IO.File]::ReadAllText($Path) } else { '' }
+    $missing = @($defaults | Where-Object {
+        $_.StartsWith('#') -or $existing -notmatch ('(?m)^\s*' + [regex]::Escape(($_ -split '=', 2)[0]) + '\s*=')
+    })
+    if ($missing.Count -eq 1 -and $existing) { return }
+    $content = $existing.TrimEnd() + [Environment]::NewLine + ($missing -join [Environment]::NewLine)
     $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path, $content + [Environment]::NewLine, $utf8WithoutBom)
     Log '  created backend/.env with a random local session secret (no default account/password)'
@@ -91,7 +94,7 @@ $candidates = if ($IsWin) {
 foreach ($candidate in $candidates) {
     $parts = $candidate -split ' '
     $cmd   = $parts[0]
-    $args_ = if ($parts.Length -gt 1) { $parts[1..($parts.Length - 1)] } else { @() }
+    [string[]]$args_ = if ($parts.Length -gt 1) { $parts[1..($parts.Length - 1)] } else { @() }
     try {
         $ver = & $cmd @args_ --version 2>&1
         if ("$ver" -match 'Python (3\.(10|11))') {
@@ -118,7 +121,8 @@ if ($NodeVersion -lt [version]'22.22.0') {
     Fail "Node.js 22.22 or newer is required. Found $NodeVersion."
 }
 
-$verCheck = & $Python.cmd @($Python.args) -c 'import sys; print(str(sys.version_info.major) + "." + str(sys.version_info.minor))' 2>&1
+$PythonArgs = $Python.args
+$verCheck = & $Python.cmd @PythonArgs -c "import sys; print(str(sys.version_info.major) + '.' + str(sys.version_info.minor))" 2>&1
 if ($verCheck -notmatch '^3\.(10|11)$') { Fail "Python reports version $verCheck - need 3.10 or 3.11." }
 
 $freeGB = Get-FreeSpaceGB $RepoRoot
@@ -145,13 +149,14 @@ if ($IsWin) {
 }
 
 if (-not (Test-Path $VenvPy)) {
-    & $Python.cmd @($Python.args) -m venv $VenvDir
+    & $Python.cmd @PythonArgs -m venv $VenvDir
     if ($LASTEXITCODE -ne 0) { Fail 'venv creation failed' }
 } else {
     Log '  reusing existing venv'
 }
 
-try { & $VenvPip install --quiet --upgrade pip 2>&1 | Out-Null } catch { Log '  pip upgrade skipped' }
+& $VenvPy -m pip install --upgrade pip
+if ($LASTEXITCODE -ne 0) { Fail 'pip upgrade failed - re-run the installer to retry' }
 
 # ---------------------------------------------------------------------------
 # Stage 2: core utils
@@ -190,7 +195,7 @@ $pkgsTorch = @(
     'torch>=2.1,<2.6',
     'torchvision>=0.16,<0.21'
 )
-& $VenvPip install --no-cache-dir --prefer-binary --extra-index-url 'https://download.pytorch.org/whl/cpu' @pkgsTorch
+& $VenvPip install --no-cache-dir --prefer-binary --index-url 'https://download.pytorch.org/whl/cpu' @pkgsTorch
 if ($LASTEXITCODE -ne 0) { Fail 'Stage 4 failed - torch. Re-run script to resume.' }
 
 $cudaVer = & $VenvPy -c 'import torch; print(torch.version.cuda)' 2>&1
@@ -207,32 +212,24 @@ $pkgsSam = @(
     'albumentations>=1.4,<2.0',
     'timm>=0.9'
 )
-& $VenvPip install --no-cache-dir @pkgsSam
+& $VenvPip install --no-cache-dir --prefer-binary @pkgsSam
 if ($LASTEXITCODE -ne 0) { Fail 'Stage 5 failed - SAM/augmentation' }
 
 # ---------------------------------------------------------------------------
 # Frontend (idempotent npm)
 # ---------------------------------------------------------------------------
-Log 'Frontend: npm install (idempotent)'
-
-$nodeModules = Join-PathParts $RepoRoot 'frontend' 'node_modules'
-$isEmpty     = (-not (Test-Path $nodeModules)) -or ((Get-ChildItem $nodeModules -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
-
-if ($isEmpty) {
-    Push-Location (Join-Path $RepoRoot 'frontend')
-    npm install
-    if ($LASTEXITCODE -ne 0) { Pop-Location; Fail 'npm install failed' }
-    Pop-Location
-} else {
-    Log '  frontend/node_modules present - skipping (delete it to force reinstall)'
-}
+Log 'Frontend: npm ci (locked dependencies)'
+Push-Location (Join-Path $RepoRoot 'frontend')
+npm ci
+if ($LASTEXITCODE -ne 0) { Pop-Location; Fail 'npm ci failed' }
+Pop-Location
 
 # ---------------------------------------------------------------------------
 # Final import sanity
 # ---------------------------------------------------------------------------
 Log 'Sanity: importing all critical modules'
 
-& $VenvPy -c 'import flask, torch, torchvision, pandas, mobile_sam, segment_anything, albumentations, timm; print("all imports OK")'
+& $VenvPy -c "import flask, torch, torchvision, pandas, mobile_sam, segment_anything, albumentations, timm; print('all imports OK')"
 if ($LASTEXITCODE -ne 0) { Fail 'Sanity import failed - see error above' }
 
 # ---------------------------------------------------------------------------
@@ -243,7 +240,7 @@ Log 'Exporting model prototypes (idempotent)'
 $ProtoDerived = Join-PathParts $RepoRoot 'backend' 'codex_model' 'weights' 'prototypes.pt'
 $ProtoSource  = Join-PathParts $RepoRoot 'backend' 'prototypes' 'prototypes.pt'
 
-if (Test-Path $ProtoDerived) {
+if ((Test-Path $ProtoDerived) -and (Test-Path (Join-PathParts $RepoRoot 'backend' 'codex_model' 'weights' 'projection.pt'))) {
     Log '  prototypes.pt present - skipping export'
 } elseif (-not (Test-Path $ProtoSource)) {
     Fail "Model artefacts missing: $ProtoSource not found. See backend\README.md."
@@ -260,5 +257,11 @@ if (Test-Path $ProtoDerived) {
     if ($exportExit -ne 0) { Fail 'export_model failed - see error above' }
     if (-not (Test-Path $ProtoDerived)) { Fail "export_model ran but $ProtoDerived still missing" }
 }
+
+Log 'Installing the fixed DINOv2 base for inference and local retraining'
+& $VenvPy (Join-PathParts $RepoRoot 'scripts' 'download_weights.py')
+if ($LASTEXITCODE -ne 0) { Fail 'MobileSAM installation failed - re-run the installer to retry' }
+& $VenvPy (Join-PathParts $RepoRoot 'scripts' 'pin_dinov2.py') --download --output (Join-PathParts $RepoRoot 'backend' 'training_corpus' 'backbone-pins' 'dinov2-vits14-local.json')
+if ($LASTEXITCODE -ne 0) { Fail 'DINOv2 installation failed - re-run the installer to retry' }
 
 Log 'INSTALL DONE. Runtime smoke NOT run. To validate Windows runtime, run: powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke'

@@ -89,7 +89,7 @@ class CachedFeatureDataset(Dataset):
         Args:
             path: path to features.pt or features_aug.pt
             split: None (all data), "train", or "val"
-            split_strategy: "per_class" or "source_group"
+            split_strategy: "per_class", "source_group", or "persisted"
             val_fraction: fraction of each class held out for val
             seed: random seed for reproducible splits
             noise_std: Gaussian noise for training (only applied to train split)
@@ -116,14 +116,12 @@ class CachedFeatureDataset(Dataset):
                 val_fraction=val_fraction,
             )
             if not val_indices:
-                # Some approved corpora cannot spare a whole source group while
-                # still keeping at least one train example per class. Fall back
-                # to the per-class split instead of failing the whole recipe.
-                train_indices, val_indices = cls._split_per_class(
-                    labels,
-                    val_fraction=val_fraction,
-                    seed=seed,
+                raise ValueError(
+                    "source_group split produced no validation rows; refusing "
+                    "to fall back to a leakage-prone per-class split"
                 )
+        elif split_strategy == "persisted":
+            train_indices, val_indices = cls._split_persisted(labels, data)
         else:
             raise ValueError(f"unsupported split_strategy: {split_strategy!r}")
 
@@ -138,6 +136,30 @@ class CachedFeatureDataset(Dataset):
         else:
             idx = torch.tensor(val_indices, dtype=torch.long)
             return cls(features[idx], labels[idx]), data
+
+    @staticmethod
+    def _split_persisted(labels: torch.Tensor, data: dict) -> tuple[list[int], list[int]]:
+        dataset_splits = data.get("dataset_splits")
+        if dataset_splits is None:
+            raise ValueError("persisted split requires dataset_splits metadata")
+        try:
+            dataset_splits = list(dataset_splits)
+        except TypeError as exc:
+            raise ValueError("dataset_splits metadata must be a sequence") from exc
+        if len(dataset_splits) != len(labels):
+            raise ValueError(
+                "dataset_splits metadata must have the same length as features and labels"
+            )
+        invalid = sorted(set(dataset_splits) - {"train", "dev", "locked_test"})
+        if invalid:
+            raise ValueError(f"dataset_splits contains invalid values: {invalid}")
+        train_indices = [index for index, value in enumerate(dataset_splits) if value == "train"]
+        val_indices = [index for index, value in enumerate(dataset_splits) if value == "dev"]
+        if not train_indices:
+            raise ValueError("persisted split has no train rows")
+        if not val_indices:
+            raise ValueError("persisted split has no dev rows")
+        return train_indices, val_indices
 
     @staticmethod
     def _split_per_class(labels: torch.Tensor, *, val_fraction: float, seed: int) -> tuple[list[int], list[int]]:

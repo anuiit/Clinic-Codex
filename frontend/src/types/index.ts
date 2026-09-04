@@ -233,6 +233,18 @@ export interface AdminTrainingFileInfo {
 
 export interface AdminTrainingJob {
   run_id: string;
+  model_version_id?: string;
+  candidate_version_dir?: string;
+  error?: string;
+  result?: {
+    unique_count: number;
+    duplicate_count: number;
+    updated_classes: string[];
+    base_correct: number;
+    active_correct: number;
+    candidate_correct: number;
+    generalization_validated: false;
+  };
   status: 'running' | 'succeeded' | 'failed' | 'disabled' | 'rejected';
   local_only?: boolean;
   dry_run: boolean;
@@ -250,6 +262,27 @@ export interface AdminTrainingJob {
   log_path?: string;
   log_tail?: string[];
   artifacts?: Record<string, unknown>;
+  training_snapshot?: AdminTrainingSnapshot;
+  training_snapshot_manifest_hash?: string | null;
+}
+
+export interface AdminTrainingSnapshot {
+  mode?: 'local_prior';
+  configured: boolean;
+  valid: boolean;
+  snapshot_id: string | null;
+  snapshot_manifest_sha256: string | null;
+  row_count: number | null;
+  class_count: number | null;
+  live_annotation_count: number | null;
+  live_train_count?: number | null;
+  live_split_counts?: Record<"train" | "dev" | "locked_test" | "excluded", number> | null;
+  live_annotations_sha256?: string | null;
+  ready_for_training: boolean;
+  promotion_evaluation_ready: boolean;
+  split_counts: Record<"train" | "dev" | "locked_test", number> | null;
+  paths: Record<string, string | null>;
+  errors: string[];
 }
 
 export interface AdminTrainingSummary {
@@ -281,6 +314,7 @@ export interface AdminTrainingSummary {
   };
   paths: Record<string, string | boolean | null>;
   artifacts: Record<string, unknown>;
+  training_snapshot: AdminTrainingSnapshot;
   latest_job?: AdminTrainingJob | null;
 }
 

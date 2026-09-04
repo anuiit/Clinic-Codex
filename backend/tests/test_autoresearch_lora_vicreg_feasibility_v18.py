@@ -28,6 +28,10 @@ def parser_args(module):
     return module.build_parser().parse_args([])
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl").exists(),
+    reason="requires unshipped research artifact: iteration-0002/provenance-manifest.jsonl",
+)
 def test_frozen_input_hashes_and_predecessor_audit_are_valid() -> None:
     module = load_module()
 
@@ -174,6 +178,10 @@ def test_source_inventory_rejects_pixel_drift(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260731-council-guided-v8/iteration-0002/provenance-manifest.jsonl").exists(),
+    reason="requires unshipped research artifact: iteration-0002/provenance-manifest.jsonl",
+)
 def test_canonical_cache_metadata_matches_corpus_and_token_estimate() -> None:
     module = load_module()
     rows, report = module.v9.load_corpus(
@@ -205,6 +213,10 @@ def test_canonical_cache_metadata_matches_corpus_and_token_estimate() -> None:
     )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/inputs/dinov2-vits14-local-manifest.json").exists(),
+    reason="requires unshipped research artifact: inputs/dinov2-vits14-local-manifest.json",
+)
 def test_backbone_pin_critical_files_and_weights_are_unchanged() -> None:
     module = load_module()
 

@@ -9,6 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnnotationsPage from "./AdminAnnotationsPage";
+import { ClassDistributionBars } from "./adminAnnotations/TrainingHelpers";
 import type {
   AdminAnnotationQueue,
   AdminTrainingJob,
@@ -27,6 +28,11 @@ const apiMock = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/api", () => apiMock);
+
+it("does not draw positive bars for empty dataset splits", () => {
+  const { container } = render(<ClassDistributionBars splitCounts={{ train: 1, val: 0, test: 0, excluded: 0 }} />);
+  expect([...container.querySelectorAll("rect")].map(rect => rect.getAttribute("height"))).toEqual(["96", "0", "0", "0"]);
+});
 
 function queueWithStatuses(
   status0: "pending" | "approved" | "rejected",
@@ -171,6 +177,23 @@ function trainingSummary(
         status: "ok",
         promoted_version: "20260527T010203Z-demo",
       },
+    },
+    training_snapshot: {
+      configured: true,
+      valid: true,
+      snapshot_id: "snapshot-test",
+      snapshot_manifest_sha256: "snapshot-sha",
+      row_count: 9266,
+      class_count: 286,
+      live_annotation_count: 7,
+      live_train_count: 7,
+      ready_for_training: true,
+      promotion_evaluation_ready: false,
+      split_counts: { train: 9128, dev: 56, locked_test: 82 },
+      paths: {
+        manifest: "/repo/backend/training_corpus/snapshots/snapshot-test/snapshot_manifest.json",
+      },
+      errors: [],
     },
     latest_job: null,
     ...overrides,
@@ -482,10 +505,11 @@ describe("AdminAnnotationsPage", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /assistant d'entraînement local/i,
+        name: /réentraînement cumulatif local/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/lancement bloqué/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/validations réellement utilisées dans le train/i).parentElement).toHaveTextContent("7 / 7");
     expect(screen.queryByText(/disabled_by_default/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/enable_admin_training_jobs=1/i),
@@ -563,7 +587,7 @@ describe("AdminAnnotationsPage", () => {
       within(summary).getByText(/essai à blanc sélectionné/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByText(/sans écrire d'artefact/i),
+      within(summary).getByText(/sans lancer l'entraînement/i),
     ).toBeInTheDocument();
     expect(within(summary).getAllByText(/auto/i).length).toBeGreaterThan(0);
     expect(within(summary).getByText("16")).toBeInTheDocument();
@@ -577,10 +601,10 @@ describe("AdminAnnotationsPage", () => {
       within(summary).getByText(/entraînement complet sélectionné/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByText(/paquet candidat local/i),
+      within(summary).getByText(/candidat local/i),
     ).toBeInTheDocument();
     expect(
-      within(summary).getAllByText(/promotion explicite/i).length,
+      within(summary).getAllByText(/contrat d'évaluation promotion/i).length,
     ).toBeGreaterThan(0);
     expect(within(summary).getByText(/cpu/i)).toBeInTheDocument();
     expect(within(summary).getByText("8")).toBeInTheDocument();

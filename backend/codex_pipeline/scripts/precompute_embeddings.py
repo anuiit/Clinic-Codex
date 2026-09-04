@@ -33,7 +33,6 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch
 import yaml
@@ -42,9 +41,17 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(1, str(Path(__file__).resolve().parents[3]))
 
-from codex_pipeline.data.class_order import class_order_sha256, load_runtime_class_order, validate_metadata_class_order
+from codex_pipeline.data.class_order import (
+    class_order_sha256,
+    load_runtime_class_order,
+    validate_metadata_class_order,
+    validate_metadata_class_subset,
+)
 from codex_pipeline.data.metadata import filter_classes, load_metadata
+from scripts.pin_dinov2 import sha256_tree
+from codex_model.classifier import PREPROCESSING_VERSION, _preprocess_image
 
 
 def sha256_file(path: str | Path) -> str:
@@ -53,6 +60,13 @@ def sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def canonical_json_sha(value) -> str:
+    encoded = json.dumps(
+        value, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _normalise_optional_text(value) -> str | None:
@@ -67,6 +81,13 @@ def _normalise_optional_text(value) -> str | None:
 
 
 def build_source_groups(metadata) -> list[str]:
+    if "source_group" in metadata.columns:
+        explicit = [_normalise_optional_text(value) for value in metadata["source_group"]]
+        missing = [index for index, value in enumerate(explicit) if value is None]
+        if missing:
+            raise ValueError(f"metadata source_group is empty at row(s): {missing[:10]}")
+        return [str(value) for value in explicit]
+
     source_groups: list[str] = []
     for row in metadata.itertuples(index=False):
         codex = _normalise_optional_text(getattr(row, "codex", None))
@@ -82,51 +103,109 @@ def build_source_groups(metadata) -> list[str]:
     return source_groups
 
 
-def load_backbone(backbone_name: str, device: torch.device, backbone_manifest: str | Path | None = None):
-    if backbone_manifest is None:
-        print("Loading DINOv2-S/14 backbone from torch.hub...")
-        backbone = torch.hub.load(
-            "facebookresearch/dinov2",
-            backbone_name,
-            pretrained=True,
-        )
-        return backbone.to(device).eval(), {
-            "mode": "torch_hub_pretrained",
-            "backbone": backbone_name,
-        }
-
-    manifest_path = Path(backbone_manifest)
+def validate_snapshot_contract(
+    metadata,
+    *,
+    metadata_csv: str | Path,
+    snapshot_manifest: str | Path,
+    runtime_class_order: list[str],
+) -> dict:
+    manifest_path = Path(snapshot_manifest).resolve()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict):
-        raise ValueError(f"backbone manifest must be a JSON object: {manifest_path}")
-    if manifest.get("backbone") != backbone_name:
-        raise ValueError(
-            f"backbone manifest targets {manifest.get('backbone')!r}, expected {backbone_name!r}"
-        )
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != "training-snapshot.v2":
+        raise ValueError("snapshot manifest must use training-snapshot.v2")
+    if manifest.get("ready_for_training") is not True:
+        raise ValueError("snapshot manifest is not marked ready_for_training")
+    if manifest.get("class_order") != runtime_class_order:
+        raise ValueError("snapshot class order does not match runtime class order")
+    if manifest.get("row_count") != len(metadata):
+        raise ValueError("snapshot row_count does not match metadata")
+    rows = manifest.get("rows")
+    if not isinstance(rows, list) or len(rows) != len(metadata):
+        raise ValueError("snapshot rows do not match metadata length")
 
-    repository_path = Path(manifest["repository_path"])
-    weights_path = Path(manifest["weights_path"])
-    if not repository_path.exists():
-        raise FileNotFoundError(f"backbone repository path missing: {repository_path}")
-    if not weights_path.is_file():
-        raise FileNotFoundError(f"backbone weights file missing: {weights_path}")
+    required_columns = {
+        "image_path",
+        "row_id",
+        "dataset_split",
+        "class_label",
+        "element_name",
+        "source_group",
+        "output_sha256",
+    }
+    missing_columns = sorted(required_columns - set(metadata.columns))
+    if missing_columns:
+        raise ValueError(f"snapshot metadata is missing columns: {missing_columns}")
+    verified_elements: list[dict[str, str]] = []
+    elements_root = (manifest_path.parent / "Elements").resolve()
+    for index, (metadata_row, manifest_row) in enumerate(zip(metadata.to_dict("records"), rows)):
+        if not isinstance(manifest_row, dict):
+            raise ValueError(f"snapshot manifest row {index} is not an object")
+        expected = {
+            "row_id": manifest_row.get("row_id"),
+            "dataset_split": manifest_row.get("dataset_split"),
+            "class_label": manifest_row.get("class_label"),
+            "element_name": manifest_row.get("class_name"),
+            "source_group": manifest_row.get("source_group"),
+            "output_sha256": manifest_row.get("output_sha256"),
+        }
+        actual = {key: metadata_row.get(key) for key in expected}
+        if actual != expected:
+            raise ValueError(f"snapshot metadata differs from manifest at row {index}")
 
-    print("Loading DINOv2-S/14 backbone from local pin...")
-    backbone = torch.hub.load(str(repository_path), backbone_name, source="local", pretrained=False)
-    state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
-    backbone.load_state_dict(state_dict, strict=True)
-    backbone = backbone.to(device).eval()
-    return backbone, {
-        "mode": "local_pin",
-        "backbone": backbone_name,
-        "manifest_path": str(manifest_path.resolve()),
-        "manifest_sha256": sha256_file(manifest_path),
-        "repository_path": str(repository_path),
-        "repository_sha256": manifest.get("source_tree_sha256"),
-        "weights_path": str(weights_path),
-        "weights_sha256": sha256_file(weights_path),
+        output_path = manifest_row.get("output_path")
+        if not isinstance(output_path, str) or not output_path:
+            raise ValueError(f"snapshot manifest output_path is invalid at row {index}")
+        relative_output = Path(output_path)
+        if relative_output.is_absolute():
+            raise ValueError(f"snapshot manifest output_path must be relative at row {index}")
+        expected_image_path = (manifest_path.parent / relative_output).resolve()
+        try:
+            expected_image_path.relative_to(elements_root)
+        except ValueError as exc:
+            raise ValueError(
+                f"snapshot manifest output_path escapes Elements at row {index}: {output_path}"
+            ) from exc
+        metadata_image_path = Path(str(metadata_row["image_path"])).resolve()
+        if metadata_image_path != expected_image_path:
+            raise ValueError(f"snapshot image_path differs from manifest at row {index}")
+        if not expected_image_path.is_file():
+            raise FileNotFoundError(f"snapshot element is missing at row {index}: {expected_image_path}")
+        actual_output_sha = sha256_file(expected_image_path)
+        if actual_output_sha != manifest_row.get("output_sha256"):
+            raise ValueError(
+                "snapshot element checksum mismatch at row "
+                f"{index}: expected {manifest_row.get('output_sha256')}, got {actual_output_sha}"
+            )
+        verified_elements.append({"path": output_path, "sha256": actual_output_sha})
+
+    checksums_path = manifest_path.parent / "checksums.json"
+    checksums = json.loads(checksums_path.read_text(encoding="utf-8"))
+    if checksums.get("schema_version") != "training-snapshot-checksums.v1":
+        raise ValueError("snapshot checksums.json has an unsupported schema")
+    if checksums.get("snapshot_id") != manifest.get("snapshot_id"):
+        raise ValueError("snapshot checksums bind a different snapshot_id")
+    if checksums.get("snapshot_manifest_sha256") != sha256_file(manifest_path):
+        raise ValueError("snapshot manifest checksum mismatch")
+    if checksums.get("metadata_csv_sha256") != sha256_file(metadata_csv):
+        raise ValueError("snapshot metadata checksum mismatch")
+    if checksums.get("element_count") != len(verified_elements):
+        raise ValueError("snapshot element_count mismatch")
+    if checksums.get("elements_sha256") != canonical_json_sha(verified_elements):
+        raise ValueError("snapshot elements aggregate checksum mismatch")
+    return {
+        "snapshot_id": manifest.get("snapshot_id"),
+        "snapshot_content_sha256": manifest.get("content_sha256"),
+        "snapshot_manifest_path": str(manifest_path),
+        "snapshot_manifest_sha256": sha256_file(manifest_path),
+        "snapshot_checksums_sha256": sha256_file(checksums_path),
+        "snapshot_elements_sha256": checksums.get("elements_sha256"),
+        "verified_element_count": len(verified_elements),
     }
 
+
+# Shared with runtime inference: identical pin validation and local loading.
+from scripts.pin_dinov2 import load_backbone
 
 class SimpleImageDataset(Dataset):
     """Minimal dataset: load image, resize, normalize. No augmentation."""
@@ -134,40 +213,14 @@ class SimpleImageDataset(Dataset):
     def __init__(self, metadata, image_size=224):
         self.metadata = metadata.reset_index(drop=True)
         self.image_size = image_size
-        # ImageNet normalization (DINOv2 pretrained stats)
-        self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
     def __len__(self):
         return len(self.metadata)
 
     def __getitem__(self, idx):
         row = self.metadata.iloc[idx]
-        img = Image.open(row["image_path"]).convert("RGB")
-
-        # Resize maintaining aspect ratio, then center-crop/pad to square
-        img = self._resize_and_pad(img, self.image_size)
-
-        # To float tensor and normalize
-        img = np.array(img, dtype=np.float32) / 255.0
-        img = (img - self.mean) / self.std
-        img = torch.from_numpy(img).permute(2, 0, 1)  # (3, H, W)
-
-        return img, row["class_label"]
-
-    def _resize_and_pad(self, img, size):
-        """Resize longest side to `size`, pad shorter side with white."""
-        w, h = img.size
-        scale = size / max(w, h)
-        new_w, new_h = int(w * scale), int(h * scale)
-        img = img.resize((new_w, new_h), Image.BILINEAR)
-
-        # Pad to square
-        padded = Image.new("RGB", (size, size), (255, 255, 255))
-        offset_x = (size - new_w) // 2
-        offset_y = (size - new_h) // 2
-        padded.paste(img, (offset_x, offset_y))
-        return padded
+        with Image.open(row["image_path"]) as image:
+            return _preprocess_image(image, self.image_size).squeeze(0), row["class_label"]
 
 
 def get_device(device_str):
@@ -189,6 +242,14 @@ def main():
         help="Runtime class-order contract. Validates the metadata label order before feature export.",
     )
     parser.add_argument(
+        "--allow-runtime-class-subset",
+        action="store_true",
+        help=(
+            "Allow metadata to cover a strict runtime-taxonomy subset. Reserved for "
+            "immutable evaluation sets; training snapshots still require all classes."
+        ),
+    )
+    parser.add_argument(
         "--metadata-csv",
         default=None,
         help="Explicit metadata CSV path. Overrides paths.metadata_csv from config.",
@@ -197,6 +258,11 @@ def main():
         "--backbone-manifest",
         default=None,
         help="Optional local pin manifest for the DINOv2 backbone.",
+    )
+    parser.add_argument(
+        "--snapshot-manifest",
+        default=None,
+        help="Immutable training-snapshot.v2 manifest bound to --metadata-csv.",
     )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--device", default="auto")
@@ -217,8 +283,26 @@ def main():
     runtime_class_order = None
     if runtime_config:
         runtime_class_order = load_runtime_class_order(runtime_config)
-        validate_metadata_class_order(metadata, runtime_class_order)
+        if args.allow_runtime_class_subset:
+            if args.snapshot_manifest:
+                raise ValueError(
+                    "--allow-runtime-class-subset cannot be used with a training snapshot"
+                )
+            validate_metadata_class_subset(metadata, runtime_class_order)
+        else:
+            validate_metadata_class_order(metadata, runtime_class_order)
         print(f"Runtime class-order hash: {class_order_sha256(runtime_class_order)}")
+    snapshot_info = None
+    if args.snapshot_manifest:
+        if runtime_class_order is None:
+            raise ValueError("--snapshot-manifest requires --runtime-config")
+        snapshot_info = validate_snapshot_contract(
+            metadata,
+            metadata_csv=metadata_csv,
+            snapshot_manifest=args.snapshot_manifest,
+            runtime_class_order=runtime_class_order,
+        )
+        print(f"Training snapshot: {snapshot_info['snapshot_id']}")
     print(f"Images: {len(metadata)} across {metadata['class_label'].nunique()} classes")
 
     # Class name mapping
@@ -226,6 +310,23 @@ def main():
     for _, row in metadata.drop_duplicates("class_label").iterrows():
         class_names[row["class_label"]] = row["element_name"]
     source_groups = build_source_groups(metadata)
+    dataset_splits = None
+    if "dataset_split" in metadata.columns:
+        dataset_splits = [_normalise_optional_text(value) for value in metadata["dataset_split"]]
+        invalid_splits = sorted(
+            {
+                str(value)
+                for value in dataset_splits
+                if value not in {"train", "dev", "locked_test"}
+            }
+        )
+        if invalid_splits:
+            raise ValueError(f"metadata contains invalid dataset_split values: {invalid_splits}")
+    row_ids = None
+    if "row_id" in metadata.columns:
+        row_ids = [_normalise_optional_text(value) for value in metadata["row_id"]]
+        if any(value is None for value in row_ids) or len(set(row_ids)) != len(row_ids):
+            raise ValueError("metadata row_id values must be non-empty and unique")
 
     # Dataset + loader
     dataset = SimpleImageDataset(metadata, image_size=cfg["data"]["image_size"])
@@ -279,20 +380,28 @@ def main():
         "labels": labels,
         "image_paths": all_paths,
         "source_groups": source_groups,
+        "dataset_splits": dataset_splits,
+        "row_ids": row_ids,
         "class_names": class_names,
         "backbone": cfg["model"]["backbone"],
         "hidden_dim": hidden_dim,
         "image_size": cfg["data"]["image_size"],
+        "preprocessing": PREPROCESSING_VERSION,
     }, out_path)
 
     provenance = {
         "schema_version": "features-cache.v1",
+        "preprocessing": PREPROCESSING_VERSION,
         "config_path": str(Path(args.config).resolve()),
         "config_sha256": sha256_file(args.config),
         "metadata_csv_path": str(Path(metadata_csv).resolve()),
         "metadata_csv_sha256": sha256_file(metadata_csv),
         "runtime_config_path": str(Path(runtime_config).resolve()) if runtime_config else None,
         "runtime_class_order_sha256": class_order_sha256(runtime_class_order) if runtime_class_order else None,
+        "runtime_class_subset_allowed": bool(args.allow_runtime_class_subset),
+        "dataset_split_sha256": canonical_json_sha(dataset_splits) if dataset_splits else None,
+        "row_ids_sha256": canonical_json_sha(row_ids) if row_ids else None,
+        "snapshot": snapshot_info,
         "backbone": backbone_info,
         "class_count": len(class_names),
         "image_count": len(metadata),

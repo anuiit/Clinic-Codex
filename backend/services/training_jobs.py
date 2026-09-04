@@ -11,6 +11,7 @@ import errno
 import json
 import os
 import subprocess
+import sys
 import threading
 import uuid
 from contextlib import contextmanager
@@ -25,11 +26,13 @@ try:
     from backend.security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address
     from backend.services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file
     from backend.services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore
+    from backend.codex_pipeline.data.snapshot import live_annotation_usage
 except ImportError:  # pragma: no cover - compatibility when backend dir is sys.path root
     from app.config import Settings  # type: ignore
     from security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address  # type: ignore
     from services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file  # type: ignore
     from services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore  # type: ignore
+    from codex_pipeline.data.snapshot import live_annotation_usage  # type: ignore
 
 ALLOWED_JOB_FIELDS = {"dry_run", "device", "batch_size", "notes"}
 DEFAULT_ALLOWED_DEVICES = ("auto", "cpu", "mps", "cuda")
@@ -112,6 +115,47 @@ def _sha256_file(path: Path) -> str | None:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _live_annotations_sha256(records: list[dict[str, Any]]) -> str:
+    ordered = sorted(
+        records,
+        key=lambda item: json.dumps(
+            item, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ),
+    )
+    payload = json.dumps(
+        ordered, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _manifest_live_annotation_records(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key in ("rows", "duplicates"):
+        value = manifest.get(key)
+        if not isinstance(value, list):
+            raise ValueError(f"manifest {key} must be a list")
+        rows.extend(row for row in value if isinstance(row, dict))
+    conflicts = manifest.get("conflicts")
+    if not isinstance(conflicts, list):
+        raise ValueError("manifest conflicts must be a list")
+    for conflict in conflicts:
+        if not isinstance(conflict, dict) or not isinstance(conflict.get("rows"), list):
+            raise ValueError("manifest conflict rows must be a list")
+        rows.extend(row for row in conflict["rows"] if isinstance(row, dict))
+    return [
+        {
+            "source_id": row.get("source_id"),
+            "class_name": row.get("class_name"),
+            "bbox": row.get("bbox"),
+            "source_fingerprint_v1": row.get("source_fingerprint_v1"),
+            "source_sha256": row.get("source_sha256"),
+            "source_image_sha256": row.get("source_image_sha256"),
+        }
+        for row in rows
+        if row.get("source_kind") == "live_annotation"
+    ]
 
 
 def _file_info(path: Path) -> dict[str, Any]:
@@ -298,7 +342,11 @@ class AdminTrainingService:
         self.settings = settings
         self.review_store = review_store
         self.runs_dir = settings.admin_training_runs_dir
-        self.script_path = settings.admin_training_script_path
+        self.local_prior_mode = settings.admin_training_snapshot_path is None
+        self.script_path = (
+            settings.backend_root.parent / "scripts" / "retrain_local.py"
+            if self.local_prior_mode else settings.admin_training_script_path
+        )
         self.repo_root = settings.backend_root.parent
         self.model_registry = ModelRegistry(
             settings.model_registry_dir,
@@ -322,7 +370,12 @@ class AdminTrainingService:
             class_name = element.get("class_name") or "Unnamed"
             per_class[class_name] = per_class.get(class_name, 0) + 1
 
-        allowed = self.launch_allowed(context, trainable_count=queue["counts"]["trainable"])
+        snapshot = self._training_snapshot_info()
+        allowed = self.launch_allowed(
+            context,
+            trainable_count=queue["counts"]["trainable"],
+            snapshot=snapshot,
+        )
         return {
             "status": "ok",
             "local_only": True,
@@ -344,6 +397,7 @@ class AdminTrainingService:
             "parameters": self._parameters(),
             "paths": self._paths(),
             "artifacts": self._artifacts(),
+            "training_snapshot": snapshot,
             "latest_job": self.latest_job(),
         }
 
@@ -352,10 +406,18 @@ class AdminTrainingService:
         context: RequestLaunchContext | None,
         *,
         trainable_count: int | None = None,
+        snapshot: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         reasons: list[str] = []
         if not self.settings.enable_admin_training_jobs:
             reasons.append("disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches")
+        else:
+            snapshot = snapshot or self._training_snapshot_info()
+            reasons.extend(snapshot["errors"])
+            if self.settings.model_dir:
+                reasons.append(
+                    "training_model_dir_override_unsupported: unset MODEL_DIR before admin retraining"
+                )
         if trainable_count is None:
             try:
                 trainable_count = int(self.review_store.list_queue()["counts"]["trainable"])
@@ -395,12 +457,23 @@ class AdminTrainingService:
 
         request = self._validate_payload(payload)
         with _atomic_launch_guard(self.runs_dir / ".launch.lock"):
+            snapshot = self._training_snapshot_info()
+            if not snapshot["valid"]:
+                raise AdminTrainingForbiddenError("; ".join(snapshot["errors"]))
             latest = self.latest_job()
             if latest and latest.get("status") == "running":
                 raise AdminTrainingConflictError(f"training job already running: {latest.get('run_id')}")
-            return self._start_job_unlocked(request, actor_id=actor_id)
+            return self._start_job_unlocked(
+                request, snapshot=snapshot, actor_id=actor_id
+            )
 
-    def _start_job_unlocked(self, request: dict[str, Any], *, actor_id: str | None = None) -> dict[str, Any]:
+    def _start_job_unlocked(
+        self,
+        request: dict[str, Any],
+        *,
+        snapshot: dict[str, Any],
+        actor_id: str | None = None,
+    ) -> dict[str, Any]:
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
         model_version_id = self.model_registry.build_version_id(run_id=run_id.rsplit("-", 1)[-1])
         candidate_version_dir = self.model_registry.version_dir(model_version_id)
@@ -408,11 +481,56 @@ class AdminTrainingService:
         run_dir.mkdir(parents=True, exist_ok=False)
         log_path = run_dir / "train.log"
         status_path = run_dir / "status.json"
-        command = ["bash", str(self.script_path)] + (["--dry-run"] if request["dry_run"] else [])
+        command = [
+            "bash",
+            str(self.script_path),
+            "--elements-dir",
+            snapshot["paths"]["elements"],
+            "--approved-manifest",
+            snapshot["paths"]["manifest"],
+            "--metadata-csv",
+            snapshot["paths"]["metadata"],
+            "--backbone-manifest",
+            str(self.settings.admin_training_backbone_manifest_path),
+            "--config",
+            str(self.settings.admin_training_config_path),
+            "--init-projection",
+            str(self.settings.classifier_weights_dir / "projection.pt"),
+            "--update-annotated-prototypes",
+        ] + (["--dry-run"] if request["dry_run"] else [])
+        if self.script_path.suffix == ".ps1":
+            switches = {
+                "--elements-dir": "-ElementsDirOverride",
+                "--approved-manifest": "-ApprovedManifestOverride",
+                "--metadata-csv": "-MetadataCsvOverride",
+                "--backbone-manifest": "-BackboneManifestOverride",
+                "--config": "-TrainingConfigOverride",
+                "--init-projection": "-InitProjection",
+                "--update-annotated-prototypes": "-UpdateAnnotatedPrototypes",
+                "--dry-run": "-DryRun",
+            }
+            command = [
+                "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                *[switches.get(arg, arg) for arg in command[1:]],
+            ]
+        if self.local_prior_mode:
+            command = [
+                sys.executable, str(self.script_path),
+                "--backend-root", str(self.settings.backend_root),
+                "--annotations-dir", str(self.review_store.annotations_dir),
+                "--review-manifest", str(self.review_store.manifest_path),
+                "--backbone-manifest", str(self.settings.admin_training_backbone_manifest_path),
+                "--registry-dir", str(self.settings.model_registry_dir),
+                "--version-id", model_version_id,
+                "--device", request["device"], "--batch-size", str(request["batch_size"]),
+            ] + (["--dry-run"] if request["dry_run"] else [])
         env = {
+            **{key: os.environ[key] for key in ("SystemRoot", "WINDIR", "TEMP", "TMP", "USERNAME", "USERPROFILE", "LOCALAPPDATA") if key in os.environ},
             "PATH": os.environ.get("PATH", ""),
             "HOME": os.environ.get("HOME", ""),
             "PYTHONUNBUFFERED": "1",
+            "PYTHONUTF8": "1",
+            "PYTHON": sys.executable,
             "BATCH_SIZE": str(request["batch_size"]),
             "DEVICE": request["device"],
             "MODEL_VERSION_ID": model_version_id,
@@ -427,6 +545,7 @@ class AdminTrainingService:
             "status": "running",
             "local_only": True,
             "dry_run": request["dry_run"],
+            "training_mode": "local_prior" if self.local_prior_mode else "annotated_prototypes",
             "device": request["device"],
             "batch_size": request["batch_size"],
             "notes": request["notes"],
@@ -447,7 +566,8 @@ class AdminTrainingService:
             },
             "lock_path": str(self.settings.backend_root / ".retrain.lock"),
             "log_path": str(log_path),
-            "approved_export_manifest_hash": _sha256_file(self._approved_manifest_path()),
+            "training_snapshot": snapshot,
+            "training_snapshot_manifest_hash": snapshot["snapshot_manifest_sha256"],
         }
         _write_json_atomic(status_path, status)
         try:
@@ -540,10 +660,18 @@ class AdminTrainingService:
         log_path = Path(status.get("log_path") or status_path.parent / "train.log")
         status["log_tail"] = _tail_lines(log_path, self.settings.admin_training_log_tail_lines)
         status["artifacts"] = self._artifacts()
+        if status.get("status") == "succeeded" and not status.get("dry_run") and status.get("training_mode") == "local_prior":
+            version_id = status["model_version_id"]
+            health = self._manifest_health(version_id)
+            if health["status"] == "healthy":
+                status["result"] = _read_json(self.model_registry.version_dir(version_id) / "evaluation/local.json")
+            else:
+                status["status"] = "failed"
+                status["error"] = "Candidate integrity check failed: " + "; ".join(health["errors"])
         return status
 
     def _parameters(self) -> dict[str, Any]:
-        config_path = self.settings.backend_root / "codex_pipeline" / "config" / "default.yaml"
+        config_path = self.settings.admin_training_config_path
         config: dict[str, Any] = {}
         if config_path.is_file():
             loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -568,6 +696,15 @@ class AdminTrainingService:
             "promote_script": str(self.repo_root / "scripts" / "promote_model.py"),
             "repo_root": str(self.repo_root),
             "annotations_dir": str(self.settings.annotations_dir),
+            "training_snapshot_dir": (
+                str(self.settings.admin_training_snapshot_path)
+                if self.settings.admin_training_snapshot_path
+                else None
+            ),
+            "training_backbone_manifest": str(
+                self.settings.admin_training_backbone_manifest_path
+            ),
+            "training_config": str(self.settings.admin_training_config_path),
             "approved_elements_dir": str(approved_root / "Elements"),
             "metadata_csv": str(approved_root / "metadata.csv"),
             "features_file": str(approved_root / "precomputed" / "features.pt"),
@@ -588,9 +725,205 @@ class AdminTrainingService:
     def _approved_manifest_path(self) -> Path:
         return self.settings.backend_root / "training_data" / "approved" / "Elements" / "_approved_export_manifest.json"
 
+    def _training_snapshot_info(self) -> dict[str, Any]:
+        snapshot_dir = self.settings.admin_training_snapshot_path
+        paths = {
+            "manifest": str(snapshot_dir / "snapshot_manifest.json") if snapshot_dir else None,
+            "metadata": str(snapshot_dir / "metadata.csv") if snapshot_dir else None,
+            "checksums": str(snapshot_dir / "checksums.json") if snapshot_dir else None,
+            "elements": str(snapshot_dir / "Elements") if snapshot_dir else None,
+        }
+        info: dict[str, Any] = {
+            "configured": snapshot_dir is not None,
+            "valid": False,
+            "snapshot_id": None,
+            "snapshot_manifest_sha256": None,
+            "row_count": None,
+            "class_count": None,
+            "live_annotation_count": None,
+            "live_train_count": None,
+            "live_split_counts": None,
+            "live_annotations_sha256": None,
+            "ready_for_training": False,
+            "promotion_evaluation_ready": False,
+            "split_counts": None,
+            "paths": paths,
+            "errors": [],
+        }
+        errors: list[str] = info["errors"]
+        if snapshot_dir is None:
+            required = {
+                "training_base_prior_missing": self.settings.backend_root / "prototypes/prototypes.pt",
+                "training_backbone_manifest_missing": self.settings.admin_training_backbone_manifest_path,
+                "training_warmstart_projection_missing": self.settings.classifier_weights_dir / "projection.pt",
+                "training_warmstart_prototypes_missing": self.settings.classifier_weights_dir / "prototypes.pt",
+                "training_base_config_missing": self.settings.class_config_path,
+            }
+            errors.extend(name for name, path in required.items() if not path.is_file())
+            records = list(self.review_store.iter_approved_annotations())
+            count = len(records)
+            info.update({
+                "mode": "local_prior", "configured": True, "valid": not errors,
+                "ready_for_training": not errors and count > 0,
+                "row_count": count, "class_count": len({row["class_name"] for row in records}),
+                "live_annotation_count": count, "live_train_count": count,
+                "live_split_counts": {"train": count, "dev": 0, "locked_test": 0, "excluded": 0},
+                "snapshot_id": "automatic-at-launch",
+            })
+            return info
+
+        manifest_path = snapshot_dir / "snapshot_manifest.json"
+        metadata_path = snapshot_dir / "metadata.csv"
+        checksums_path = snapshot_dir / "checksums.json"
+        elements_path = snapshot_dir / "Elements"
+        required = {
+            "training_snapshot_manifest_missing": manifest_path.is_file(),
+            "training_snapshot_metadata_missing": metadata_path.is_file(),
+            "training_snapshot_checksums_missing": checksums_path.is_file(),
+            "training_snapshot_elements_missing": elements_path.is_dir(),
+            "training_backbone_manifest_missing": self.settings.admin_training_backbone_manifest_path.is_file(),
+            "training_snapshot_config_missing": self.settings.admin_training_config_path.is_file(),
+            "training_warmstart_projection_missing": (
+                self.settings.classifier_weights_dir / "projection.pt"
+            ).is_file(),
+            "training_warmstart_prototypes_missing": (
+                self.settings.classifier_weights_dir / "prototypes.pt"
+            ).is_file(),
+        }
+        errors.extend(name for name, present in required.items() if not present)
+        if not manifest_path.is_file():
+            return info
+
+        manifest = _read_json(manifest_path)
+        if manifest is None or manifest.get("schema_version") != "training-snapshot.v2":
+            errors.append("training_snapshot_manifest_invalid")
+            return info
+
+        info.update(
+            {
+                "snapshot_id": manifest.get("snapshot_id"),
+                "snapshot_manifest_sha256": _sha256_file(manifest_path),
+                "row_count": manifest.get("row_count"),
+                "class_count": manifest.get("class_count"),
+                "live_annotation_count": manifest.get("live_annotation_count"),
+                "live_annotations_sha256": manifest.get(
+                    "live_annotations_sha256"
+                ),
+                "ready_for_training": manifest.get("ready_for_training") is True,
+                "promotion_evaluation_ready": (
+                    manifest.get("promotion_evaluation_ready") is True
+                ),
+                "split_counts": manifest.get("split_counts"),
+            }
+        )
+        if not info["ready_for_training"]:
+            errors.append("training_snapshot_not_ready")
+
+        try:
+            usage = live_annotation_usage(manifest)
+            info["live_split_counts"] = usage["split_counts"]
+            info["live_train_count"] = usage["split_counts"]["train"]
+            if any(usage["split_counts"][split] for split in ("dev", "locked_test", "excluded")):
+                errors.append("training_snapshot_annotations_not_in_train: rebuild with --train-live-annotations")
+        except (ValueError, TypeError, KeyError):
+            errors.append("training_snapshot_live_usage_invalid")
+
+        try:
+            manifest_live_records = _manifest_live_annotation_records(manifest)
+        except ValueError:
+            errors.append("training_snapshot_live_annotations_invalid")
+            manifest_live_records = []
+        if (
+            not isinstance(info["live_annotation_count"], int)
+            or info["live_annotation_count"] != len(manifest_live_records)
+            or not isinstance(info["live_annotations_sha256"], str)
+            or info["live_annotations_sha256"]
+            != _live_annotations_sha256(manifest_live_records)
+        ):
+            errors.append("training_snapshot_live_annotations_invalid")
+
+        runtime_config = _read_json(self.settings.class_config_path)
+        runtime_classes = runtime_config.get("class_names") if runtime_config else None
+        if not isinstance(runtime_classes, list) or manifest.get("class_order") != runtime_classes:
+            errors.append("training_snapshot_runtime_class_order_mismatch")
+
+        if metadata_path.is_file() and checksums_path.is_file():
+            checksums = _read_json(checksums_path)
+            if (
+                checksums is None
+                or checksums.get("schema_version") != "training-snapshot-checksums.v1"
+                or checksums.get("snapshot_id") != info["snapshot_id"]
+                or checksums.get("snapshot_manifest_sha256")
+                != info["snapshot_manifest_sha256"]
+                or checksums.get("metadata_csv_sha256") != _sha256_file(metadata_path)
+            ):
+                errors.append("training_snapshot_checksums_invalid")
+
+        review_sha = _sha256_file(self.review_store.manifest_path)
+        sources = manifest.get("source_manifests")
+        review_sources = (
+            [
+                source
+                for source in sources
+                if isinstance(source, dict)
+                and source.get("kind") == "annotation-review-index.v1"
+            ]
+            if isinstance(sources, list)
+            else []
+        )
+        empty_review_store = (
+            review_sha is None
+            and not review_sources
+            and info["live_annotation_count"] == 0
+        )
+        if not empty_review_store and (
+            review_sha is None
+            or not any(source.get("sha256") == review_sha for source in review_sources)
+        ):
+            errors.append(
+                "training_snapshot_stale: rebuild it from the current approved annotations"
+            )
+
+        try:
+            current_live_records = []
+            for item in self.review_store.iter_approved_annotations():
+                crop_sha = _sha256_file(Path(str(item.get("crop_path") or "")))
+                image_sha = _sha256_file(Path(str(item.get("image_path") or "")))
+                if crop_sha is None or image_sha is None:
+                    raise OSError("approved annotation source is missing")
+                current_live_records.append(
+                    {
+                        "source_id": f"{item.get('analysis_id')}:{item.get('index')}",
+                        "class_name": item.get("class_name"),
+                        "bbox": item.get("bbox"),
+                        "source_fingerprint_v1": item.get("source_fingerprint"),
+                        "source_sha256": crop_sha,
+                        "source_image_sha256": image_sha,
+                    }
+                )
+            live_set_matches = (
+                info["live_annotation_count"] == len(current_live_records)
+                and info["live_annotations_sha256"]
+                == _live_annotations_sha256(current_live_records)
+            )
+        except Exception as exc:
+            errors.append(f"review_store_unavailable: {exc}")
+            live_set_matches = False
+        if not live_set_matches and not any(
+            reason.startswith("training_snapshot_stale:") for reason in errors
+        ):
+            errors.append(
+                "training_snapshot_stale: rebuild it from the current approved annotations"
+            )
+
+        info["errors"] = list(dict.fromkeys(errors))
+        info["valid"] = not info["errors"]
+        return info
+
     def _artifacts(self) -> dict[str, Any]:
         return {
             "approved_export_manifest": {**_file_info(self._approved_manifest_path()), "sha256": _sha256_file(self._approved_manifest_path())},
+            "training_snapshot": self._training_snapshot_info(),
             "prototypes": _file_info(self.settings.backend_root / "prototypes" / "prototypes.pt"),
             "classifier_prototypes": _file_info(self.settings.classifier_weights_dir / "prototypes.pt"),
             "classifier_projection": _file_info(self.settings.classifier_weights_dir / "projection.pt"),

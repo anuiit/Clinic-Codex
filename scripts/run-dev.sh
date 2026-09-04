@@ -174,7 +174,7 @@ wait_for_url() {
     sleep 1
     status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 "$url" 2>/dev/null || true)"
     case "$status" in
-      2??|3??|4??)
+      2??)
         log "$label ready: $url (HTTP $status)"
         return 0
         ;;
@@ -195,7 +195,7 @@ log "starting frontend on :$FRONTEND_PORT"
 PIDS+=($!)
 
 # --- Wait for services ready ---
-wait_for_url "backend" "http://127.0.0.1:$BACKEND_PORT/classes" "$SMOKE_TIMEOUT_SECONDS"
+wait_for_url "backend and model assets" "http://127.0.0.1:$BACKEND_PORT/ready" "$SMOKE_TIMEOUT_SECONDS"
 wait_for_url "frontend" "http://127.0.0.1:$FRONTEND_PORT/" "$SMOKE_TIMEOUT_SECONDS"
 
 if [ "$SMOKE" = true ]; then

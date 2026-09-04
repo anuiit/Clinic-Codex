@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { t as translate } from "../../i18n/annotation.fr";
 import { saveAnnotation } from "../../services/api";
 import { updateElements } from "../../services/storage";
@@ -32,6 +32,12 @@ export function useAnnotationSubmission({
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const handleSave = async () => {
     if (!id) return;
     setSaving(true);
@@ -58,7 +64,6 @@ export function useAnnotationSubmission({
         msg: `${labels.submitBlockedUnnamed} (${unnamedSubmittedIndexes.map((idx) => `#${idx}`).join(", ")})`,
         ok: false,
       });
-      setTimeout(() => setToast(null), 4000);
       return;
     }
     const submittedElements = submittedCandidates.filter(
@@ -75,7 +80,6 @@ export function useAnnotationSubmission({
             : labels.submitBlockedNone,
         ok: false,
       });
-      setTimeout(() => setToast(null), 4000);
       return;
     }
 
@@ -132,7 +136,6 @@ export function useAnnotationSubmission({
       }
     } finally {
       setSending(false);
-      setTimeout(() => setToast(null), 4000);
     }
   };
 

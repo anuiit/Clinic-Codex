@@ -36,6 +36,9 @@ The automated installer downloads large/networked dependencies, including CPU Py
 ### For Windows Users
 
 1. **Open PowerShell**: Search for "PowerShell" in your Start menu.
+   Keep the project on a local Windows drive, for example `C:\Projects\Clinic Codex`.
+   Paths with spaces are supported. UNC/network paths and `\\wsl.localhost\...`
+   are not supported by the native launchers; use the Bash scripts inside WSL instead.
 2. **Go to the project folder**: Type `cd ` (with a space) and then drag your `clinic-codex` folder into the PowerShell window. Press Enter.
 3. **Run the installer** using the command matching the terminal you opened:
 
@@ -101,9 +104,27 @@ If support asks you to check the installation without leaving the application ru
 - Windows PowerShell 5.1: `powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke`
 - PowerShell 7 on Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke`
 
-The smoke starts both services, verifies that they answer, prints `smoke PASS`, and shuts them down.
+The smoke starts both services, verifies model-file integrity through `/ready`, prints `smoke PASS`, and shuts them down. This checks startup, not accuracy.
 
-The normal annotation loop is: upload/analyze, open an analysis for annotation, validate named boxes, send them for local admin review, then open `http://localhost:7118/admin/annotations`. The admin page has Review, Dataset, and Training tabs. Only approved items in the Dataset view are eligible for retraining, and the backend must be restarted after a real retrain.
+Native Windows validation: Windows 10 x64, Python 3.11.4, Node 24.19.0,
+Windows PowerShell 5.1 and PowerShell 7.6.5. Installation, startup, browser annotation,
+approval and real CPU candidate creation were exercised from a clone with spaces
+in its path. See [the validation report](docs/stable-release-new-user-validation-20260904.md).
+Windows GPU/ARM and macOS were not exercised in this release validation.
+
+The standard local mode combines the **shipped model base and all current approved annotations**. It needs no private corpus or manual snapshot. The installer downloads fixed MobileSAM and DINOv2 assets, enables local training, and permits the initial local administrator to review their own annotations.
+
+1. Upload and analyze an image, open its annotation editor, correct boxes and labels, and mark the desired elements ready.
+2. Send the annotations, then open **Admin → Review** and approve them.
+3. Open **Training**, run the dry run, then select **Non, entraînement complet** and launch.
+4. Inspect the candidate path and result in Training.
+
+Each run captures current approved crops and review decisions automatically. Exact duplicate images count once; conflicting labels for identical images are rejected. Stale decisions and missing crops are excluded. Repeating the same approvals does not count their contribution twice.
+
+The backbone and projection stay frozen. The update adapts prototypes for existing base-model classes; it does not train MobileSAM or introduce new classes. The original base provides the prior even when its training images are unavailable.
+
+Candidates are stored under `backend/model_registry/versions/<version_id>/`, with provenance and checksums. They are **not activated**; promotion is blocked because this local mode has no independent holdout. Reported base/candidate scores measure training-image fit, not better generalization. The running model is unchanged and no restart is needed.
+
 
 Advanced users can choose different local ports. On Mac/Linux:
 ```bash
@@ -116,10 +137,10 @@ $env:FRONTEND_PORT='7218'
 powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
 ```
 
-Advanced local users can enable the Training tab launch button by setting `ENABLE_ADMIN_TRAINING_JOBS=1` before starting the backend. Leave it disabled unless you are running on your own machine; it is a local convenience wrapper, not a production admin security system.
+The installer enables training and initial-admin self-review in `backend/.env`, preserving existing explicit settings. Both features default to disabled outside the local installation setup.
 
 ### ⚠️ A Note on Speed
-The first time you analyze an image, the tool will automatically download the AI models (about 40MB). This happens only once.
+The installer downloads MobileSAM (about 39 MiB) and DINOv2 (about 84 MiB plus source). Analysis and retraining then use verified local assets.
 
 When you click to analyze a glyph, it usually takes **30–60 seconds** to finish. This is normal because the AI is doing complex math on your computer's processor. Please wait for the result to appear.
 
@@ -141,7 +162,7 @@ To stop the tool, go back to your Terminal or PowerShell window and press **Ctrl
   ```bash
   bash scripts/download-weights.sh
   ```
-  Otherwise, the tool will handle this automatically the first time you use it.
+  The installer already performs this download. This command also repairs invalid checkpoints. On native Windows, run `backend/.venv/Scripts/python.exe scripts/download_weights.py`.
 
 ---
 
@@ -180,12 +201,16 @@ backend/.venv/bin/pip install --no-cache-dir --prefer-binary "segment-anything==
 cd frontend && npm install && cd ..
 ```
 
-### 7. Start the Backend Server
+### 7. Complete model and authentication setup
+
+Run `bash scripts/install.sh` to export the base, download assets and create local configuration. Start both services with `bash scripts/run-dev.sh`.
+
+### 8. Start the Backend Server (manual alternative; load backend/.env first)
 ```bash
 PORT=7117 backend/.venv/bin/python -m flask --app backend.wsgi run --host 127.0.0.1 --port 7117
 ```
 
-### 8. Start the Web Interface
+### 9. Start the Web Interface
 In a new window:
 ```bash
 cd frontend && VITE_API_BASE_URL=http://localhost:7117 npm run dev -- --host 127.0.0.1 --port 7118 --strictPort

@@ -29,7 +29,7 @@ Analysis records are stored locally in the browser through an IndexedDB-backed s
 7. Open `/admin/annotations` locally:
    - **Review** approves/rejects each submitted crop and can correct class/bbox evidence.
    - **Dataset** shows which approved crops are actually trainable and why any approved rows are excluded.
-   - **Training** shows approved-only stats, artifact status, latest job/log tail, and a guarded dry-run/full-run form only after the local backend is explicitly started with `ENABLE_ADMIN_TRAINING_JOBS=1`.
+   - **Training** combines the base with current approvals and displays dry/full-run controls, candidate results and logs. The local installer enables it.
 
 Draft elements are never sent for training by the frontend. A label that is empty or `unknown` is treated as unnamed.
 
@@ -48,20 +48,20 @@ Set `VITE_API_BASE_URL` if the backend is not at `http://localhost:7117`.
 | Admin approve/reject/correct | `POST /admin/annotations/:analysisId/:index/review`, `POST /admin/annotations/:analysisId/:index/modify` |
 | Admin training tab | `GET /admin/training/summary`, `GET /admin/training/jobs/latest`, `POST /admin/training/jobs` |
 
-## Local admin Training tab boundary
+## Local admin Training tab
 
-The Training tab is intentionally disabled by default; the backend reports the raw reason
-`disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches` until a local
-operator opts in. Do not commit the flag as a default in dev scripts. When enabled, the browser
-launcher is a Bash-only wrapper around `scripts/retrain.sh`; native Windows users should run
-`pwsh -NoProfile -File scripts/retrain.ps1` directly unless they are using WSL/Git Bash.
+The standard local mode combines the **shipped model base and all current approved annotations**. It needs no private corpus or manual snapshot. The installer downloads fixed MobileSAM and DINOv2 assets, enables local training, and permits the initial local administrator to review their own annotations.
 
-Dry runs validate the approved-only export/training wiring. Full runs create a candidate package
-under `backend/model_registry/versions/<version_id>/`; they do not modify the live
-`backend/codex_model/` runtime. Activate a candidate by inspecting the manifest/model-card/checksums,
-running `backend/.venv/bin/python scripts/promote_model.py <version_id>`, and restarting the backend.
-If `MODEL_DIR` is set, the Training tab warns that promoting `backend/codex_model/` may not affect
-the loaded runtime until `MODEL_DIR` is unset or promotion targets the matching explicit runtime path.
+1. Upload and analyze an image, open its annotation editor, correct boxes and labels, and mark the desired elements ready.
+2. Send the annotations, then open **Admin → Review** and approve them.
+3. Open **Training**, run the dry run, then select **Non, entraînement complet** and launch.
+4. Inspect the candidate path and result in Training.
+
+Each run captures current approved crops and review decisions automatically. Exact duplicate images count once; conflicting labels for identical images are rejected. Stale decisions and missing crops are excluded. Repeating the same approvals does not count their contribution twice.
+
+The backbone and projection stay frozen. The update adapts prototypes for existing base-model classes; it does not train MobileSAM or introduce new classes. The original base provides the prior even when its training images are unavailable.
+
+Candidates are stored under `backend/model_registry/versions/<version_id>/`, with provenance and checksums. They are **not activated**; promotion is blocked because this local mode has no independent holdout. Reported base/candidate scores measure training-image fit, not better generalization. The running model is unchanged and no restart is needed.
 
 ## Commands
 
@@ -86,4 +86,4 @@ npx playwright test tests/e2e/image-387-alignment.spec.ts
 - The image and SVG overlay must share the same rendered rectangle. The editor keeps bboxes in image-pixel coordinates and maps pointer events through the overlay rect.
 - `preserveAspectRatio="none"` is intentional in the shared image/overlay SVG convention so both layers stretch identically inside the measured wrapper.
 - `annotationStatus` is a per-element map with values `draft` or `validated`. Missing legacy statuses are read as draft-compatible data.
-- Custom labels created in the combobox are local/session annotation labels. They do not become model predictions until validated data is exported, retrained, and the backend is restarted.
+- Custom labels created in the combobox are local/session annotation labels. New classes are not supported by local retraining, and candidate creation does not alter predictions.

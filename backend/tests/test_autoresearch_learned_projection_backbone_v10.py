@@ -25,6 +25,10 @@ def test_fixed_hidden_projection_has_preregistered_abi_and_unit_norm() -> None:
     assert torch.allclose(output.norm(dim=1), torch.ones(4), atol=1e-6)
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/paired_seed_summary.json").exists(),
+    reason="requires unshipped research artifact: results/paired_seed_summary.json",
+)
 def test_B14_initialization_reconstructs_B0_and_reuses_common_output() -> None:
     summary = module.read_json(module.DEFAULT_V9_SUMMARY)
     diagnostic = next(item for item in summary["diagnostics"] if item["fold"] == 1 and item["seed"] == 17)
@@ -42,6 +46,10 @@ def test_require_sha256_fails_closed(tmp_path: Path) -> None:
         module.require_sha256(path, "0" * 64, "fixture")
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/specs/iteration-0003.json").exists(),
+    reason="requires unshipped research artifact: specs/iteration-0003.json",
+)
 def test_iteration_contract_keeps_original_gates() -> None:
     contract = module.validate_iteration_contract(
         module.DEFAULT_SPEC,

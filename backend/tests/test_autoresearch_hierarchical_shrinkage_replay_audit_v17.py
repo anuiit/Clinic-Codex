@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +21,10 @@ def load_module():
     return module
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-model-decision-audit-v17/iteration-0003/summary.json").exists(),
+    reason="requires unshipped research artifact: iteration-0003/summary.json",
+)
 def test_canonical_and_replay_are_byte_identical() -> None:
     module = load_module()
 

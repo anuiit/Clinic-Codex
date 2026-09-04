@@ -281,9 +281,10 @@ class AnnotationReviewStore:
         }
 
     @_serialized_mutation
-    def set_status(self, analysis_id: str, index: int, status: str, *, reviewer_id: str | None = None) -> dict[str, Any]:
+    def set_status(self, analysis_id: str, index: int, status: str, *, reviewer_id: str | None = None, allow_self_review: bool = False) -> dict[str, Any]:
         _validate_analysis_id(analysis_id)
-        self._assert_not_submitter(analysis_id, reviewer_id)
+        if not allow_self_review:
+            self._assert_not_submitter(analysis_id, reviewer_id)
         _validate_index(index)
         _validate_status(status)
 
@@ -335,6 +336,7 @@ class AnnotationReviewStore:
         bbox: Sequence[int | float],
         status: str = "pending",
         reviewer_id: str | None = None,
+        allow_self_review: bool = False,
     ) -> dict[str, Any]:
         """Modify canonical class/bbox data and record a fresh review decision.
 
@@ -346,7 +348,8 @@ class AnnotationReviewStore:
         is available.
         """
         _validate_analysis_id(analysis_id)
-        self._assert_not_submitter(analysis_id, reviewer_id)
+        if not allow_self_review:
+            self._assert_not_submitter(analysis_id, reviewer_id)
         _validate_index(index)
         _validate_status(status)
 

@@ -9,6 +9,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$env:PYTHONUTF8 = '1'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot  = Split-Path -Parent $ScriptDir
@@ -37,7 +38,7 @@ function Test-PortNumber([string]$port) {
 function Import-BackendEnv([string]$path) {
     if (-not (Test-Path $path)) { return }
     Log "loading backend env from backend/.env"
-    foreach ($line in Get-Content $path) {
+    foreach ($line in Get-Content -LiteralPath $path -Encoding UTF8) {
         $trimmed = $line.Trim()
         if ($trimmed.Length -eq 0 -or $trimmed.StartsWith('#') -or -not $trimmed.Contains('=')) { continue }
         $parts = $trimmed.Split('=', 2)
@@ -68,7 +69,7 @@ function Assert-ProcessesRunning([hashtable]$processes) {
         if ($null -ne $proc) {
             $proc.Refresh()
             if ($proc.HasExited) {
-                Fail "$name process exited before services became ready - see logs above"
+                Fail "$name process exited - see logs above"
             }
         }
     }
@@ -78,7 +79,7 @@ function Wait-HttpReady([string]$label, [string]$uri, [hashtable]$processes, [in
         Start-Sleep -Seconds 1
         try {
             $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
                 Log "$label ready: $uri"
                 return
             }
@@ -114,7 +115,7 @@ $VenvPy  = Join-PathParts $VenvDir 'Scripts' 'python.exe'
 if (-not (Test-Path $VenvPy)) {
     Fail "backend/.venv missing. Run: powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1"
 }
-& $VenvPy -c "import flask, torch, mobile_sam" 2>$null
+& $VenvPy -c "import flask, torch, mobile_sam"
 if ($LASTEXITCODE -ne 0) { Fail "venv incomplete. Run: powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1" }
 
 # --- Pre-flight: frontend deps ---
@@ -142,7 +143,7 @@ if ($NodeVersion -lt [version]'22.22.0') {
 # --- Pre-flight: prototypes (auto-export if missing) ---
 $ProtoDerived = Join-PathParts $RepoRoot 'backend' 'codex_model' 'weights' 'prototypes.pt'
 $ProtoSource  = Join-PathParts $RepoRoot 'backend' 'prototypes' 'prototypes.pt'
-if (-not (Test-Path $ProtoDerived)) {
+if (-not (Test-Path $ProtoDerived) -or -not (Test-Path (Join-PathParts $RepoRoot 'backend' 'codex_model' 'weights' 'projection.pt'))) {
     if (-not (Test-Path $ProtoSource)) {
         Fail "Model artefacts missing: backend\prototypes\prototypes.pt not found. See backend\README.md."
     }
@@ -219,7 +220,7 @@ try {
     $processes['frontend'] = $frontendProc
 
     # --- Wait for services ready ---
-    Wait-HttpReady 'backend' "http://127.0.0.1:$BackendPort/classes" $processes $SmokeTimeoutSeconds
+    Wait-HttpReady 'backend and model assets' "http://127.0.0.1:$BackendPort/ready" $processes $SmokeTimeoutSeconds
     Wait-HttpReady 'frontend' "http://127.0.0.1:$FrontendPort/" $processes $SmokeTimeoutSeconds
 
     if ($Smoke) {
@@ -235,7 +236,10 @@ try {
     Write-Host "[run-dev] Ctrl-C to stop."
     Write-Host ""
 
-    Wait-Process -Id @($backendProc.Id, $frontendProc.Id)
+    while ($true) {
+        Start-Sleep -Seconds 1
+        Assert-ProcessesRunning $processes
+    }
 } finally {
     Log "shutting down"
     if ($null -ne $backendProc) { Stop-ProcessTree -processId $backendProc.Id }

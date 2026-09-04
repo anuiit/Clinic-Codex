@@ -7,7 +7,7 @@ from backend.services.annotation_review import (
     AnnotationReviewValidationError,
 )
 from backend.security.auth import current_user, require_csrf, require_permission
-from backend.security.local_guard import require_local_request
+from backend.security.local_guard import require_local_request, is_loopback_address
 
 bp = Blueprint("admin_annotations", __name__)
 
@@ -18,6 +18,21 @@ def _services():
 
 def _error(message: str, status_code: int):
     return jsonify({"status": "error", "error": message}), status_code
+
+
+def _review_actor() -> dict:
+    # Both mutation routes are protected by the local-request, role and CSRF guards.
+    actor = current_user()
+    if actor is None:
+        return {}
+    settings = current_app.config["CLINIC_SETTINGS"]
+    allowed = (
+        settings.allow_local_admin_self_review
+        and is_loopback_address(settings.host)
+        and actor["role"] == "org_admin"
+        and current_app.extensions["clinic_auth_store"].is_initial_admin(actor["id"])
+    )
+    return {"reviewer_id": actor["id"], "allow_self_review": allowed}
 
 
 @bp.get("/admin/annotations")
@@ -70,11 +85,7 @@ def set_admin_annotation_review(analysis_id: str, index: int):
         return _error("missing field: status", 400)
 
     try:
-        actor = current_user()
-        if actor is None:
-            result = _services().set_annotation_review_status(analysis_id, index, status)
-        else:
-            result = _services().set_annotation_review_status(analysis_id, index, status, reviewer_id=actor["id"])
+        result = _services().set_annotation_review_status(analysis_id, index, status, **_review_actor())
     except AnnotationReviewValidationError as exc:
         return _error(str(exc), 403 if str(exc) == "self-review is not permitted" else 400)
     except AnnotationReviewNotFoundError as exc:
@@ -114,7 +125,7 @@ def modify_admin_annotation_element(analysis_id: str, index: int):
             class_name=class_name,
             bbox=bbox,
             status=status,
-            **({"reviewer_id": current_user()["id"]} if current_user() else {}),
+            **_review_actor(),
         )
     except AnnotationReviewValidationError as exc:
         return _error(str(exc), 403 if str(exc) == "self-review is not permitted" else 400)

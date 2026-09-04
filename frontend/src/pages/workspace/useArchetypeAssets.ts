@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SimilarResult } from "../../types";
 import { getSimilar } from "../../services/api";
 import { isArchetypeGalleryEnabled } from "./archetypeFlag";
@@ -24,17 +24,20 @@ export function useArchetypeAssets(
   bbox: [number, number, number, number] | null,
   classNames: string[],
 ): ArchetypeAssetsState {
-  const [state, setState] = useState<ArchetypeAssetsState>({ status: "disabled" });
-  const classKey = classNames.join("");
+  const enabled = isArchetypeGalleryEnabled();
+  const bboxKey = JSON.stringify(bbox);
+  const classKey = JSON.stringify(classNames);
+  const query = useMemo(() => enabled && recordId && imageDataUrl && bboxKey !== "null" ? {
+    recordId, imageDataUrl,
+    bbox: JSON.parse(bboxKey) as [number, number, number, number],
+    classNames: JSON.parse(classKey) as string[],
+  } : null, [enabled, recordId, imageDataUrl, bboxKey, classKey]);
+  const [state, setState] = useState<{ query: typeof query; result: ArchetypeAssetsState } | null>(null);
 
   useEffect(() => {
-    if (!isArchetypeGalleryEnabled() || !recordId || !imageDataUrl || !bbox) {
-      setState({ status: "disabled" });
-      return;
-    }
+    if (!query) return;
     const controller = new AbortController();
-    setState({ status: "loading" });
-    getSimilar(imageDataUrl, bbox, Math.max(classNames.length, 5), {
+    getSimilar(query.imageDataUrl, query.bbox, Math.max(query.classNames.length, 5), {
       signal: controller.signal,
     })
       .then((result: SimilarResult) => {
@@ -43,23 +46,19 @@ export function useArchetypeAssets(
         for (const item of result.results) {
           assets.set(item.class_name, item.asset);
         }
-        const covered = classNames.filter((name) => assets.get(name)).length;
+        const covered = query.classNames.filter((name) => assets.get(name)).length;
         setState({
-          status: "ready",
-          assets,
-          covered,
-          total: classNames.length,
+          query,
+          result: { status: "ready", assets, covered, total: query.classNames.length },
         });
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setState({ status: "error" });
+          setState({ query, result: { status: "error" } });
         }
       });
     return () => controller.abort();
-    // classKey captures the class list identity without a deep-compare lint hit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordId, imageDataUrl, bbox, classKey]);
+  }, [query]);
 
-  return state;
+  return !query ? { status: "disabled" } : state?.query === query ? state.result : { status: "loading" };
 }

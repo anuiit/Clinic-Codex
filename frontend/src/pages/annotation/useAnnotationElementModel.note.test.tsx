@@ -18,7 +18,7 @@ function element(className: string, note?: string): DetectedElement {
 function useHarness(initialElements: DetectedElement[]) {
   const [elements, setElements] = useState<DetectedElement[]>(initialElements);
   const [annotationStatus, setAnnotationStatus] = useState<Record<number, AnnotationStatus>>({ 0: 'draft' });
-  const [customClasses, setCustomClasses] = useState<string[]>([]);
+  const [, setCustomClasses] = useState<string[]>([]);
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const model = useAnnotationElementModel({
     elements,

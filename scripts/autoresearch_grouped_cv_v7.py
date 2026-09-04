@@ -16,7 +16,7 @@ import sys
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import torch
@@ -69,7 +69,7 @@ def dump_json(path: Path, value: Any) -> None:
 
 def resolved(path: str | Path) -> str:
     source = PurePosixPath(str(path).replace("\\", "/"))
-    if not source.is_absolute():
+    if not source.is_absolute() and not PureWindowsPath(str(path)).is_absolute():
         source = PurePosixPath(REPO_ROOT.as_posix()) / source
     return source.as_posix()
 

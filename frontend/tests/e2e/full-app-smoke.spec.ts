@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from 'playwright/test';
 import { clearIndexedDbRecords, seedIndexedDbRecord } from './storageSeed';
+import type { AdminTrainingSummary } from '../../src/types';
 
 const onePxPng =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -119,13 +120,29 @@ const adminQueue = {
   diagnostics: [],
 };
 
-const trainingSummary = {
+const trainingSummary: AdminTrainingSummary = {
   status: 'ok',
   local_only: true,
   warning: 'local only',
   training_jobs_enabled: true,
   launch_allowed_for_request: true,
   launch_disabled_reasons: [],
+  training_snapshot: {
+    mode: 'local_prior',
+    configured: true,
+    valid: true,
+    snapshot_id: null,
+    snapshot_manifest_sha256: null,
+    row_count: 2,
+    class_count: 2,
+    live_annotation_count: 2,
+    live_train_count: 2,
+    ready_for_training: true,
+    promotion_evaluation_ready: false,
+    split_counts: null,
+    paths: {},
+    errors: [],
+  },
   data: {
     total: 4,
     pending: 1,
@@ -334,8 +351,8 @@ test('full app smoke: workspace, annotation, and admin tabs stay wired', async (
 
   await page.getByRole('tab', { name: /Entraîner/i }).click();
   await expect(page).toHaveURL(/\/admin\/annotations\/training/);
-  await expect(page.getByRole('heading', { name: /Assistant d'entraînement local/i })).toBeVisible();
-  await expect(page.getByLabel(/Compteurs d'entraînement/i)).toContainText('Prêts');
+  await expect(page.getByRole('heading', { name: /Réentraînement cumulatif local/i })).toBeVisible();
+  await expect(page.getByRole('region', { name: "Préflight d'entraînement" })).toBeVisible();
   await page.getByRole('button', { name: /Lancer l'essai à blanc/i }).click();
   await expect(page.getByRole('button', { name: /Entraînement en cours/i })).toBeVisible();
 

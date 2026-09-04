@@ -3,12 +3,36 @@ from __future__ import annotations
 import shutil
 import subprocess
 import os
+import sys
 from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def current_python(monkeypatch):
+    monkeypatch.setenv("PYTHON", sys.executable)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_selective_update_wires_frozen_projection_and_snapshot():
+    result = subprocess.run(
+        ["bash", "scripts/retrain.sh", "--dry-run", "--elements-dir", "/snapshot/Elements",
+         "--approved-manifest", "/snapshot/snapshot_manifest.json", "--metadata-csv", "/snapshot/metadata.csv",
+         "--backbone-manifest", "/pin.json", "--init-projection", "/active/weights/projection.pt",
+         "--update-annotated-prototypes"], cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    )
+    assert "--eval-only" in result.stdout
+    assert "--base-prototypes /active/weights/prototypes.pt" in result.stdout
+    assert "--snapshot-manifest /snapshot/snapshot_manifest.json" in result.stdout
+    assert "--base-model-dir /active" in result.stdout
+    assert "--evaluate-candidate" in result.stdout
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_dry_run_uses_approved_only_explicit_paths():
     env = {
         **os.environ,
@@ -72,6 +96,16 @@ def test_retrain_sh_dry_run_uses_approved_only_explicit_paths():
         "backend/training_data/approved/metadata.csv",
         "--approved-manifest",
         "backend/training_data/approved/Elements/_approved_export_manifest.json",
+        "--training-config",
+        "backend/codex_pipeline/config/default.yaml",
+        "--features-provenance",
+        "backend/training_data/approved/precomputed/features.pt.prov.json",
+        "--checkpoint",
+        f"{version_fragment}/checkpoints/best.pt",
+        "--training-manifest",
+        f"{version_fragment}/checkpoints/training_manifest.json",
+        "--checkpoint-selection",
+        "best",
         "Candidate model version created: 20260527T010203Z-test-deadbeef",
     ]
     for fragment in expected_fragments:
@@ -94,6 +128,7 @@ def test_retrain_defaults_to_cuda_with_an_explicit_cpu_override():
     assert "Assert-CudaAvailable" in powershell
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     result = subprocess.run(
         ["bash", "scripts/retrain.sh", "--dry-run"],
@@ -108,6 +143,7 @@ def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     assert "model_registry/versions/../../codex_model" not in result.stdout
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance():
     result = subprocess.run(
         [
@@ -117,9 +153,11 @@ def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance()
             "--elements-dir",
             "/tmp/external-snapshot/Elements",
             "--approved-manifest",
-            "/tmp/external-snapshot/import_snapshot.json",
-            "--config",
-            "/tmp/external-snapshot/training_config.yaml",
+            "/tmp/external-snapshot/snapshot_manifest.json",
+            "--metadata-csv",
+            "/tmp/external-snapshot/metadata.csv",
+            "--backbone-manifest",
+            "/tmp/external-snapshot/dinov2-vits14-pin.json",
         ],
         cwd=REPO_ROOT,
         check=True,
@@ -130,10 +168,111 @@ def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance()
     assert "[1/6] use_prepared_elements_snapshot" in result.stdout
     assert "scripts/export_approved_annotations.py" not in result.stdout
     assert "/tmp/external-snapshot/Elements" in result.stdout
-    assert "/tmp/external-snapshot/import_snapshot.json" in result.stdout
-    assert "/tmp/external-snapshot/training_config.yaml" in result.stdout
-    assert "--absolute-paths" in result.stdout
-    assert "model_registry/versions/20260527T010203Z-test-external/training_data/metadata.csv" in result.stdout
+    assert "/tmp/external-snapshot/snapshot_manifest.json" in result.stdout
+    assert "/tmp/external-snapshot/metadata.csv" in result.stdout
+    assert "use_snapshot_metadata" in result.stdout
+    assert "codex_pipeline/config/snapshot.yaml" in result.stdout
+    assert "--runtime-config" in result.stdout
+    assert "--backbone-manifest /tmp/external-snapshot/dinov2-vits14-pin.json" in result.stdout
+    assert "--split-strategy persisted" in result.stdout
+    assert "--prototype-split train" in result.stdout
+    assert "--skip-few-shot" in result.stdout
+    assert "--training-config" in result.stdout
+    assert "--features /home" in result.stdout or "--features " in result.stdout
+    assert "features.pt.prov.json" in result.stdout
+    assert "--checkpoint" in result.stdout
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_prepared_snapshot_requires_explicit_metadata():
+    result = subprocess.run(
+        [
+            "bash",
+            "scripts/retrain.sh",
+            "--dry-run",
+            "--elements-dir",
+            "/tmp/external-snapshot/Elements",
+            "--approved-manifest",
+            "/tmp/external-snapshot/snapshot_manifest.json",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "20260527T010203Z-test-external"},
+    )
+
+    assert result.returncode == 2
+    assert "requires --metadata-csv" in result.stderr
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_wires_eval_only_warmstart_and_fixed_latest_selection():
+    result = subprocess.run(
+        [
+            "bash", "scripts/retrain.sh", "--dry-run",
+            "--init-projection", "/tmp/historical-projection.pt",
+            "--eval-only", "--checkpoint-selection", "latest",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "snapshot-anchor-test"},
+    )
+
+    assert "train.py" in result.stdout
+    assert "--init-projection /tmp/historical-projection.pt" in result.stdout
+    assert "--eval-only" in result.stdout
+    assert result.stdout.count("checkpoints/latest.pt") == 2
+    assert "--checkpoint-selection latest" in result.stdout
+    assert "--training-manifest" in result.stdout
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_adopts_preregistered_checkpoint_selection(tmp_path):
+    config = tmp_path / "latest.yaml"
+    config.write_text("training:\n  checkpoint_selection: latest\n", encoding="utf-8")
+    result = subprocess.run(
+        ["bash", "scripts/retrain.sh", "--dry-run", "--config", str(config)],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "snapshot-selection-test"},
+    )
+    assert result.stdout.count("checkpoints/latest.pt") == 2
+    assert "--checkpoint-selection latest" in result.stdout
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_rejects_checkpoint_selection_recipe_mismatch(tmp_path):
+    config = tmp_path / "latest.yaml"
+    config.write_text("training:\n  checkpoint_selection: latest\n", encoding="utf-8")
+    result = subprocess.run(
+        [
+            "bash", "scripts/retrain.sh", "--dry-run", "--config", str(config),
+            "--checkpoint-selection", "best",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "snapshot-selection-test"},
+    )
+    assert result.returncode != 0
+    assert "conflicts with preregistered training.checkpoint_selection=latest" in result.stderr
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_rejects_eval_only_without_warmstart():
+    result = subprocess.run(
+        ["bash", "scripts/retrain.sh", "--dry-run", "--eval-only"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "snapshot-anchor-test"},
+    )
+    assert result.returncode == 2
+    assert "requires --init-projection" in result.stderr
 
 
 def test_retrain_ps1_contains_matching_approved_only_stage_contract():
@@ -165,6 +304,13 @@ def test_retrain_ps1_contains_matching_approved_only_stage_contract():
         "--version-id",
         "--metadata-csv",
         "--approved-manifest",
+        "--training-config",
+        "--features-provenance",
+        "--checkpoint",
+        "--init-projection",
+        "--eval-only",
+        "--checkpoint-selection",
+        "--training-manifest",
         "codex_model/config.json",
         "promote_model.py",
     ]:
@@ -173,6 +319,9 @@ def test_retrain_ps1_contains_matching_approved_only_stage_contract():
     assert "features_aug.pt" not in text
     assert "sam_full_test" not in text.lower()
     assert "--allow-runtime-write" not in text
+    assert "__UNSET__" in text
+    assert "yaml.safe_load" in text
+    assert "training.checkpoint_selection" in text
 
 
 def test_retrain_ps1_dry_run_when_powershell_is_available():
@@ -191,7 +340,62 @@ def test_retrain_ps1_dry_run_when_powershell_is_available():
     assert "[1/6] export_approved_annotations" in result.stdout
     assert "--metadata-csv" in result.stdout
     assert "model_registry" in result.stdout
+    assert "best.pt" in result.stdout
+    assert "--checkpoint-selection best" in result.stdout
     assert "--allow-runtime-write" not in result.stdout
+
+
+def test_retrain_ps1_wires_warmstart_latest_when_powershell_is_available():
+    pwsh = shutil.which("pwsh") or shutil.which("powershell")
+    if pwsh is None:
+        return
+
+    result = subprocess.run(
+        [
+            pwsh, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            "scripts/retrain.ps1", "-DryRun",
+            "-InitProjection", "C:\\tmp\\historical-projection.pt",
+            "-EvalOnly", "-CheckpointSelection", "latest",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "MODEL_VERSION_ID": "snapshot-anchor-test"},
+    )
+    assert "--init-projection" in result.stdout
+    assert "--eval-only" in result.stdout
+    assert "latest.pt" in result.stdout
+    assert "--checkpoint-selection latest" in result.stdout
+
+
+def test_retrain_ps1_adopts_and_enforces_recipe_selection_when_powershell_is_available(tmp_path):
+    pwsh = shutil.which("pwsh") or shutil.which("powershell")
+    if pwsh is None:
+        return
+    config = tmp_path / "latest.yaml"
+    config.write_text("training:\n  checkpoint_selection: latest\n", encoding="utf-8")
+    base = [
+        pwsh, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "scripts/retrain.ps1", "-DryRun", "-TrainingConfigOverride", str(config),
+    ]
+    env = {**os.environ, "MODEL_VERSION_ID": "snapshot-selection-test"}
+
+    adopted = subprocess.run(
+        base, cwd=REPO_ROOT, check=True, text=True, capture_output=True, env=env
+    )
+    assert "latest.pt" in adopted.stdout
+    assert "--checkpoint-selection latest" in adopted.stdout
+
+    mismatch = subprocess.run(
+        [*base, "-CheckpointSelection", "best"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        env=env,
+    )
+    assert mismatch.returncode != 0
+    assert "training.checkpoint_selection=latest" in (mismatch.stdout + mismatch.stderr)
 
 
 def test_retrain_ps1_rejects_unsafe_model_version_id_when_powershell_is_available():

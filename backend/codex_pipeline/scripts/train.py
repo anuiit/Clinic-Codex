@@ -14,8 +14,10 @@ Epochs take seconds, not hours.
 import argparse
 import hashlib
 import json
+import shutil
 import sys
 import time
+from collections.abc import Mapping
 from pathlib import Path
 
 import torch
@@ -44,6 +46,65 @@ def sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def load_initial_projection(
+    model: ProjectionHead,
+    path: str | Path,
+) -> dict[str, str]:
+    """Load and validate an exact ProjectionHead state before optimization."""
+    source_path = Path(path)
+    if not source_path.is_file():
+        raise SystemExit(f"Initial projection does not exist: {source_path}")
+
+    source_sha256 = sha256_file(source_path)
+    try:
+        payload = torch.load(source_path, map_location="cpu", weights_only=True)
+    except (OSError, RuntimeError, TypeError, ValueError) as exc:
+        raise SystemExit(f"Could not load initial projection {source_path}: {exc}") from exc
+
+    source_format = "raw_state_dict"
+    state_dict = payload
+    if isinstance(payload, Mapping) and "model_state_dict" in payload:
+        source_format = "checkpoint_model_state_dict"
+        state_dict = payload["model_state_dict"]
+
+    if not isinstance(state_dict, Mapping):
+        raise SystemExit(
+            "Initial projection must be a raw state_dict or a checkpoint "
+            "containing model_state_dict"
+        )
+
+    expected = model.state_dict()
+    expected_keys = set(expected)
+    actual_keys = set(state_dict)
+    if actual_keys != expected_keys:
+        missing = sorted(expected_keys - actual_keys)
+        unexpected = sorted(actual_keys - expected_keys)
+        raise SystemExit(
+            "Initial projection keys do not exactly match ProjectionHead; "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+
+    for key, expected_tensor in expected.items():
+        value = state_dict[key]
+        if not isinstance(value, torch.Tensor):
+            raise SystemExit(f"Initial projection value for {key!r} is not a tensor")
+        if value.shape != expected_tensor.shape:
+            raise SystemExit(
+                f"Initial projection shape mismatch for {key!r}: "
+                f"expected {tuple(expected_tensor.shape)}, got {tuple(value.shape)}"
+            )
+        if not torch.isfinite(value).all().item():
+            raise SystemExit(f"Initial projection contains non-finite values in {key!r}")
+
+    # strict=True is deliberate even after the diagnostic validation above.
+    model.load_state_dict(state_dict, strict=True)
+    return {
+        "path": str(source_path.resolve()),
+        "sha256": source_sha256,
+        "format": source_format,
+    }
 
 
 def format_class_counts(dataset, class_names) -> str:
@@ -185,12 +246,25 @@ def main():
         default=None,
         help="Explicit checkpoint output directory. Overrides paths.checkpoint_dir from config.",
     )
-    parser.add_argument("--resume", default=None)
+    initialization = parser.add_mutually_exclusive_group()
+    initialization.add_argument("--resume", default=None)
+    initialization.add_argument(
+        "--init-projection",
+        default=None,
+        help="Raw ProjectionHead state_dict or checkpoint containing model_state_dict.",
+    )
+    parser.add_argument(
+        "--eval-only",
+        action="store_true",
+        help="Evaluate --init-projection on global validation without optimizer updates.",
+    )
     parser.add_argument("--noise-std", type=float, default=0.0,
                         help="Gaussian noise std for feature augmentation (0=off)")
     parser.add_argument("--mixup-prob", type=float, default=0.0,
                         help="Feature-level mixup probability (0=off)")
     args = parser.parse_args()
+    if args.eval_only and not args.init_projection:
+        parser.error("--eval-only requires --init-projection")
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
@@ -247,18 +321,10 @@ def main():
     print(f"  Train: {len(train_dataset)} vectors | Val: {len(val_dataset)} vectors")
     print(f"  Classes: {train_dataset.num_classes} | Feature dim: {hidden_dim}")
 
-    # --- Episodic samplers ---
+    # --- Validation and episodic loaders ---
     n_way = train_cfg["n_way"]
     k_shot = train_cfg["k_shot"]
     q_queries = train_cfg["q_queries"]
-
-    require_episode_support(train_dataset, "train", n_way, k_shot, q_queries, class_names)
-
-    train_sampler = CachedEpisodicSampler(
-        train_dataset, n_way, k_shot, q_queries, train_cfg["episodes_per_epoch"],
-    )
-
-    train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=0)
     prototype_train_loader = DataLoader(prototype_train_dataset, batch_size=256, shuffle=False, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False, num_workers=0)
 
@@ -271,21 +337,105 @@ def main():
     num_params = sum(p.numel() for p in model.parameters())
     print(f"  Projection head params: {num_params:,}")
 
+    init_projection = None
+    if args.init_projection:
+        init_projection = load_initial_projection(model, args.init_projection)
+        print(
+            "Loaded initial projection: "
+            f"{init_projection['path']} ({init_projection['format']}, "
+            f"sha256={init_projection['sha256']})"
+        )
+
+    # --- Logging ---
+    ckpt_dir = Path(args.checkpoint_dir or paths_cfg["checkpoint_dir"])
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+    num_epochs = train_cfg["num_epochs"]
+    warmup_epochs = train_cfg["warmup_epochs"]
+
+    if args.eval_only:
+        val_loss, val_acc = evaluate_global_validation(
+            model,
+            prototype_train_loader,
+            val_loader,
+            device,
+            train_cfg["temperature"],
+        )
+        ckpt_data = {
+            "epoch": -1,
+            "model_state_dict": model.state_dict(),
+            # NaN is explicitly descriptive here and keeps legacy evaluators,
+            # which format these fields numerically, compatible with epoch -1.
+            "train_loss": float("nan"),
+            "train_acc": float("nan"),
+            "val_loss": val_loss,
+            "val_acc": val_acc,
+            "best_val_acc": val_acc,
+            "config": cfg,
+            "hidden_dim": hidden_dim,
+            "validation_mode": "global_286_way_train_prototypes",
+            "eval_only": True,
+            "init_projection": init_projection,
+        }
+        # Copying one serialization makes the fixed-selection aliases byte-identical.
+        torch.save(ckpt_data, ckpt_dir / "latest.pt")
+        shutil.copyfile(ckpt_dir / "latest.pt", ckpt_dir / "best.pt")
+        manifest = {
+            "schema_version": "baseline-training.v1",
+            "config_path": str(Path(args.config).resolve()),
+            "config_sha256": sha256_file(args.config),
+            "features_path": str(Path(args.features).resolve()),
+            "features_sha256": sha256_file(args.features),
+            "validation_features_path": (
+                str(Path(args.validation_features).resolve()) if args.validation_features else None
+            ),
+            "validation_features_sha256": (
+                sha256_file(args.validation_features) if args.validation_features else None
+            ),
+            "seed": int(train_cfg["seed"]),
+            "noise_std": args.noise_std,
+            "mixup_prob": args.mixup_prob,
+            "epoch": -1,
+            "eval_only": True,
+            "init_projection": init_projection,
+            "best_val_acc": val_acc,
+            "checkpoints": {
+                "latest": sha256_file(ckpt_dir / "latest.pt"),
+                "best": sha256_file(ckpt_dir / "best.pt"),
+            },
+        }
+        (ckpt_dir / "training_manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(f"\nEvaluation only. Global val accuracy: {val_acc:.3f}")
+        print(f"Checkpoints: {ckpt_dir}")
+        return
+
+    if num_epochs <= 0:
+        raise SystemExit("training.num_epochs must be positive unless --eval-only is used")
+    require_episode_support(train_dataset, "train", n_way, k_shot, q_queries, class_names)
+    train_sampler = CachedEpisodicSampler(
+        train_dataset, n_way, k_shot, q_queries, train_cfg["episodes_per_epoch"],
+    )
+    train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=0)
+
     # --- Loss, optimizer, scheduler ---
     criterion = PrototypicalLoss(temperature=train_cfg["temperature"])
-
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=train_cfg["learning_rate"],
         weight_decay=train_cfg["weight_decay"],
     )
 
-    num_epochs = train_cfg["num_epochs"]
-    warmup_epochs = train_cfg["warmup_epochs"]
-
     if train_cfg["lr_scheduler"] == "cosine":
+        cosine_epochs = num_epochs - warmup_epochs
+        if cosine_epochs <= 0:
+            raise SystemExit(
+                "training.num_epochs must be greater than training.warmup_epochs "
+                "for the cosine scheduler"
+            )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=num_epochs - warmup_epochs,
+            optimizer, T_max=cosine_epochs,
         )
     else:
         scheduler = None
@@ -305,12 +455,15 @@ def main():
         ckpt = torch.load(args.resume, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
         optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        if scheduler is not None and ckpt.get("scheduler_state_dict") is not None:
+            scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+        if (
+            warmup_scheduler is not None
+            and ckpt.get("warmup_scheduler_state_dict") is not None
+        ):
+            warmup_scheduler.load_state_dict(ckpt["warmup_scheduler_state_dict"])
         start_epoch = ckpt["epoch"] + 1
         best_val_acc = ckpt.get("best_val_acc", 0.0)
-
-    # --- Logging ---
-    ckpt_dir = Path(args.checkpoint_dir or paths_cfg["checkpoint_dir"])
-    ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     # --- Training loop ---
     print(f"\nTraining for {num_epochs} epochs...")
@@ -357,6 +510,10 @@ def main():
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
+            "warmup_scheduler_state_dict": (
+                warmup_scheduler.state_dict() if warmup_scheduler is not None else None
+            ),
             "train_loss": train_loss,
             "train_acc": train_acc,
             "val_loss": val_loss,
@@ -365,6 +522,8 @@ def main():
             "config": cfg,
             "hidden_dim": hidden_dim,
             "validation_mode": "global_286_way_train_prototypes",
+            "eval_only": False,
+            "init_projection": init_projection,
         }
 
         torch.save(ckpt_data, ckpt_dir / "latest.pt")
@@ -384,6 +543,9 @@ def main():
         "seed": int(train_cfg["seed"]),
         "noise_std": args.noise_std,
         "mixup_prob": args.mixup_prob,
+        "epoch": num_epochs - 1,
+        "eval_only": False,
+        "init_projection": init_projection,
         "best_val_acc": best_val_acc,
         "checkpoints": {
             "latest": sha256_file(ckpt_dir / "latest.pt"),

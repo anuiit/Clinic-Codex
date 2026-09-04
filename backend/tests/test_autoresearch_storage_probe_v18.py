@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from scripts import autoresearch_storage_probe_v18 as probe
 
 
+@pytest.mark.skipif(not hasattr(os.stat(__file__), "st_blocks"), reason="historical POSIX physical-allocation probe")
 def test_storage_probe_writes_verifies_and_removes_file(tmp_path: Path) -> None:
     probe_file = tmp_path / "probe.bin"
     audit_output = tmp_path / "audit.json"

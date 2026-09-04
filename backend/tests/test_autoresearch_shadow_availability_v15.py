@@ -6,6 +6,7 @@ import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,6 +42,10 @@ def _dynamic(post_freeze: int) -> dict[str, object]:
     return {"annotations": {"post_freeze_top_level_directories": post_freeze}}
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-shadow-availability-v15/surface-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-shadow-availability-v15/surface-manifest.json",
+)
 def test_v15_contract_is_hash_pinned_private_and_model_free() -> None:
     contract = module.validate_contract()
     assert contract["spec_sha256"] == module.EXPECTED_SPEC_SHA256

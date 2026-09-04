@@ -1,4 +1,4 @@
-import { render, fireEvent, act, screen, waitFor, within } from "@testing-library/react";
+import { render, renderHook, fireEvent, act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +19,7 @@ vi.mock("../services/api", () => ({
 import { getClasses, saveAnnotation } from "../services/api";
 import { getAnalysisById, updateElements } from "../services/storage";
 import AnnotationPage from "./AnnotationPage";
+import { useAnnotationSubmission } from "./annotation/useAnnotationSubmission";
 
 const BASE_RECORD: AnalysisRecord = {
   id: "test-id",
@@ -110,6 +111,55 @@ beforeEach(() => {
 });
 
 describe("AnnotationPage element naming UX", () => {
+  it("restarts toast expiry and cancels it when the editor unmounts", async () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useAnnotationSubmission({
+      id: BASE_RECORD.id,
+      record: BASE_RECORD,
+      elements: BASE_RECORD.result.elements,
+      annotationStatus: {},
+      labels: { submitBlockedUnnamed: "Unnamed", submitBlockedNone: "Nothing submitted" },
+    }));
+    try {
+      await act(() => result.current.handleSendSubmittedForReview());
+      expect(vi.getTimerCount()).toBe(1);
+      act(() => vi.advanceTimersByTime(3000));
+      await act(() => result.current.handleSendSubmittedForReview());
+      expect(vi.getTimerCount()).toBe(1);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current.toast?.msg).toBe("Nothing submitted");
+      act(() => vi.advanceTimersByTime(3000));
+      expect(result.current.toast).toBeNull();
+      await act(() => result.current.handleSendSubmittedForReview());
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      unmount();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps each element note when switching the selected element", async () => {
+    const user = userEvent.setup();
+    const first = { ...BASE_RECORD.result.elements[0], note: "première note" };
+    const second = { ...first, class_name: "beta", note: "seconde note" };
+    renderPage({ ...BASE_RECORD, result: { ...BASE_RECORD.result, num_elements: 2, elements: [first, second] } });
+    await user.click(await screen.findByText("atl"));
+    const note = screen.getByTestId("annotation-element-note");
+    await user.clear(note);
+    await user.type(note, "note corrigée");
+    await user.click(screen.getByText("beta"));
+    expect(screen.getByTestId("annotation-element-note")).toHaveValue("seconde note");
+    await user.click(screen.getByText("atl"));
+    expect(screen.getByTestId("annotation-element-note")).toHaveValue("note corrigée");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(updateElements).toHaveBeenCalledWith("test-id", [
+      expect.objectContaining({ note: "note corrigée" }),
+      expect.objectContaining({ note: "seconde note" }),
+    ], {});
+  });
+
   it("stays on the current annotation after saving", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -575,7 +625,7 @@ describe("AnnotationPage element naming UX", () => {
       within(chrome).getByRole("button", { name: "Envoyer pour revue" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("annotation-admin-notice")).toHaveTextContent(
-      "Les éléments prêts peuvent être envoyés pour revue",
+      "Admin → Trier",
     );
     expect(
       within(chrome).queryByRole("searchbox", { name: /filtrer/i }),

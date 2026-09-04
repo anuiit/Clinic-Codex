@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import hashlib
+import pytest
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +11,22 @@ from PIL import Image
 from backend.app.config import Settings
 from backend.app.errors import ModelAssetUnavailable
 from backend.app.factory import create_app
+
+
+@pytest.fixture(autouse=True)
+def fake_checkpoint_digest(monkeypatch):
+    monkeypatch.setattr("scripts.download_weights.MOBILE_SAM_SHA256", hashlib.sha256(b"sam").hexdigest())
+
+
+def test_ready_rejects_corrupt_checkpoint(tmp_path):
+    settings = _settings(tmp_path)
+    _write_classifier_assets(settings)
+    settings.mobile_sam_checkpoint_path.write_bytes(b"Not Found")
+    app = create_app(settings=settings)
+    with app.test_client() as client:
+        response = client.get("/ready")
+        assert response.status_code == 503
+        assert _checks_by_name(response.get_json())["mobile_sam_checkpoint"]["available"] is False
 
 
 @dataclass

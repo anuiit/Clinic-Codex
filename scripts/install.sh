@@ -68,6 +68,10 @@ grep -Eq '^[[:space:]]*AUTH_SECRET_KEY[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
   || ENV_ENTRIES+=("AUTH_SECRET_KEY=$($PY -c 'import secrets; print(secrets.token_urlsafe(48))')")
 grep -Eq '^[[:space:]]*AUTH_COOKIE_SECURE[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
   || ENV_ENTRIES+=("AUTH_COOKIE_SECURE=false")
+grep -Eq '^[[:space:]]*ENABLE_ADMIN_TRAINING_JOBS[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
+  || ENV_ENTRIES+=("ENABLE_ADMIN_TRAINING_JOBS=true")
+grep -Eq '^[[:space:]]*ALLOW_LOCAL_ADMIN_SELF_REVIEW[[:space:]]*=' "$ENV_FILE" 2>/dev/null \
+  || ENV_ENTRIES+=("ALLOW_LOCAL_ADMIN_SELF_REVIEW=true")
 
 if [ "${#ENV_ENTRIES[@]}" -gt 0 ]; then
   if [ ! -e "$ENV_FILE" ]; then
@@ -100,7 +104,7 @@ log "Stage 3/5: flask + flask-cors"
 # --- Stage 4: torch CPU (the big one — ~200MB, this is where WSL crashed before) ---
 log "Stage 4/5: torch CPU wheels (~200MB download — be patient)"
 "$PIP" install --no-cache-dir --prefer-binary \
-  --extra-index-url https://download.pytorch.org/whl/cpu \
+  --index-url https://download.pytorch.org/whl/cpu \
   "torch>=2.1,<2.6" "torchvision>=0.16,<0.21" \
   || fail "Stage 4 failed — torch. Re-run script to resume."
 
@@ -118,12 +122,8 @@ log "Stage 5/5: segment-anything, mobile-sam, albumentations, timm"
   || fail "Stage 5 failed — SAM/augmentation"
 
 # --- Frontend (idempotent npm) ---
-log "Frontend: npm install (idempotent)"
-if [ ! -d frontend/node_modules ] || [ -z "$(ls -A frontend/node_modules 2>/dev/null)" ]; then
-  (cd frontend && npm install) || fail "npm install failed"
-else
-  log "  frontend/node_modules present — skipping (delete it to force reinstall)"
-fi
+log "Frontend: npm ci (locked dependencies)"
+(cd frontend && npm ci) || fail "npm ci failed"
 
 # --- Final import sanity ---
 log "Sanity: importing all critical modules"
@@ -135,7 +135,7 @@ log "Sanity: importing all critical modules"
 log "Exporting model prototypes (idempotent)"
 PROTO_DERIVED="backend/codex_model/weights/prototypes.pt"
 PROTO_SOURCE="backend/prototypes/prototypes.pt"
-if [ -f "$PROTO_DERIVED" ]; then
+if [ -f "$PROTO_DERIVED" ] && [ -f backend/codex_model/weights/projection.pt ]; then
   log "  prototypes.pt present — skipping export"
 elif [ ! -f "$PROTO_SOURCE" ]; then
   fail "Model artefacts missing: $PROTO_SOURCE not found. See backend/README.md."
@@ -150,5 +150,11 @@ else
     || fail "export_model failed — see error above"
   [ -f "$PROTO_DERIVED" ] || fail "export_model ran but $PROTO_DERIVED still missing"
 fi
+
+log "Installing the fixed DINOv2 base for inference and local retraining"
+"$PY" scripts/download_weights.py || fail "MobileSAM installation failed — re-run the installer to retry"
+"$PY" scripts/pin_dinov2.py --download \
+  --output backend/training_corpus/backbone-pins/dinov2-vits14-local.json \
+  || fail "DINOv2 installation failed — re-run the installer to retry"
 
 log "DONE. Launch with: bash scripts/run-dev.sh (Linux/macOS) or powershell -ExecutionPolicy Bypass -File .\\scripts\\run-dev.ps1 (Windows)"

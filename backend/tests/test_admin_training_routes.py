@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import base64
 import ctypes
+import hashlib
 import io
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -35,11 +37,113 @@ def _payload(analysis_id: str):
     }
 
 
-def _settings(tmp_path: Path, *, enabled: bool = False):
+def _refresh_snapshot_checksums(settings: Settings) -> None:
+    snapshot_dir = settings.admin_training_snapshot_path
+    assert snapshot_dir is not None
+    manifest_path = snapshot_dir / "snapshot_manifest.json"
+    metadata_path = snapshot_dir / "metadata.csv"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    checksums = {
+        "schema_version": "training-snapshot-checksums.v1",
+        "snapshot_id": manifest["snapshot_id"],
+        "snapshot_manifest_sha256": hashlib.sha256(
+            manifest_path.read_bytes()
+        ).hexdigest(),
+        "metadata_csv_sha256": hashlib.sha256(metadata_path.read_bytes()).hexdigest(),
+    }
+    (snapshot_dir / "checksums.json").write_text(
+        json.dumps(checksums, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_training_snapshot(settings: Settings) -> None:
+    snapshot_dir = settings.admin_training_snapshot_path
+    assert snapshot_dir is not None
+    (snapshot_dir / "Elements").mkdir(parents=True, exist_ok=True)
+    metadata_path = snapshot_dir / "metadata.csv"
+    metadata_path.write_text("image_path,element_name,class_label\n", encoding="utf-8")
+    review_hash = training_jobs._sha256_file(settings.annotations_dir / "review-index.json")
+    rows = []
+    for item in training_jobs.AnnotationReviewStore(
+        settings.annotations_dir
+    ).iter_approved_annotations():
+        rows.append(
+            {
+                "source_kind": "live_annotation",
+                "row_id": f"row-{item['analysis_id']}-{item['index']}",
+                "dataset_split": "train",
+                "source_id": f"{item['analysis_id']}:{item['index']}",
+                "class_name": item["class_name"],
+                "bbox": item["bbox"],
+                "source_fingerprint_v1": item["source_fingerprint"],
+                "source_sha256": training_jobs._sha256_file(
+                    Path(item["crop_path"])
+                ),
+                "source_image_sha256": training_jobs._sha256_file(
+                    Path(item["image_path"])
+                ),
+            }
+        )
+    live_records = [
+        {
+            key: row[key]
+            for key in (
+                "source_id",
+                "class_name",
+                "bbox",
+                "source_fingerprint_v1",
+                "source_sha256",
+                "source_image_sha256",
+            )
+        }
+        for row in rows
+    ]
+    manifest = {
+        "schema_version": "training-snapshot.v2",
+        "snapshot_id": "snapshot-test",
+        "class_order": ["atl"],
+        "class_count": 1,
+        "row_count": len(rows),
+        "live_annotation_count": len(rows),
+        "live_annotations_sha256": training_jobs._live_annotations_sha256(
+            live_records
+        ),
+        "ready_for_training": True,
+        "promotion_evaluation_ready": False,
+        "split_counts": {"train": 1, "dev": 0, "locked_test": 0},
+        "source_manifests": (
+            [
+                {
+                    "kind": "annotation-review-index.v1",
+                    "path": str(settings.annotations_dir / "review-index.json"),
+                    "sha256": review_hash,
+                }
+            ]
+            if review_hash
+            else []
+        ),
+        "rows": rows,
+        "duplicates": [],
+        "conflicts": [],
+    }
+    manifest_path = snapshot_dir / "snapshot_manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _refresh_snapshot_checksums(settings)
+
+
+def _settings(tmp_path: Path, *, enabled: bool = False, model_dir: str = ""):
     backend_root = tmp_path / "backend"
     (backend_root / "codex_pipeline" / "config").mkdir(parents=True, exist_ok=True)
     (backend_root / "codex_pipeline" / "config" / "default.yaml").write_text(
         "data:\n  image_size: 224\ntraining:\n  num_epochs: 100\nmodel:\n  backbone: dinov2_vits14\nevaluation:\n  num_eval_episodes: 10\ninference:\n  top_k: 3\n",
+        encoding="utf-8",
+    )
+    (backend_root / "codex_pipeline" / "config" / "snapshot-warmstart.yaml").write_text(
+        "data:\n  split_strategy: persisted\ntraining:\n  checkpoint_selection: latest\n",
         encoding="utf-8",
     )
     scripts_dir = tmp_path / "scripts"
@@ -47,7 +151,28 @@ def _settings(tmp_path: Path, *, enabled: bool = False):
     script = scripts_dir / "retrain.sh"
     script.write_text("#!/usr/bin/env bash\necho retrain $@\n", encoding="utf-8")
     script.chmod(0o755)
-    return Settings(backend_root=backend_root, testing=True, enable_admin_training_jobs=enabled)
+    (scripts_dir / "retrain.ps1").write_text("Write-Output 'retrain'\n", encoding="utf-8")
+    (backend_root / "codex_model" / "weights").mkdir(parents=True, exist_ok=True)
+    (backend_root / "codex_model" / "config.json").write_text(
+        '{"class_names":["atl"]}\n',
+        encoding="utf-8",
+    )
+    (backend_root / "codex_model" / "weights" / "projection.pt").write_bytes(
+        b"projection"
+    )
+    (backend_root / "codex_model" / "weights" / "prototypes.pt").write_bytes(b"prototypes")
+    backbone_manifest = tmp_path / "dinov2-pin.json"
+    backbone_manifest.write_text("{}\n", encoding="utf-8")
+    settings = Settings(
+        backend_root=backend_root,
+        testing=True,
+        model_dir=model_dir,
+        enable_admin_training_jobs=enabled,
+        admin_training_snapshot_dir=str(tmp_path / "snapshot"),
+        admin_training_backbone_manifest=str(backbone_manifest),
+    )
+    _write_training_snapshot(settings)
+    return settings
 
 
 def _client(settings):
@@ -58,6 +183,8 @@ def _client(settings):
 def _approve_one(client, analysis_id: str = "training-ready-1"):
     assert client.post("/save-annotation", json=_payload(analysis_id)).status_code == 200
     assert client.post(f"/admin/annotations/{analysis_id}/0/review", json={"status": "approved"}).status_code == 200
+    settings = client.application.extensions["clinic_services"].settings
+    _write_training_snapshot(settings)
 
 
 def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
@@ -84,7 +211,7 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     assert body["data"]["split_counts"]["excluded"] == 0
     assert body["parameters"]["editable"]["device"] == ["auto", "cpu", "mps", "cuda"]
     assert body["paths"]["model_registry_dir"] == str(settings.model_registry_dir)
-    assert body["paths"]["promote_script"].endswith("scripts/promote_model.py")
+    assert Path(body["paths"]["promote_script"]).parts[-2:] == ("scripts", "promote_model.py")
     assert body["artifacts"]["model_registry"]["status"] == "not_initialized"
     assert body["artifacts"]["model_registry"]["aliases"]["promoted"] is None
 
@@ -105,6 +232,153 @@ def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     assert body["training_jobs_enabled"] is True
     assert body["launch_allowed_for_request"] is True
     assert body["launch_disabled_reasons"] == []
+    assert body["training_snapshot"]["snapshot_id"] == "snapshot-test"
+    assert body["training_snapshot"]["live_annotation_count"] == 1
+    assert body["training_snapshot"]["live_train_count"] == 1
+    assert body["training_snapshot"]["valid"] is True
+
+
+def test_training_rejects_annotations_present_only_in_holdout(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    _approve_one(client)
+    path = settings.admin_training_snapshot_path / "snapshot_manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["rows"][0]["dataset_split"] = "locked_test"
+    manifest["live_train_count"] = 1  # Forged counters must not be trusted.
+    path.write_text(json.dumps(manifest))
+    _refresh_snapshot_checksums(settings)
+    body = client.get("/admin/training/summary").get_json()
+    assert body["training_snapshot"]["live_train_count"] == 0
+    assert body["launch_allowed_for_request"] is False
+    assert any("annotations_not_in_train" in reason for reason in body["launch_disabled_reasons"])
+    assert client.post("/admin/training/jobs", json={"dry_run": False}).status_code == 403
+
+
+def test_training_summary_blocks_a_snapshot_older_than_current_reviews(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    assert client.post("/save-annotation", json=_payload("training-stale-snapshot")).status_code == 200
+    assert (
+        client.post(
+            "/admin/annotations/training-stale-snapshot/0/review",
+            json={"status": "approved"},
+        ).status_code
+        == 200
+    )
+
+    body = client.get(
+        "/admin/training/summary",
+        headers={"Host": "localhost", "Origin": "http://localhost:7118"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    ).get_json()
+
+    assert body["launch_allowed_for_request"] is False
+    assert body["training_snapshot"]["valid"] is False
+    assert any(
+        reason.startswith("training_snapshot_stale:")
+        for reason in body["launch_disabled_reasons"]
+    )
+
+
+def test_training_start_rejects_snapshot_missing_a_current_live_row(
+    tmp_path, monkeypatch
+):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    _approve_one(client, "training-incomplete-snapshot")
+    manifest_path = settings.admin_training_snapshot_path / "snapshot_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["rows"] = []
+    manifest["live_annotation_count"] = 0
+    manifest["live_annotations_sha256"] = training_jobs._live_annotations_sha256([])
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    _refresh_snapshot_checksums(settings)
+    monkeypatch.setattr(
+        "backend.services.training_jobs.subprocess.Popen",
+        lambda *_args, **_kwargs: pytest.fail("Popen must not be called"),
+    )
+
+    response = client.post(
+        "/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"}
+    )
+
+    assert response.status_code == 403
+    assert "training_snapshot_stale" in response.get_json()["error"]
+
+
+def test_training_start_rejects_snapshot_after_approved_crop_drifts(
+    tmp_path, monkeypatch
+):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    _approve_one(client, "training-drifted-crop")
+    crop_path = next(
+        training_jobs.AnnotationReviewStore(
+            settings.annotations_dir
+        ).iter_approved_annotations()
+    )["crop_path"]
+    Path(crop_path).write_bytes(b"drifted")
+    monkeypatch.setattr(
+        "backend.services.training_jobs.subprocess.Popen",
+        lambda *_args, **_kwargs: pytest.fail("Popen must not be called"),
+    )
+
+    response = client.post(
+        "/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"}
+    )
+
+    assert response.status_code == 403
+    assert "training_snapshot_stale" in response.get_json()["error"]
+
+
+def test_training_start_revalidates_snapshot_under_launch_guard(tmp_path, monkeypatch):
+    settings = _settings(tmp_path, enabled=True)
+    app, client = _client(settings)
+    _approve_one(client, "training-toctou")
+    service = app.extensions["clinic_services"].admin_training_service()
+    valid = service._training_snapshot_info()
+    stale = {
+        **valid,
+        "valid": False,
+        "errors": [
+            "training_snapshot_stale: rebuild it from the current approved annotations"
+        ],
+    }
+    snapshots = iter([valid, stale])
+    monkeypatch.setattr(service, "_training_snapshot_info", lambda: next(snapshots))
+    monkeypatch.setattr(
+        "backend.services.training_jobs.subprocess.Popen",
+        lambda *_args, **_kwargs: pytest.fail("Popen must not be called"),
+    )
+
+    response = client.post(
+        "/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"}
+    )
+
+    assert response.status_code == 403
+    assert "training_snapshot_stale" in response.get_json()["error"]
+
+
+def test_training_start_rejects_model_dir_override(tmp_path, monkeypatch):
+    settings = _settings(
+        tmp_path, enabled=True, model_dir=str(tmp_path / "custom-runtime")
+    )
+    _app, client = _client(settings)
+    _approve_one(client, "training-model-dir")
+    monkeypatch.setattr(
+        "backend.services.training_jobs.subprocess.Popen",
+        lambda *_args, **_kwargs: pytest.fail("Popen must not be called"),
+    )
+
+    response = client.post(
+        "/admin/training/jobs", json={"dry_run": True}, headers={"Host": "localhost"}
+    )
+
+    assert response.status_code == 403
+    assert "training_model_dir_override_unsupported" in response.get_json()["error"]
 
 
 def test_training_summary_enabled_blocks_launch_until_annotation_is_trainable(tmp_path):
@@ -227,9 +501,8 @@ def test_training_summary_surfaces_model_registry_candidate_health(tmp_path):
     assert registry_body["status"] == "ok"
     assert registry_body["aliases"]["candidate"] == "20260527T010203Z-test-candidate"
     assert registry_body["latest_candidate"]["manifest_health"]["status"] == "healthy"
-    assert body["paths"]["candidate_version_dir"].endswith(
-        "backend/model_registry/versions/20260527T010203Z-test-candidate"
-    )
+    assert Path(body["paths"]["candidate_version_dir"]) == (
+        settings.model_registry_dir / "versions/20260527T010203Z-test-candidate")
 
 
 def test_training_summary_marks_registry_candidate_unhealthy_on_checksum_drift(tmp_path):
@@ -379,9 +652,12 @@ def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
     assert "launch already in progress" in resp.get_json()["error"]
 
 
-def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch):
-    settings = _settings(tmp_path, enabled=True)
+@pytest.mark.parametrize("script_name", ["retrain.sh", "retrain.ps1"])
+def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch, script_name):
+    settings = _settings(tmp_path / "repo with spaces", enabled=True)
     _app, client = _client(settings)
+    script = settings.backend_root.parent / "scripts" / script_name
+    _app.extensions["clinic_services"].admin_training_service().script_path = script
     _approve_one(client, "training-start-1")
     calls = []
 
@@ -409,11 +685,43 @@ def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(t
     assert job["device"] == "cpu"
     assert job["batch_size"] == 8
     assert job["pid"] == 4242
-    assert job["command"] == ["bash", str(settings.admin_training_script_path), "--dry-run"]
+    expected = [
+        "bash",
+        str(script),
+        "--elements-dir",
+        str(settings.admin_training_snapshot_path / "Elements"),
+        "--approved-manifest",
+        str(settings.admin_training_snapshot_path / "snapshot_manifest.json"),
+        "--metadata-csv",
+        str(settings.admin_training_snapshot_path / "metadata.csv"),
+        "--backbone-manifest",
+        str(settings.admin_training_backbone_manifest_path),
+        "--config",
+        str(settings.admin_training_config_path),
+        "--init-projection",
+        str(settings.classifier_weights_dir / "projection.pt"),
+        "--update-annotated-prototypes",
+        "--dry-run",
+    ]
+    if script_name == "retrain.ps1":
+        expected = [
+            "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+            "-ElementsDirOverride", str(settings.admin_training_snapshot_path / "Elements"),
+            "-ApprovedManifestOverride", str(settings.admin_training_snapshot_path / "snapshot_manifest.json"),
+            "-MetadataCsvOverride", str(settings.admin_training_snapshot_path / "metadata.csv"),
+            "-BackboneManifestOverride", str(settings.admin_training_backbone_manifest_path),
+            "-TrainingConfigOverride", str(settings.admin_training_config_path),
+            "-InitProjection", str(settings.classifier_weights_dir / "projection.pt"),
+            "-UpdateAnnotatedPrototypes", "-DryRun",
+        ]
+    assert job["command"] == expected
     assert "--allow-runtime-write" not in job["command"]
+    assert job["training_snapshot"]["snapshot_id"] == "snapshot-test"
+    assert job["training_snapshot"]["live_annotation_count"] == 1
+    assert job["training_snapshot_manifest_hash"]
     assert job["model_version_id"].startswith("20")
     assert job["candidate_version_dir"].endswith(job["model_version_id"])
-    assert job["candidate_manifest_path"].endswith(f"{job['model_version_id']}/manifest.json")
+    assert Path(job["candidate_manifest_path"]).parts[-2:] == (job["model_version_id"], "manifest.json")
     assert job["env"] == {
         "BATCH_SIZE": "8",
         "DEVICE": "cpu",
@@ -423,6 +731,8 @@ def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(t
     }
     assert calls[0]["env"]["BATCH_SIZE"] == "8"
     assert calls[0]["env"]["DEVICE"] == "cpu"
+    if "USERNAME" in os.environ:
+        assert calls[0]["env"]["USERNAME"] == os.environ["USERNAME"]
     assert calls[0]["env"]["MODEL_VERSION_ID"] == job["model_version_id"]
     assert calls[0]["env"]["MODEL_REGISTRY_DIR"] == str(settings.model_registry_dir)
     assert "--allow-runtime-write" not in calls[0]["command"]

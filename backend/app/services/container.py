@@ -11,6 +11,7 @@ from PIL import Image
 
 from backend.app.config import Settings
 from backend.app.errors import ModelAssetUnavailable
+from scripts.download_weights import checkpoint_valid
 
 try:
     from backend.services.annotation_storage import decode_image_data_url, save_annotation
@@ -51,10 +52,12 @@ class DefaultServices:
             _ensure_backend_root_on_path(self.settings)
             from codex_model import CodexClassifier
 
-            if self.settings.model_dir:
-                self._classifier = CodexClassifier(model_dir=self.settings.model_dir)
-            else:
-                self._classifier = CodexClassifier()
+            pin = self.settings.admin_training_backbone_manifest_path
+            kwargs = {"backbone_manifest": pin} if pin.is_file() else {}
+            self._classifier = (
+                CodexClassifier(model_dir=self.settings.model_dir, **kwargs)
+                if self.settings.model_dir else CodexClassifier(**kwargs)
+            )
         return self._classifier
 
     def classify(self, image: Image.Image | np.ndarray, **kwargs):
@@ -64,8 +67,8 @@ class DefaultServices:
         return self._classifier_rollout.classify_batch(images)
 
     def get_segmenter(self):
-        self._raise_for_missing_mobile_sam_checkpoint()
         if self._segmenter is None:
+            self._raise_for_missing_mobile_sam_checkpoint()
             _ensure_backend_root_on_path(self.settings)
             from codex_pipeline.segmentation import MobileSAMSegmenter
 
@@ -115,8 +118,11 @@ class DefaultServices:
         index: int,
         status: str,
         *, reviewer_id: str | None = None,
+        allow_self_review: bool = False,
     ) -> dict[str, Any]:
-        return self.annotation_review_store().set_status(analysis_id, index, status, reviewer_id=reviewer_id)
+        return self.annotation_review_store().set_status(
+            analysis_id, index, status, reviewer_id=reviewer_id, allow_self_review=allow_self_review,
+        )
 
     def modify_annotation_review_element(
         self,
@@ -127,6 +133,7 @@ class DefaultServices:
         bbox: list[int | float],
         status: str = "pending",
         reviewer_id: str | None = None,
+        allow_self_review: bool = False,
     ) -> dict[str, Any]:
         return self.annotation_review_store().modify_element(
             analysis_id,
@@ -135,6 +142,7 @@ class DefaultServices:
             bbox=bbox,
             status=status,
             reviewer_id=reviewer_id,
+            allow_self_review=allow_self_review,
         )
 
     def iter_approved_annotations(self):
@@ -213,11 +221,16 @@ def classifier_asset_checks(settings: Settings) -> list[dict[str, Any]]:
 
 
 def mobile_sam_checkpoint_check(settings: Settings) -> dict[str, Any]:
-    return _asset_check(
+    check = _asset_check(
         "mobile_sam_checkpoint",
         settings.mobile_sam_checkpoint_path,
-        "Place mobile_sam.pt at this path or set MOBILE_SAM_CHECKPOINT to a local checkpoint before segmentation.",
+        "Re-run the installer or scripts/download_weights.py to install the verified MobileSAM checkpoint.",
     )
+    try:
+        check["available"] = checkpoint_valid(settings.mobile_sam_checkpoint_path)
+    except OSError:
+        check["available"] = False
+    return check
 
 
 def readiness_report(settings: Settings, *, rollout: ClassifierRollout | None = None) -> dict[str, Any]:

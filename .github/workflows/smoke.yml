@@ -13,7 +13,10 @@ on:
 jobs:
   frontend:
     name: Frontend Lint, Test, and Build
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,7 +79,12 @@ jobs:
 
   backend:
     name: Backend Fast Tests
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,7 +101,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Run backend pytest suite and script tests
-        run: python -m pytest backend/tests scripts/test_export_annotations.py scripts/test_export_approved_annotations.py scripts/test_retrain_scripts.py scripts/test_promote_model.py
+        run: python -m pytest backend/tests scripts
 
   file-size-guard:
     name: File Size Guard (warning only)

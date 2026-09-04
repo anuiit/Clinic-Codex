@@ -45,6 +45,10 @@ class _Block(torch.nn.Module):
         self.mlp = _MLP()
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/iteration-0003-feasibility.json").is_file(),
+    reason="requires unshipped research artifact: iteration-0003-feasibility.json",
+)
 def test_frozen_contract_hashes_validate_without_candidate_work() -> None:
     module = load_module()
 
@@ -64,6 +68,10 @@ def test_frozen_contract_hashes_validate_without_candidate_work() -> None:
     assert contract["feasibility"]["candidate_prediction_count"] == 0
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/results/paired_seed_summary.json").exists(),
+    reason="requires unshipped research artifact: results/paired_seed_summary.json",
+)
 def test_paired_sources_and_all_c1_checkpoint_hashes_are_pinned() -> None:
     module = load_module()
 

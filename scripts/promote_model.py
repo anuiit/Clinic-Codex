@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import torch
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -141,6 +143,17 @@ def _validate_manifest_artifacts(registry: ModelRegistry, manifest: dict[str, An
             raise PromotionError("manifest artifact entries must be objects")
         rel = safe_relative_path(str(artifact.get("path", "")))
         path = version_dir / rel
+        resolved_version_dir = version_dir.resolve()
+        try:
+            resolved_path = path.resolve(strict=True)
+            resolved_path.relative_to(resolved_version_dir)
+        except (FileNotFoundError, OSError, ValueError) as exc:
+            raise PromotionError(f"manifest artifact escapes version directory: {rel.as_posix()}") from exc
+        cursor = path
+        while cursor != version_dir:
+            if cursor.is_symlink():
+                raise PromotionError(f"manifest artifact path contains a symlink: {rel.as_posix()}")
+            cursor = cursor.parent
         if not path.is_file():
             raise PromotionError(f"manifest artifact missing: {rel.as_posix()}")
         expected = str(artifact.get("sha256") or "")
@@ -164,6 +177,108 @@ def _validate_manifest_artifacts(registry: ModelRegistry, manifest: dict[str, An
         if required not in seen:
             raise PromotionError(f"required runtime artifact missing from manifest: {required}")
     return records
+
+
+def _read_class_order(config_path: Path, *, label: str) -> list[str]:
+    config = read_json_object(config_path)
+    if config is None:
+        raise PromotionError(f"{label} runtime config is missing or invalid JSON: {config_path}")
+    class_names = config.get("class_names")
+    if not isinstance(class_names, list) or not class_names:
+        raise PromotionError(f"{label} runtime config must contain a non-empty class_names list")
+    if any(not isinstance(name, str) or not name for name in class_names):
+        raise PromotionError(f"{label} runtime class_names must contain non-empty strings")
+    if len(set(class_names)) != len(class_names):
+        raise PromotionError(f"{label} runtime class_names contains duplicates")
+    num_classes = config.get("num_classes", len(class_names))
+    if num_classes != len(class_names):
+        raise PromotionError(
+            f"{label} runtime num_classes mismatch: {num_classes} != {len(class_names)}"
+        )
+    return class_names
+
+
+def _read_numeric_label_contract(config_path: Path, prototypes_path: Path, *, label: str) -> dict[str, int]:
+    class_names = _read_class_order(config_path, label=label)
+    try:
+        data = torch.load(prototypes_path, map_location="cpu", weights_only=True)
+    except Exception as exc:
+        raise PromotionError(f"{label} prototype artifact cannot be safely loaded: {prototypes_path}") from exc
+    if not isinstance(data, dict):
+        raise PromotionError(f"{label} prototype artifact must be a mapping")
+    raw_labels, raw_names = data.get("class_labels"), data.get("class_names")
+    if not isinstance(raw_labels, torch.Tensor) or raw_labels.ndim != 1 or raw_labels.numel() != len(class_names):
+        raise PromotionError(f"{label} prototype class_labels do not match config")
+    if raw_labels.dtype not in {torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8}:
+        raise PromotionError(f"{label} prototype class_labels must be integers")
+    labels = [int(value) for value in raw_labels.tolist()]
+    if labels != sorted(labels) or len(set(labels)) != len(labels):
+        raise PromotionError(f"{label} prototype class_labels must be unique and sorted")
+    if not isinstance(raw_names, dict) or set(raw_names) != set(labels):
+        raise PromotionError(f"{label} prototype class_names and class_labels disagree")
+    if any(
+        isinstance(key, bool) or not isinstance(key, int) or not isinstance(value, str) or not value
+        for key, value in raw_names.items()
+    ):
+        raise PromotionError(f"{label} prototype class_names mapping is invalid")
+    names = [raw_names[numeric_label] for numeric_label in labels]
+    if names != class_names:
+        raise PromotionError(f"{label} prototype taxonomy does not match config class_names")
+    return dict(zip(names, labels))
+
+
+def _validate_runtime_class_order(registry: ModelRegistry, version_id: str) -> None:
+    target_path = registry.version_dir(version_id) / "runtime" / "config.json"
+    target_order = _read_class_order(target_path, label="candidate")
+    index = registry.read_index()
+    original_version = index["aliases"].get("original")
+    if original_version:
+        reference_path = registry.version_dir(original_version) / "runtime" / "config.json"
+        reference_prototypes_path = registry.version_dir(original_version) / "runtime" / "weights" / "prototypes.pt"
+    else:
+        missing = [
+            str(registry.runtime_model_dir.joinpath(*runtime_parts))
+            for runtime_parts in REQUIRED_RUNTIME_FILES.values()
+            if not registry.runtime_model_dir.joinpath(*runtime_parts).is_file()
+        ]
+        if missing:
+            raise PromotionError("missing required artifact(s) in current runtime: " + ", ".join(missing))
+        reference_path = registry.runtime_model_dir / "config.json"
+        reference_prototypes_path = registry.runtime_model_dir / "weights" / "prototypes.pt"
+    reference_order = _read_class_order(reference_path, label="reference")
+    if target_order != reference_order:
+        raise PromotionError(
+            "candidate runtime class order differs from the historical ABI "
+            f"({len(target_order)} candidate classes vs {len(reference_order)} reference classes)"
+        )
+    target_contract = _read_numeric_label_contract(
+        target_path,
+        registry.version_dir(version_id) / "runtime" / "weights" / "prototypes.pt",
+        label="candidate",
+    )
+    reference_contract = _read_numeric_label_contract(
+        reference_path,
+        reference_prototypes_path,
+        label="reference",
+    )
+    if target_contract != reference_contract:
+        raise PromotionError(
+            "candidate numeric class label mapping differs from the historical ABI"
+        )
+
+
+def _validate_promotion_policy(manifest: dict[str, Any], *, action: str) -> bool:
+    """Reject explicit gates and return whether the existing R2 E2E guard applies."""
+    if action != "promote":
+        return False
+    promotion = manifest.get("promotion")
+    if not isinstance(promotion, dict):
+        return False
+    if "blocked" in promotion and promotion.get("blocked") is not False:
+        reason = promotion.get("reason")
+        detail = reason if isinstance(reason, str) and reason.strip() else "no unblock contract is recorded"
+        raise PromotionError(f"candidate promotion is explicitly blocked: {detail}")
+    return bool(promotion.get("e2e_report_required"))
 
 
 def _copy_atomic(source: Path, dest: Path) -> None:
@@ -375,9 +490,9 @@ def promote_or_rollback(
         raise PromotionError("no target version available")
     manifest = _load_manifest(registry, version_id)
     artifacts = _validate_manifest_artifacts(registry, manifest)
+    _validate_runtime_class_order(registry, version_id)
     e2e_report: dict[str, Any] | None = None
-    promotion = manifest.get("promotion")
-    e2e_required = isinstance(promotion, dict) and bool(promotion.get("e2e_report_required"))
+    e2e_required = _validate_promotion_policy(manifest, action=action)
     if action == "promote" and e2e_required:
         if e2e_report_path is None:
             raise PromotionError(
@@ -427,7 +542,13 @@ def promote_or_rollback(
         # runtime file is copied.
         manifest = _load_manifest(registry, version_id)
         artifacts = _validate_manifest_artifacts(registry, manifest)
+        _validate_runtime_class_order(registry, version_id)
+        e2e_required = _validate_promotion_policy(manifest, action=action)
         if action == "promote" and e2e_required:
+            if e2e_report_path is None:
+                raise PromotionError(
+                    "candidate requires a passing E2E report; pass --e2e-report before promotion"
+                )
             try:
                 e2e_report = validate_promotion_report(
                     e2e_report_path,

@@ -80,6 +80,10 @@ def test_dead_fold_report_flags_disjoint_source_family() -> None:
     assert report["classes"][0]["source_family_overlap"] == []
 
 
+@pytest.mark.skipif(
+    not (ROOT / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v10/specs/iteration-0004.json").is_file(),
+    reason="requires unshipped research artifact: specs/iteration-0004.json",
+)
 def test_iteration_4_contract_is_descriptive_and_non_promotable() -> None:
     contract = module.validate_contract(module.DEFAULT_SPEC, module.DEFAULT_EVALUATOR)
     spec = module.read_json(module.DEFAULT_SPEC)

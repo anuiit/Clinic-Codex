@@ -137,7 +137,9 @@ def test_classifier_rejects_taxonomy_before_loading_backbone(tmp_path, monkeypat
         CodexClassifier(model_dir=runtime_dir, device="cpu")
 
 
-def test_classifier_preserves_legacy_weights_directory_fallback(monkeypatch):
+def test_classifier_preserves_legacy_weights_directory_fallback(tmp_path, monkeypatch):
+    _, runtime_dir = _write_package(tmp_path, version_id="legacy", backbone="dinov2_vits14", hidden_dim=384)
+    monkeypatch.setattr(sys.modules[CodexClassifier.__module__], "__file__", str(runtime_dir / "classifier.py"))
     monkeypatch.setattr(
         torch.hub,
         "load",
@@ -146,6 +148,5 @@ def test_classifier_preserves_legacy_weights_directory_fallback(monkeypatch):
 
     classifier = CodexClassifier(device="cpu")
 
-    assert classifier.num_classes == 286
+    assert classifier.num_classes == 2
     assert classifier.config["backbone"] == "dinov2_vits14"
-

@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from "react";
+import { type RefObject } from "react";
 import { Trash2 } from "lucide-react";
 import type { DetectedElement } from "../../types";
 import { appText } from "../../i18n/text";
@@ -41,16 +41,7 @@ export function AnnotationSelectedInspector({
   onSetElementValidation,
   onRemoveElement,
 }: AnnotationSelectedInspectorProps) {
-  const [noteDraft, setNoteDraft] = useState(focusedElement?.note ?? "");
-
-  useEffect(() => {
-    setNoteDraft(focusedElement?.note ?? "");
-    // Reset the draft only when the selected element changes, not on every
-    // keystroke-driven elements update.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusedIdx]);
-
-  const commitNote = () => {
+  const commitNote = (noteDraft: string) => {
     if (focusedIdx === null) return;
     if (noteDraft.trim() === (focusedElement?.note ?? "")) return;
     onCommitElementNote(focusedIdx, noteDraft);
@@ -176,11 +167,11 @@ export function AnnotationSelectedInspector({
                 {labels.elementNote}
               </label>
               <textarea
+                key={focusedIdx}
                 id="annotation-element-note"
                 data-testid="annotation-element-note"
-                value={noteDraft}
-                onChange={(event) => setNoteDraft(event.target.value)}
-                onBlur={commitNote}
+                defaultValue={focusedElement.note ?? ""}
+                onBlur={(event) => commitNote(event.target.value)}
                 placeholder={labels.elementNotePlaceholder}
                 rows={2}
                 maxLength={2000}
