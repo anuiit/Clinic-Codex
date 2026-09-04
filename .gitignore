@@ -106,6 +106,8 @@ test-results/
 # Local datasets, experiments and generated comparison reports
 backend/training_corpus/
 backend/training_runs/
+backend/.retrain.lock
+backend/.retrain.guard
 reports/
 _legacy/frontend_integration/examples/sample_outputs/
 brave_*.png

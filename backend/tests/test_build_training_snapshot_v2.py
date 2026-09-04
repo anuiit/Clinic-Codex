@@ -130,6 +130,37 @@ def test_snapshot_v2_is_deterministic_and_uses_runtime_labels(tmp_path: Path) ->
     assert set(assignments.values()) <= {"train", "dev", "locked_test"}
 
 
+def test_live_training_retires_whole_duplicate_component_without_changing_parent(tmp_path, monkeypatch):
+    runtime, legacy, external = _fixtures(tmp_path)
+    parent = _plan(runtime, legacy, external)
+    held = next(row for row in parent["rows"] if row["dataset_split"] == "locked_test")
+    parent_path = tmp_path / "parent.json"
+    parent_path.write_text(json.dumps(parent))
+    parent_bytes = parent_path.read_bytes()
+    live = dict(held, row_id="live-duplicate", source_kind="live_annotation",
+                source_id="analysis:0", source_group="live-page", duplicate_of=None)
+    second_path = _write_bmp(tmp_path / "live.bmp", (123, 45, 67))
+    second = dict(live, row_id="live-new", source_id="analysis:1",
+                  source_path=str(second_path), source_sha256=_sha(second_path),
+                  source_pixel_sha256=snapshot.pixel_sha256(second_path))
+    monkeypatch.setattr(snapshot, "load_live_annotation_rows", lambda *_: ([], [live, second]))
+    child = _plan(runtime, legacy, external, parent_manifest=parent_path,
+                  train_live_annotations=True, allow_underfilled_holdouts=True)
+    assert parent_path.read_bytes() == parent_bytes
+    assert child["live_annotation_count"] == child["live_train_count"] == 2
+    assert child["live_annotation_usage"]["training_row_ids"] == sorted([held["row_id"], "live-new"])
+    assert child["source_group_assignments"]["live-page"] == "train"
+    assert child["source_group_assignments"][held["source_group"]] == "train"
+    for group, split in parent["source_group_assignments"].items():
+        if group != held["source_group"]:
+            assert child["source_group_assignments"][group] == split
+    component = next(c for c in child["components"] if "live-page" in c["source_groups"])
+    assert component["retired_holdout_assignments"] == {held["source_group"]: "locked_test"}
+    assert child["policy"]["version"] == "approved-live-train.v1"
+    assert child == _plan(runtime, legacy, external, parent_manifest=parent_path,
+                          train_live_annotations=True, allow_underfilled_holdouts=True)
+
+
 def test_underfilled_holdouts_fail_closed_without_research_override(
     tmp_path: Path,
 ) -> None:

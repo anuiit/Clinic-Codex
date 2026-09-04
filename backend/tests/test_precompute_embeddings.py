@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import torch
 from PIL import Image
 
 import backend.codex_pipeline.scripts.precompute_embeddings as precompute
@@ -12,6 +13,18 @@ from backend.codex_pipeline.data.metadata import load_metadata
 
 build_source_groups = precompute.build_source_groups
 validate_snapshot_contract = precompute.validate_snapshot_contract
+
+
+def test_dataset_preprocessing_exactly_matches_runtime(tmp_path):
+    image = Image.new("RGB", (17, 11))
+    image.putdata([(i * 17 % 256, i * 43 % 256, i * 71 % 256) for i in range(17 * 11)])
+    path = tmp_path / "nonuniform.png"
+    image.save(path)
+    dataset = precompute.SimpleImageDataset(pd.DataFrame([{"image_path": str(path), "class_label": 3}]))
+    tensor, label = dataset[0]
+    assert label == 3
+    assert tensor.shape == (3, 224, 224)
+    assert torch.equal(tensor, precompute._preprocess_image(image, 224).squeeze(0))
 
 
 def _write_snapshot_fixture(tmp_path):

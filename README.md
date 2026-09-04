@@ -10,7 +10,7 @@ Clinic Codex is a browser-based annotation and retraining tool for Nahuatl codex
 4. **Validate** each element that is ready to submit for review. Draft elements stay visible but are excluded from submission exports.
 5. **Send/export validated annotations** to `backend/annotations/<analysis_id>/`; submitted elements start as pending admin review.
 6. **Review locally** at `/admin/annotations`: authenticated reviewers can approve/reject or correct class/bbox evidence and inspect the Dataset tab. The local admin created on first launch has access to every admin tab.
-7. **Retrain from the cumulative snapshot** (existing corpus + newly approved annotations) with the guarded Training tab (`ENABLE_ADMIN_TRAINING_JOBS=1`). Retraining warm-starts from the current projection and creates an immutable candidate under `backend/model_registry/versions/<version_id>/`; explicitly promote it with `scripts/promote_model.py`, then restart the backend to load new weights.
+7. **Create a retrained candidate** from the shipped base and all approved annotations in Training. No private corpus or manual snapshot is required; the candidate is saved without activation.
 
 See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining procedure.
 
@@ -27,7 +27,7 @@ See [ANNOTATIONS.md](ANNOTATIONS.md) for the full annotation/export/retraining p
 - **Backend**: Flask API serving segmentation, classification, similarity/trust helpers, classes, and annotation persistence. Default port: `7117`.
 - **Frontend**: React + Vite + Tailwind application. Default port: `7118`.
 - **Annotation storage**: backend-owned filesystem data under `backend/annotations/<analysis_id>/`, with element-level admin decisions in `backend/annotations/review-index.json`.
-- **Training/versioning scripts**: `scripts/build_training_snapshot.py`, `scripts/retrain.sh`, `scripts/retrain.ps1`, and `scripts/promote_model.py`.
+- **Training/versioning scripts**: the app uses `scripts/retrain_local.py`; prepared-corpus workflows use `scripts/build_training_snapshot.py`, `scripts/retrain.sh` or `scripts/retrain.ps1`.
 
 ## Requirements
 
@@ -48,7 +48,8 @@ Backend:
 - `MAX_IMAGE_PIXELS=80000000`
 - `MAX_IMAGE_DIMENSION=10000`
 - `MODEL_DIR=/path/to/model/dir` (optional override)
-- `ENABLE_ADMIN_TRAINING_JOBS=false` (set to `1` only for local loopback Training tab launches)
+- `ENABLE_ADMIN_TRAINING_JOBS=true` (local installer; otherwise false)
+- `ALLOW_LOCAL_ADMIN_SELF_REVIEW=true` (local installer; initial local admin only)
 
 Frontend:
 
@@ -92,50 +93,22 @@ Phase 1 is production-readiness for a **single-machine local workflow**, not a s
 
 CORS is strict: only configured origins receive `Access-Control-Allow-Origin`; unknown or missing `Origin` receives no allow-origin header. Upload and base64/data-url image decoders reject images above `MAX_IMAGE_PIXELS` or `MAX_IMAGE_DIMENSION`. The generated local cookie is intentionally non-secure because the development URL is loopback HTTP; a deployed HTTPS environment must set `AUTH_COOKIE_SECURE=true` and use its own secret-management mechanism. Phase 1 does not trust reverse-proxy headers and does not make the local launcher a shared production deployment.
 
-## Local model versioning
+## Local retraining
 
-`scripts/retrain.*` never overwrites the runtime classifier in `backend/codex_model/`.
-It writes checkpoints, prototypes, runtime-ready files, `manifest.json`,
-`model-card.md`, and `checksums.sha256` into
-`backend/model_registry/versions/<version_id>/`.
+The standard local mode combines the **shipped model base and all current approved annotations**. It needs no private corpus or manual snapshot. The installer downloads fixed MobileSAM and DINOv2 assets, enables local training, and permits the initial local administrator to review their own annotations.
 
-~~~bash
-# Build a cumulative immutable snapshot from the existing corpora and approvals
-backend/.venv/bin/python scripts/build_training_snapshot.py \
-  --dry-run --exclude-conflicts --json
+1. Upload and analyze an image, open its annotation editor, correct boxes and labels, and mark the desired elements ready.
+2. Send the annotations, then open **Admin → Review** and approve them.
+3. Open **Training**, run the dry run, then select **Non, entraînement complet** and launch.
+4. Inspect the candidate path and result in Training.
 
-# Validate a materialized warm-start candidate path without training
-bash scripts/retrain.sh --dry-run \
-  --elements-dir backend/training_corpus/snapshots/<snapshot-id>/Elements \
-  --approved-manifest backend/training_corpus/snapshots/<snapshot-id>/snapshot_manifest.json \
-  --metadata-csv backend/training_corpus/snapshots/<snapshot-id>/metadata.csv \
-  --backbone-manifest backend/training_corpus/backbone-pins/dinov2-vits14-local.json \
-  --config backend/codex_pipeline/config/snapshot-warmstart.yaml \
-  --init-projection backend/codex_model/weights/projection.pt
+Each run captures current approved crops and review decisions automatically. Exact duplicate images count once; conflicting labels for identical images are rejected. Stale decisions and missing crops are excluded. Repeating the same approvals does not count their contribution twice.
 
-# After a real run, inspect and promote explicitly
-backend/.venv/bin/python scripts/promote_model.py <version_id> --dry-run
-backend/.venv/bin/python scripts/promote_model.py <version_id>
+The backbone and projection stay frozen. The update adapts prototypes for existing base-model classes; it does not train MobileSAM or introduce new classes. The original base provides the prior even when its training images are unavailable.
 
-# Roll back to previous/original through the same checksum-verified path
-backend/.venv/bin/python scripts/promote_model.py --rollback --dry-run
-backend/.venv/bin/python scripts/promote_model.py --rollback
-~~~
+Candidates are stored under `backend/model_registry/versions/<version_id>/`, with provenance and checksums. They are **not activated**; promotion is blocked because this local mode has no independent holdout. Reported base/candidate scores measure training-image fit, not better generalization. The running model is unchanged and no restart is needed.
 
-The Training tab passes those cumulative inputs automatically from
-ADMIN_TRAINING_SNAPSHOT_DIR. It refuses a stale snapshot after review
-decisions or canonical crop evidence change. Admin retraining is blocked while
-`MODEL_DIR` is set. Snapshot candidates never replace the active runtime and are
-blocked from promotion until the locked-test promotion contract passes.
-
-Promotion snapshots current runtime files under `backend/model_registry/snapshots/`
-before atomically updating `backend/codex_model/weights/*.pt` and
-`backend/codex_model/config.json`. Restart the backend after promotion or
-rollback; candidate creation alone does not change predictions.
-
-If `MODEL_DIR` is set, unset it before promotion unless you are deliberately
-using `--runtime-dir` for a matching custom runtime package. The Training tab
-launcher is Bash-only; use `scripts/retrain.ps1` directly on native Windows.
+See [the operator guide](docs/admin-model-retraining-workflow.md) for permissions and advanced corpus mode.
 
 Script matrix:
 
@@ -146,6 +119,12 @@ Script matrix:
 The `.ps1` scripts target native Windows in both PowerShell 5.1 and PowerShell 7. Do not use them through `pwsh` on Linux/macOS; use the Bash launchers there. The dev launchers derive frontend API/CORS settings from `BACKEND_PORT` and `FRONTEND_PORT` unless you explicitly override `VITE_API_BASE_URL` or `CORS_ORIGINS`.
 
 Both launchers provide a bounded startup smoke for support or CI: `bash scripts/run-dev.sh --smoke` on Ubuntu/macOS/WSL, or `powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1 -Smoke` on Windows PowerShell 5.1 (`pwsh -NoProfile ...` works on PowerShell 7).
+
+The local CPU workflow has been tested on native Windows 10 x64 (PowerShell 5.1
+and 7) and Ubuntu/WSL, including real browser-driven retraining. Native Windows
+requires a checkout on a local drive, not a UNC/WSL share. Historical research
+scripts with Linux/ext4 or private-corpus requirements are not part of this
+Windows user workflow. See [release validation](docs/stable-release-new-user-validation-20260904.md).
 
 ## Key documentation
 

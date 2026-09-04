@@ -212,78 +212,24 @@ backend/.venv/bin/python scripts/export_annotations.py analyses.json \
 
 ## 5. Retrain
 
-Once submitted crops have been approved under `/admin/annotations`, rebuild the immutable cumulative snapshot, then use the Training tab for a guarded local dry run/full run. Retraining warm-starts from the current projection and produces an immutable **candidate** package under `backend/model_registry/versions/<version_id>/`; it does **not** overwrite `backend/codex_model/`.
+The standard local mode combines the **shipped model base and all current approved annotations**. It needs no private corpus or manual snapshot. The installer downloads fixed MobileSAM and DINOv2 assets, enables local training, and permits the initial local administrator to review their own annotations.
 
-Build or refresh the snapshot first:
+1. Upload and analyze an image, open its annotation editor, correct boxes and labels, and mark the desired elements ready.
+2. Send the annotations, then open **Admin → Review** and approve them.
+3. Open **Training**, run the dry run, then select **Non, entraînement complet** and launch.
+4. Inspect the candidate path and result in Training.
 
-```bash
-backend/.venv/bin/python scripts/build_training_snapshot.py \
-  --parent-manifest backend/training_corpus/snapshots/<previous-id>/snapshot_manifest.json \
-  --exclude-conflicts --allow-underfilled-holdouts --json
+Each run captures current approved crops and review decisions automatically. Exact duplicate images count once; conflicting labels for identical images are rejected. Stale decisions and missing crops are excluded. Repeating the same approvals does not count their contribution twice.
 
-export ADMIN_TRAINING_SNAPSHOT_DIR="$PWD/backend/training_corpus/snapshots/<snapshot-id>"
-export ADMIN_TRAINING_BACKBONE_MANIFEST="$PWD/backend/training_corpus/backbone-pins/dinov2-vits14-local.json"
-ENABLE_ADMIN_TRAINING_JOBS=1 bash scripts/run-dev.sh
-```
+The backbone and projection stay frozen. The update adapts prototypes for existing base-model classes; it does not train MobileSAM or introduce new classes. The original base provides the prior even when its training images are unavailable.
 
-If the tab reports `disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches`,
-restart the backend with the feature flag enabled. Keep this
-as an explicit local opt-in rather than a committed dev-script default.
-
-The admin launcher supplies the cumulative paths automatically. `scripts/retrain.sh` and `scripts/retrain.ps1` expose the same explicit snapshot arguments for CLI use. Their no-argument mode remains an approved-only compatibility path.
-
-The cumulative path executes these classifier stages:
-
-| Step | Script | Purpose |
-| --- | --- | --- |
-| 1/6 | prepared snapshot | Validate the immutable Elements, metadata, checksums, class order, and source manifests. |
-| 2/6 | prepared metadata | Reuse the snapshot's persisted train/dev/locked-test assignments. |
-| 3/6 | `precompute_embeddings.py` | Compute DINOv2 embeddings with the pinned local backbone. |
-| 4/6 | `train.py --init-projection` | Warm-start projection/classifier checkpoints from the current model. |
-| 5/6 | `evaluate.py --split-strategy persisted` | Evaluate the persisted split and export train-only prototypes. |
-| 6/6 | `export_model.py` | Export backend-loadable candidate files and cumulative provenance under `backend/model_registry/versions/<version_id>/runtime/`. |
-
-No MobileSAM/segmentation retraining is run by these scripts.
-
-Inspect the candidate before activation:
-
-```bash
-cat backend/model_registry/versions/<version_id>/export_model_manifest.json
-cat backend/model_registry/versions/<version_id>/manifest.json
-cat backend/model_registry/versions/<version_id>/model-card.md
-```
-
-Activate a candidate only with the promotion tool:
-
-```bash
-backend/.venv/bin/python scripts/promote_model.py <version_id> --dry-run
-backend/.venv/bin/python scripts/promote_model.py <version_id>
-```
-
-Promotion verifies registered manifests/checksums, snapshots current runtime files under `backend/model_registry/snapshots/`, atomically replaces `backend/codex_model/weights/*.pt` and `backend/codex_model/config.json`, records previous/promoted pointers in `backend/model_registry/index.json`, and prints a restart reminder.
-
-If `MODEL_DIR` is set, unset it before promotion. Promotion targets the local `backend/codex_model/` runtime package by default; an ambient `MODEL_DIR` override can cause the backend to load weights from a different location, so `scripts/promote_model.py` refuses to run in that ambiguous state unless an explicit `--runtime-dir` is supplied for a matching custom runtime package. If a promotion is interrupted, `backend/model_registry/promotion_in_progress.json` remains as a recovery marker and the Training summary reports it.
-
-Rollback restores the previous/original version through the same checksum/snapshot path:
-
-```bash
-backend/.venv/bin/python scripts/promote_model.py --rollback --dry-run
-backend/.venv/bin/python scripts/promote_model.py --rollback
-```
-
-A lockfile at `backend/.retrain.lock` prevents concurrent runs. If a run crashed and no retrain process is active, remove the stale lockfile:
-
-```bash
-rm -f backend/.retrain.lock
-```
-
-Restart the Flask backend after promotion or rollback; running processes do not hot-load new weights. Dry-runs and candidate creation alone do not change predictions.
+Candidates are stored under `backend/model_registry/versions/<version_id>/`, with provenance and checksums. They are **not activated**; promotion is blocked because this local mode has no independent holdout. Reported base/candidate scores measure training-image fit, not better generalization. The running model is unchanged and no restart is needed.
 
 ## FAQ
 
 ### Why does my new class not appear in predictions immediately?
 
-Creating a label in the frontend only creates submitted annotation data. The model will not predict that class until enough examples are submitted, admin-approved, retrained into a candidate, explicitly promoted, and the backend is restarted.
+Creating a label stores annotation data. Local retraining supports only the existing model taxonomy. Candidate creation does not alter predictions.
 
 ### Why is an edited element draft again?
 
@@ -295,7 +241,7 @@ The default export is validated-only. Validate at least one named element, or pa
 
 ### Why did retraining skip my submitted element?
 
-Check `/admin/annotations`: the element must be approved, its source metadata/crop must still exist, and any stale source fingerprint must be reapproved after replacement. Then rebuild the cumulative snapshot; the Training tab intentionally rejects a snapshot whose review-index hash is stale.
+Check `/admin/annotations`: the element must be approved, its source metadata/crop must still exist, and any stale source fingerprint must be reapproved after replacement. The next local run automatically captures current approvals. Only explicitly configured advanced snapshots need rebuilding.
 
 ### What dataset size is required?
 
@@ -312,4 +258,4 @@ The scripts do not enforce a universal minimum, but retraining is only meaningfu
 | Element stays pending in admin queue | Submitted but not approved | Open `/admin/annotations` locally and approve or reject the element. |
 | Approved element is not trainable | Missing crop/source or stale decision | Re-submit or reapprove the current source annotation. |
 | Crops look wrong | Bbox format or image geometry mismatch | Bbox must be `[x, y, width, height]` in image pixels. Re-run geometry tests if code changed. |
-| New weights not used after retraining | Candidate was not promoted, or backend still has old model in memory | Run `scripts/promote_model.py <version_id>` and restart with `bash scripts/run-dev.sh` or `python backend/examples/flask_api.py`. |
+| New weights not used after retraining | Expected: candidate-only workflow | Inspect the candidate in Training; it is not activated. |

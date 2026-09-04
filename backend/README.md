@@ -30,7 +30,7 @@ bash scripts/run-dev.sh
 | `MODEL_DIR` | auto-detected | Optional classifier weights/config directory. |
 | `ENABLE_LEGACY_ENDPOINTS` | `true` | Keep sample/demo endpoints `/sample-image` and `/similar-samples` available during Phase 1 compatibility. |
 | `ENABLE_ADMIN_TRAINING_JOBS` | `false` | Enables the local-only `/admin/training/jobs` launcher when the request also passes loopback Host/Origin guards. |
-| `ADMIN_TRAINING_SNAPSHOT_DIR` | unset | Absolute path to the immutable `training-snapshot.v2` used by the Training tab. Required when launches are enabled. |
+| `ADMIN_TRAINING_SNAPSHOT_DIR` | unset | Optional advanced cumulative snapshot. Leave unset for base + current approvals. |
 | `ADMIN_TRAINING_BACKBONE_MANIFEST` | local backbone pin | Optional absolute path to the DINOv2 pin manifest. |
 
 Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`; decoded images are also capped by `MAX_IMAGE_PIXELS` and `MAX_IMAGE_DIMENSION`.
@@ -49,10 +49,10 @@ Requests are capped at **50 MB** via Flask `MAX_CONTENT_LENGTH`; decoded images 
 | `/admin/annotations/<analysis_id>/<index>/modify` | `POST` | `{ "class_name": string, "bbox": [x,y,w,h], "approve_after_save"?: boolean, "status"?: "approved" \| "rejected" \| "pending" }` | rewrites metadata/crop evidence and records a fresh review decision |
 | `/admin/annotations/<analysis_id>/image` | `GET` | none | local original image for visual review |
 | `/admin/annotations/<analysis_id>/<index>/crop` | `GET` | none | local crop image for visual review |
-| `/admin/training/summary` | `GET` | none | local-only cumulative-snapshot summary, script/config paths, artifact state, launch guard reasons, latest job |
+| `/admin/training/summary` | `GET` | none | local-only base/approvals or advanced snapshot summary, script/config paths, artifact state, launch guard reasons, latest job |
 | `/admin/training/jobs/latest` | `GET` | none | latest local training job, or `null` |
 | `/admin/training/jobs/<run_id>` | `GET` | none | one local training job with log tail and artifact state |
-| `/admin/training/jobs` | `POST` | `{ "dry_run": boolean, "device": "auto" \| "cpu" \| "mps" \| "cuda", "batch_size": number, "notes"?: string }` | starts allowlisted `bash scripts/retrain.sh` when enabled and local |
+| `/admin/training/jobs` | `POST` | `{ "dry_run": boolean, "device": "auto" \| "cpu" \| "mps" \| "cuda", "batch_size": number, "notes"?: string }` | starts the local Python job or explicitly configured snapshot script when enabled and local |
 
 Compatibility endpoints `/classify` and `/classify-batch` remain available and tested during Phase 1. Sample/demo endpoints `/sample-image` and `/similar-samples` remain enabled by default (`ENABLE_LEGACY_ENDPOINTS=true`); set `ENABLE_LEGACY_ENDPOINTS=false` to hide only those sample/demo endpoints while retaining active frontend endpoints. `backend/examples/flask_api.py` is now a thin compatibility runner for the modular `backend.wsgi` app, not the primary route implementation.
 
@@ -165,100 +165,19 @@ backend/.venv/bin/python -m pytest backend/tests scripts/test_export_annotations
 
 ## Retraining
 
-Submitted crops saved under `backend/annotations/` must first be approved on the local admin route:
+The standard local mode combines the **shipped model base and all current approved annotations**. It needs no private corpus or manual snapshot. The installer downloads fixed MobileSAM and DINOv2 assets, enables local training, and permits the initial local administrator to review their own annotations.
 
-```text
-http://localhost:7118/admin/annotations
-```
+1. Upload and analyze an image, open its annotation editor, correct boxes and labels, and mark the desired elements ready.
+2. Send the annotations, then open **Admin → Review** and approve them.
+3. Open **Training**, run the dry run, then select **Non, entraînement complet** and launch.
+4. Inspect the candidate path and result in Training.
 
-The page has three tabs:
+Each run captures current approved crops and review decisions automatically. Exact duplicate images count once; conflicting labels for identical images are rejected. Stale decisions and missing crops are excluded. Repeating the same approvals does not count their contribution twice.
 
-- **Review** approves, rejects, or corrects class/bbox evidence.
-- **Dataset** shows trainable approved crops plus pending/rejected/diagnostic exclusions.
-- **Training** shows approved counts plus cumulative snapshot state, resolved paths, artifacts, and the latest job/log tail.
+The backbone and projection stay frozen. The update adapts prototypes for existing base-model classes; it does not train MobileSAM or introduce new classes. The original base provides the prior even when its training images are unavailable.
 
-The guarded Training tab uses the existing projection as a warm start and the
-configured cumulative snapshot (legacy + external + current approved
-annotations). It fails closed when the review index or the canonical set of
-trainable crops has changed since that snapshot was built. Unset `MODEL_DIR`
-before using the admin launcher so config and warm-start weights come from the
-same default runtime package.
+Candidates are stored under `backend/model_registry/versions/<version_id>/`, with provenance and checksums. They are **not activated**; promotion is blocked because this local mode has no independent holdout. Reported base/candidate scores measure training-image fit, not better generalization. The running model is unchanged and no restart is needed.
 
-Build or refresh the snapshot before enabling the launcher:
+The normal Training tab uses `scripts/retrain_local.py` through the backend Python on Linux/macOS and native Windows. Jobs are guarded against concurrent launches. Status and logs are stored under `backend/training_runs/`. Unknown fields, invalid parameters, nonlocal requests and incompatible `MODEL_DIR` overrides are rejected.
 
-~~~bash
-backend/.venv/bin/python scripts/build_training_snapshot.py \
-  --parent-manifest backend/training_corpus/snapshots/<previous-id>/snapshot_manifest.json \
-  --exclude-conflicts --allow-underfilled-holdouts --json
-
-export ADMIN_TRAINING_SNAPSHOT_DIR="$PWD/backend/training_corpus/snapshots/<snapshot-id>"
-export ADMIN_TRAINING_BACKBONE_MANIFEST="$PWD/backend/training_corpus/backbone-pins/dinov2-vits14-local.json"
-export ENABLE_ADMIN_TRAINING_JOBS=1
-~~~
-
-`--allow-underfilled-holdouts` produces a research-only snapshot. Its model
-candidate is deliberately blocked from promotion until the locked-test
-promotion contract is complete.
-
-Or, for local development only, enable the guarded Training tab launcher before starting the backend:
-
-```bash
-ENABLE_ADMIN_TRAINING_JOBS=1 bash scripts/run-dev.sh
-```
-
-The committed/default state remains disabled. When the flag is absent, the backend returns the
-launch-blocking reason `disabled_by_default: set ENABLE_ADMIN_TRAINING_JOBS=1 to allow local launches`.
-When no current annotation is trainable, summary/start also report
-`no_trainable_annotations: approve at least one current annotation before launching retraining` so the
-operator approves data before creating a run.
-
-`POST /admin/training/jobs` still rejects non-loopback clients, nonlocal `Host`/`Origin` headers, unknown payload fields, invalid device/batch values, stale snapshots, and concurrent runs. Accepted jobs run only `bash scripts/retrain.sh` with the configured snapshot, backbone pin, warm-start projection, and optional `--dry-run`; status JSON and logs are written below `backend/training_runs/<run_id>/`. Each job records the snapshot hash, `model_version_id`, candidate registry paths, and the allowlisted `MODEL_VERSION_ID`/`MODEL_REGISTRY_DIR` environment. `/admin/training/summary` also reports registry aliases, manifest/checksum health, the effective classifier weights directory, and any interrupted-promotion marker.
-If the backend restarts and later finds a persisted `running` dry-run without its in-memory process handle, or a full run whose lock PID and recorded process identity cannot still confirm the original retrain process, it marks that job failed instead of blocking future local launches forever. A short-lived atomic launch guard also rejects simultaneous start requests before a `status.json` record exists.
-
-The browser Training tab launcher is Bash-only. Native Windows users should run `scripts/retrain.ps1` directly unless they are using WSL/Git Bash.
-
-With snapshot arguments, both scripts run:
-
-1. validate the immutable snapshot, class order, source checksums, and pinned DINOv2 backbone;
-2. precompute snapshot embeddings;
-3. warm-start `train.py` from the current `projection.pt`;
-4. evaluate with the persisted train/dev/locked-test split and export prototypes;
-5. export an immutable candidate plus snapshot provenance under `backend/model_registry/versions/<version_id>/`.
-
-The admin launcher supplies these arguments automatically. Direct no-argument script use remains the approved-only compatibility path. Dry-run the cumulative stage list with the explicit command in the root README.
-
-No MobileSAM/segmentation retraining is performed by `scripts/retrain.*`.
-
-Retraining/export is safe by default: it creates a candidate package and refuses
-direct writes to `backend/codex_model/` unless the bootstrap-only
-`--allow-runtime-write` flag is used by install/dev setup. Activate a candidate
-with the promotion tool:
-
-```bash
-backend/.venv/bin/python scripts/promote_model.py <version_id> --dry-run
-backend/.venv/bin/python scripts/promote_model.py <version_id>
-```
-
-Promotion validates the registered version, rejects unsafe artifact paths,
-checks index-pinned manifest/checksum hashes, verifies `checksums.sha256`,
-snapshots current runtime files under
-`backend/model_registry/snapshots/`, atomically copies the candidate runtime
-files into `backend/codex_model/`, verifies post-copy hashes, and records
-`original`/`previous`/`promoted` pointers in `backend/model_registry/index.json`.
-If a process is interrupted mid-promotion, `backend/model_registry/promotion_in_progress.json`
-remains as a recovery marker and is surfaced by `/admin/training/summary`.
-Promotion refuses to run with an ambient `MODEL_DIR` override unless `--runtime-dir`
-is supplied explicitly, because otherwise the backend may load weights outside
-the package being promoted.
-
-`export_model.py` loads trusted local `.pt` prototype artifacts produced by the
-training pipeline. Do not point it at untrusted pickle/PyTorch files.
-
-Rollback uses the same verification/snapshot path:
-
-```bash
-backend/.venv/bin/python scripts/promote_model.py --rollback --dry-run
-backend/.venv/bin/python scripts/promote_model.py --rollback
-```
-
-A lockfile at `backend/.retrain.lock` prevents concurrent retrains. Restart the Flask backend after promotion or rollback so it loads the selected runtime weights; candidate creation alone does not change predictions.
+See [the operator guide](../docs/admin-model-retraining-workflow.md) for permissions and advanced snapshot mode.

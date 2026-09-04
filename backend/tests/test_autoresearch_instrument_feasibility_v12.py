@@ -53,6 +53,10 @@ def _local_evidence() -> dict:
     }
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+)
 def test_v12_contract_is_hash_pinned_and_forbids_inference() -> None:
     contract = module.validate_contract()
     assert contract["spec_sha256"] == module.EXPECTED_SPEC_SHA256
@@ -80,6 +84,10 @@ def test_parser_extracts_integer_terms_and_decodes_entities() -> None:
     ]
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+)
 def test_gate_zero_short_circuits_at_theoretical_ceiling_41() -> None:
     contract = module.validate_contract()
     _, audit = module.build_audit(
@@ -101,6 +109,10 @@ def test_gate_zero_short_circuits_at_theoretical_ceiling_41() -> None:
     assert audit["decision"] == "instrument_not_acquired"
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+)
 def test_changed_official_exclusion_name_is_rejected() -> None:
     contract = module.validate_contract()
     changed_term = contract["rules"]["excluded_visual_lexicon_terms"][0]["term_id"]
@@ -112,6 +124,10 @@ def test_changed_official_exclusion_name_is_rejected() -> None:
         )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-independent-instrument-v12/manuscript-exclusion-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-independent-instrument-v12/manuscript-exclusion-rules.json",
+)
 def test_replay_is_exact_but_feasibility_pass_remains_false(tmp_path: Path) -> None:
     contract = module.validate_contract()
     inventory, audit = module.build_audit(

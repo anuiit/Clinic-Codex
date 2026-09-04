@@ -85,8 +85,8 @@ def test_refit_experiment_writes_runtime_compatible_checkpoint_and_provenance(tm
     assert result["schema_version"] == "autoresearch-refit.v1"
     assert result["runtime_compatible"] is True
     assert result["glyphs_allowed"] is False
-    assert result["checkpoint_best_path"].endswith("checkpoints/best.pt")
-    assert result["checkpoint_latest_path"].endswith("checkpoints/latest.pt")
+    assert Path(result["checkpoint_best_path"]).parts[-2:] == ("checkpoints", "best.pt")
+    assert Path(result["checkpoint_latest_path"]).parts[-2:] == ("checkpoints", "latest.pt")
     assert result["provenance_path"].endswith("refit_provenance.json")
     assert (output_dir / "checkpoints" / "latest.pt").is_file()
     assert (output_dir / "checkpoints" / "best.pt").is_file()

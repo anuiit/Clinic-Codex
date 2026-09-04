@@ -110,6 +110,26 @@ beforeEach(() => {
 });
 
 describe("AnnotationPage element naming UX", () => {
+  it("keeps each element note when switching the selected element", async () => {
+    const user = userEvent.setup();
+    const first = { ...BASE_RECORD.result.elements[0], note: "première note" };
+    const second = { ...first, class_name: "beta", note: "seconde note" };
+    renderPage({ ...BASE_RECORD, result: { ...BASE_RECORD.result, num_elements: 2, elements: [first, second] } });
+    await user.click(await screen.findByText("atl"));
+    const note = screen.getByTestId("annotation-element-note");
+    await user.clear(note);
+    await user.type(note, "note corrigée");
+    await user.click(screen.getByText("beta"));
+    expect(screen.getByTestId("annotation-element-note")).toHaveValue("seconde note");
+    await user.click(screen.getByText("atl"));
+    expect(screen.getByTestId("annotation-element-note")).toHaveValue("note corrigée");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(updateElements).toHaveBeenCalledWith("test-id", [
+      expect.objectContaining({ note: "note corrigée" }),
+      expect.objectContaining({ note: "seconde note" }),
+    ], {});
+  });
+
   it("stays on the current annotation after saving", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -575,7 +595,7 @@ describe("AnnotationPage element naming UX", () => {
       within(chrome).getByRole("button", { name: "Envoyer pour revue" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("annotation-admin-notice")).toHaveTextContent(
-      "Les éléments prêts peuvent être envoyés pour revue",
+      "Admin → Trier",
     );
     expect(
       within(chrome).queryByRole("searchbox", { name: /filtrer/i }),

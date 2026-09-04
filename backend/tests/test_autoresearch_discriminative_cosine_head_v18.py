@@ -24,6 +24,10 @@ def load_module():
     return module
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-model-decision-audit-v17/iteration-0003-amendment-log.json").exists(),
+    reason="requires unshipped research artifact: 20260803-model-decision-audit-v17/iteration-0003-amendment-log.json",
+)
 def test_contract_dependencies_and_canonical_cache_pins_are_frozen() -> None:
     module = load_module()
     contract = module.validate_contract(

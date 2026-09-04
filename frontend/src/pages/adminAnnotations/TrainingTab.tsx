@@ -24,6 +24,9 @@ function trainingLaunchReasonLabel(reason: string) {
   if (reason.startsWith("training_snapshot_stale:")) {
     return "Le snapshot cumulatif ne contient pas les dernières validations : reconstruisez-le avant le réentraînement.";
   }
+  if (reason.startsWith("training_snapshot_annotations_not_in_train:")) {
+    return "Les validations sont hors entraînement : reconstruisez le snapshot avec --train-live-annotations.";
+  }
   if (reason.startsWith("training_model_dir_override_unsupported:")) {
     return "MODEL_DIR est actif : désactivez cet override avant le réentraînement admin.";
   }
@@ -135,6 +138,7 @@ export function TrainingTab() {
     );
   }
 
+  const localPrior = summary.training_snapshot.mode === "local_prior";
   const jobRunning = latestJob?.status === "running";
   const disabled =
     !summary.launch_allowed_for_request || starting || jobRunning;
@@ -149,17 +153,17 @@ export function TrainingTab() {
     ? "Lancement bloqué"
     : "Prêt pour essai local";
   const launchMode = dryRun ? "Essai à blanc sélectionné" : "Entraînement complet sélectionné";
-  const launchModeCopy = dryRun
-    ? "L'essai à blanc vérifie le snapshot cumulatif, le modèle existant et le chemin de génération du candidat sans lancer l'entraînement."
-    : "Le réentraînement part du modèle existant et du snapshot cumulatif incluant les validations. Il crée uniquement un candidat local.";
+  const launchModeCopy = localPrior
+    ? (dryRun
+      ? "L'essai à blanc capture les annotations validées et vérifie la base et DINOv2, sans créer de candidat."
+      : "La base fournie et toutes les annotations actuellement validées sont combinées automatiquement. Les doublons exacts ne comptent qu'une fois. La projection reste figée ; un candidat est créé sans activation.")
+    : (dryRun
+      ? "L'essai à blanc vérifie le snapshot cumulatif, le modèle existant et le chemin de génération du candidat sans lancer l'entraînement."
+      : "La projection existante est conservée. Seuls les prototypes des classes annotées sont recalculés avec leurs exemples cumulés et les validations. Un candidat local est créé, sans activation automatique.");
   const modelConfig = isRecord(summary.parameters.config.model)
     ? summary.parameters.config.model
     : {};
-  const trainingConfig = isRecord(summary.parameters.config.training)
-    ? summary.parameters.config.training
-    : {};
-  const backbone = formatPrimitiveValue(modelConfig.backbone ?? "ResNet18 · baseline");
-  const epochs = formatPrimitiveValue(trainingConfig.num_epochs ?? 30);
+  const backbone = formatPrimitiveValue(modelConfig.backbone ?? "DINOv2-S/14");
   const splitCounts = summary.data.split_counts as AdminTrainingSummary["data"]["split_counts"] | undefined;
   const snapshotSplits = summary.training_snapshot.split_counts;
   if (!splitCounts) {
@@ -180,25 +184,26 @@ export function TrainingTab() {
           Réentraînement cumulatif local
         </h2>
         <p className="ui-text-caption">
-          Le lancement reste volontairement protégé. Cette page sert d'assistant guidé : un administrateur technique ouvre
-          le mode entraînement local, puis l'opérateur vérifie le dataset et lance d'abord un essai à blanc.
+          {localPrior
+            ? "Annotez, validez les éléments, puis lancez un essai à blanc et créez votre candidat. Aucun corpus privé ni préparation manuelle de snapshot n'est requis."
+            : "Le mode avancé utilise le snapshot cumulatif configuré. Vérifiez le dataset et lancez d'abord un essai à blanc."}
         </p>
       </AdminSection>
 
       <section className="admin-train-config" aria-label="Configuration d'entraînement">
         <div className="admin-train-config-line"><span>Modèle</span><strong>{backbone}</strong></div>
-        <div className="admin-train-config-line"><span>Époques</span><strong>{epochs}</strong></div>
+        <div className="admin-train-config-line"><span>Méthode</span><strong>Mise à jour des prototypes annotés</strong></div>
         <div className="admin-train-config-line"><span>Batch</span><strong>{batchSize}</strong></div>
         <div className="admin-train-config-line"><span>Sortie</span><strong>{summary.paths.runs_dir}</strong></div>
       </section>
 
       <section className="admin-train-checks" aria-label="Préflight d'entraînement">
-        <div className={`admin-train-check ${summary.training_snapshot.valid ? "ok" : "warn"}`}><i>{summary.training_snapshot.valid ? "✓" : "!"}</i><b>Snapshot cumulatif</b><small>{summary.training_snapshot.row_count ?? "—"}</small></div>
-        <div className="admin-train-check ok"><i>✓</i><b>Nouvelles validations prises en compte</b><small>{summary.training_snapshot.live_annotation_count ?? "—"}</small></div>
+        <div className={`admin-train-check ${summary.training_snapshot.valid ? "ok" : "warn"}`}><i>{summary.training_snapshot.valid ? "✓" : "!"}</i><b>{localPrior ? "Préparation automatique" : "Snapshot cumulatif"}</b><small>{summary.training_snapshot.row_count ?? "—"}</small></div>
+        <div className={`admin-train-check ${summary.training_snapshot.live_train_count ? "ok" : "warn"}`}><i>{summary.training_snapshot.live_train_count ? "✓" : "!"}</i><b>Validations réellement utilisées dans le train</b><small>{summary.training_snapshot.live_train_count ?? "—"} / {summary.training_snapshot.live_annotation_count ?? "—"}</small></div>
         <div className={`admin-train-check ${snapshotSplits ? "ok" : "warn"}`}><i>{snapshotSplits ? "✓" : "!"}</i><b>Split train/dev/test verrouillé</b><small>{snapshotSplits ? `${snapshotSplits.train}/${snapshotSplits.dev}/${snapshotSplits.locked_test}` : "—"}</small></div>
         <div className="admin-train-check warn"><i>!</i><b>À vérifier</b><small>{summary.data.pending}</small></div>
         <div className="admin-train-check warn"><i>!</i><b>Exclues</b><small>{splitCounts.excluded}</small></div>
-        <div className="admin-train-check ok"><i>✓</i><b>GPU local</b><small>{device}</small></div>
+        <div className="admin-train-check"><i>→</i><b>Machine demandée</b><small>{device}</small></div>
       </section>
 
       {!summary.launch_allowed_for_request ? (
@@ -237,15 +242,15 @@ export function TrainingTab() {
       <ol className="admin-workflow-steps" aria-label="Parcours d'entraînement">
         <li>
           <strong>1. Vérifier les éléments</strong>
-          <span>Le snapshot doit inclure le corpus existant et toutes les validations à jour.</span>
+          <span>{localPrior ? "Toutes les annotations validées à jour seront capturées automatiquement." : "Le snapshot doit inclure le corpus existant et toutes les validations à jour."}</span>
         </li>
         <li>
           <strong>2. Essai à blanc d'abord</strong>
           <span>Tester la préparation locale sans remplacer le modèle.</span>
         </li>
         <li>
-          <strong>3. Promouvoir explicitement</strong>
-          <span>Contrôler le candidat avant redémarrage.</span>
+          <strong>3. Examiner le candidat</strong>
+          <span>Consulter le résultat ; le modèle utilisé par l'app reste inchangé.</span>
         </li>
       </ol>
 
@@ -270,11 +275,11 @@ export function TrainingTab() {
       >
         <LossMetricPreview job={latestJob} />
         <ValidationAccuracyMetricPreview job={latestJob} />
-        <ClassDistributionBars splitCounts={splitCounts} />
+        <ClassDistributionBars splitCounts={localPrior ? { train: summary.data.trainable, val: 0, test: 0, excluded: summary.data.total - summary.data.trainable } : splitCounts} />
       </section>
       <p className="ui-text-caption px-1">
-        Les courbes de perte et validation s’activent quand le journal du run expose ces métriques. Les barres de split utilisent
-        la distribution réelle du résumé local.
+        Aucune courbe simulée. Le résultat affiche les mesures réellement calculées.
+        En mode automatique, toutes les validations servent à l'apprentissage : il n'y a pas de test indépendant.
       </p>
 
       <TrainingConsole summary={summary} job={latestJob} />
@@ -315,12 +320,12 @@ export function TrainingTab() {
           <div>
             <dt className="ui-text-caption">Utilisera</dt>
             <dd>
-              {summary.training_snapshot.row_count ?? "—"} images cumulées
+              {summary.training_snapshot.row_count ?? "—"} {localPrior ? "annotations avant dédoublonnage + base fournie" : "images cumulées"}
             </dd>
           </div>
           <div>
             <dt className="ui-text-caption">Snapshot</dt>
-            <dd>{summary.training_snapshot.snapshot_id ?? "Non configuré"}</dd>
+            <dd>{localPrior ? "Créé automatiquement au lancement" : summary.training_snapshot.snapshot_id ?? "Non configuré"}</dd>
           </div>
           <div>
             <dt className="ui-text-caption">Validations live prises en compte</dt>

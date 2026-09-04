@@ -99,6 +99,10 @@ def test_eligibility_has_no_within_component_fallback() -> None:
     assert audit["positive_ordered_pair_count"] == 0
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/iteration-0001/caches/fold-01-views08.pt").exists(),
+    reason="requires unshipped research artifact: caches/fold-01-views08.pt",
+)
 def test_real_cache_eligibility_matches_every_frozen_fold_manifest() -> None:
     module = load_module()
     manifest = module.read_json(module.DEFAULT_MANIFEST)

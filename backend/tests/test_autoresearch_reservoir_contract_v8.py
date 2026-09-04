@@ -269,6 +269,10 @@ def test_positive_identity_requires_the_full_documentary_chain() -> None:
     assert missing == []
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omx/reviews/data-discovery/import-plan-20260707/import_manifest.approved.json").exists(),
+    reason="requires unshipped research artifact: import-plan-20260707/import_manifest.approved.json",
+)
 def test_real_manifest_has_the_preregistered_candidate_population() -> None:
     manifest = (
         ROOT

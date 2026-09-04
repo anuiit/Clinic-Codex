@@ -39,6 +39,7 @@ _RUNTIME_ARTIFACTS = {
     "runtime/weights/prototypes.pt",
 }
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
+PREPROCESSING_VERSION = "runtime-lanczos-whitepad-imagenet.v1"
 
 
 class ModelPackageValidationError(ValueError):
@@ -310,6 +311,7 @@ class CodexClassifier:
         self,
         model_dir: Optional[Union[str, Path]] = None,
         device: Optional[str] = None,
+        backbone_manifest: Optional[Union[str, Path]] = None,
     ):
         module_dir = Path(__file__).parent
         requested_dir = Path(model_dir) if model_dir is not None else module_dir / "weights"
@@ -334,6 +336,7 @@ class CodexClassifier:
             else:
                 device = "cpu"
         self.device = torch.device(device)
+        self._backbone_manifest = backbone_manifest
         self._load_weights()
 
     # ------------------------------------------------------------------
@@ -463,12 +466,14 @@ class CodexClassifier:
         self._projection.eval()
 
         backbone_name = self.config["backbone"]
-        self._backbone = torch.hub.load(
-            "facebookresearch/dinov2",
-            backbone_name,
-            pretrained=True,
-        ).to(self.device)
-        self._backbone.eval()
+        if self._backbone_manifest is not None:
+            from scripts.pin_dinov2 import load_backbone
+
+            self._backbone, _ = load_backbone(backbone_name, self.device, self._backbone_manifest)
+        else:
+            self._backbone = torch.hub.load(
+                "facebookresearch/dinov2", backbone_name, pretrained=True,
+            ).to(self.device).eval()
 
         self._image_size = self.config["image_size"]
         self._rejection_threshold = float(self.config["rejection_threshold"])

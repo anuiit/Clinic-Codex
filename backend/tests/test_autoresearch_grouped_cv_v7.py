@@ -95,7 +95,7 @@ def test_experiment_contract_is_ten_non_independent_specs() -> None:
 
 def test_resolved_is_lexical_and_does_not_require_existing_paths() -> None:
     assert module.resolved("/missing/root/../root/file.bmp") == "/missing/root/../root/file.bmp"
-    assert module.resolved("relative/file.bmp").endswith("/clinic-codex/relative/file.bmp")
+    assert module.resolved("relative/file.bmp") == (module.REPO_ROOT / "relative/file.bmp").as_posix()
 
 def test_source_groups_are_root_independent() -> None:
     left = "/tmp/legacy/Elements/0001-a/03_04_22-27.bmp"

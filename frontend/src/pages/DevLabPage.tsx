@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Activity, BarChart3, Beaker, Box, Code, Database, Image, Layers, Sliders, ToggleLeft, Zap } from 'lucide-react';
 import { getClasses, getRuntimeVersion, getSimilar, adminAnnotationMediaUrl } from '../services/api';
 import { isArchetypeGalleryEnabled } from './workspace/archetypeFlag';
-import type { ClassesResult, RuntimeVersionInfo, SimilarResult } from '../types';
+import type { SimilarResult } from '../types';
 
 interface ModelInfo {
   app_name: string;
@@ -52,7 +52,7 @@ function useModelInfo(): { data: ModelInfo | null; loading: boolean; error: stri
   return { data, loading, error };
 }
 
-function StatCard({ icon: Icon, label, value, sub }: { icon: React.ComponentType<{ size?: number }>; label: string; value: string | number; sub?: string }) {
+function StatCard({ icon: Icon, label, value, sub }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; value: string | number; sub?: string }) {
   return (
     <div className="flex items-start gap-3 rounded border border-[color:var(--border-subtle)] p-4">
       <Icon size={20} className="mt-0.5 shrink-0 text-[color:var(--text-muted)]" />

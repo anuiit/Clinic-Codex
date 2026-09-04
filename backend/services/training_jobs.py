@@ -11,6 +11,7 @@ import errno
 import json
 import os
 import subprocess
+import sys
 import threading
 import uuid
 from contextlib import contextmanager
@@ -25,11 +26,13 @@ try:
     from backend.security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address
     from backend.services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file
     from backend.services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore
+    from backend.codex_pipeline.data.snapshot import live_annotation_usage
 except ImportError:  # pragma: no cover - compatibility when backend dir is sys.path root
     from app.config import Settings  # type: ignore
     from security.local_guard import RequestLaunchContext, is_local_origin, is_loopback_address  # type: ignore
     from services.model_registry import SCHEMA_VERSION, ModelRegistry, ModelRegistryValidationError, safe_relative_path, sha256_file  # type: ignore
     from services.annotation_review import LOCAL_ONLY_WARNING, AnnotationReviewStore  # type: ignore
+    from codex_pipeline.data.snapshot import live_annotation_usage  # type: ignore
 
 ALLOWED_JOB_FIELDS = {"dry_run", "device", "batch_size", "notes"}
 DEFAULT_ALLOWED_DEVICES = ("auto", "cpu", "mps", "cuda")
@@ -339,7 +342,11 @@ class AdminTrainingService:
         self.settings = settings
         self.review_store = review_store
         self.runs_dir = settings.admin_training_runs_dir
-        self.script_path = settings.admin_training_script_path
+        self.local_prior_mode = settings.admin_training_snapshot_path is None
+        self.script_path = (
+            settings.backend_root.parent / "scripts" / "retrain_local.py"
+            if self.local_prior_mode else settings.admin_training_script_path
+        )
         self.repo_root = settings.backend_root.parent
         self.model_registry = ModelRegistry(
             settings.model_registry_dir,
@@ -489,11 +496,41 @@ class AdminTrainingService:
             str(self.settings.admin_training_config_path),
             "--init-projection",
             str(self.settings.classifier_weights_dir / "projection.pt"),
+            "--update-annotated-prototypes",
         ] + (["--dry-run"] if request["dry_run"] else [])
+        if self.script_path.suffix == ".ps1":
+            switches = {
+                "--elements-dir": "-ElementsDirOverride",
+                "--approved-manifest": "-ApprovedManifestOverride",
+                "--metadata-csv": "-MetadataCsvOverride",
+                "--backbone-manifest": "-BackboneManifestOverride",
+                "--config": "-TrainingConfigOverride",
+                "--init-projection": "-InitProjection",
+                "--update-annotated-prototypes": "-UpdateAnnotatedPrototypes",
+                "--dry-run": "-DryRun",
+            }
+            command = [
+                "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                *[switches.get(arg, arg) for arg in command[1:]],
+            ]
+        if self.local_prior_mode:
+            command = [
+                sys.executable, str(self.script_path),
+                "--backend-root", str(self.settings.backend_root),
+                "--annotations-dir", str(self.review_store.annotations_dir),
+                "--review-manifest", str(self.review_store.manifest_path),
+                "--backbone-manifest", str(self.settings.admin_training_backbone_manifest_path),
+                "--registry-dir", str(self.settings.model_registry_dir),
+                "--version-id", model_version_id,
+                "--device", request["device"], "--batch-size", str(request["batch_size"]),
+            ] + (["--dry-run"] if request["dry_run"] else [])
         env = {
+            **{key: os.environ[key] for key in ("SystemRoot", "WINDIR", "TEMP", "TMP", "USERNAME", "USERPROFILE", "LOCALAPPDATA") if key in os.environ},
             "PATH": os.environ.get("PATH", ""),
             "HOME": os.environ.get("HOME", ""),
             "PYTHONUNBUFFERED": "1",
+            "PYTHONUTF8": "1",
+            "PYTHON": sys.executable,
             "BATCH_SIZE": str(request["batch_size"]),
             "DEVICE": request["device"],
             "MODEL_VERSION_ID": model_version_id,
@@ -508,6 +545,7 @@ class AdminTrainingService:
             "status": "running",
             "local_only": True,
             "dry_run": request["dry_run"],
+            "training_mode": "local_prior" if self.local_prior_mode else "annotated_prototypes",
             "device": request["device"],
             "batch_size": request["batch_size"],
             "notes": request["notes"],
@@ -622,6 +660,14 @@ class AdminTrainingService:
         log_path = Path(status.get("log_path") or status_path.parent / "train.log")
         status["log_tail"] = _tail_lines(log_path, self.settings.admin_training_log_tail_lines)
         status["artifacts"] = self._artifacts()
+        if status.get("status") == "succeeded" and not status.get("dry_run") and status.get("training_mode") == "local_prior":
+            version_id = status["model_version_id"]
+            health = self._manifest_health(version_id)
+            if health["status"] == "healthy":
+                status["result"] = _read_json(self.model_registry.version_dir(version_id) / "evaluation/local.json")
+            else:
+                status["status"] = "failed"
+                status["error"] = "Candidate integrity check failed: " + "; ".join(health["errors"])
         return status
 
     def _parameters(self) -> dict[str, Any]:
@@ -695,6 +741,8 @@ class AdminTrainingService:
             "row_count": None,
             "class_count": None,
             "live_annotation_count": None,
+            "live_train_count": None,
+            "live_split_counts": None,
             "live_annotations_sha256": None,
             "ready_for_training": False,
             "promotion_evaluation_ready": False,
@@ -704,9 +752,24 @@ class AdminTrainingService:
         }
         errors: list[str] = info["errors"]
         if snapshot_dir is None:
-            errors.append(
-                "training_snapshot_not_configured: set ADMIN_TRAINING_SNAPSHOT_DIR"
-            )
+            required = {
+                "training_base_prior_missing": self.settings.backend_root / "prototypes/prototypes.pt",
+                "training_backbone_manifest_missing": self.settings.admin_training_backbone_manifest_path,
+                "training_warmstart_projection_missing": self.settings.classifier_weights_dir / "projection.pt",
+                "training_warmstart_prototypes_missing": self.settings.classifier_weights_dir / "prototypes.pt",
+                "training_base_config_missing": self.settings.class_config_path,
+            }
+            errors.extend(name for name, path in required.items() if not path.is_file())
+            records = list(self.review_store.iter_approved_annotations())
+            count = len(records)
+            info.update({
+                "mode": "local_prior", "configured": True, "valid": not errors,
+                "ready_for_training": not errors and count > 0,
+                "row_count": count, "class_count": len({row["class_name"] for row in records}),
+                "live_annotation_count": count, "live_train_count": count,
+                "live_split_counts": {"train": count, "dev": 0, "locked_test": 0, "excluded": 0},
+                "snapshot_id": "automatic-at-launch",
+            })
             return info
 
         manifest_path = snapshot_dir / "snapshot_manifest.json"
@@ -722,6 +785,9 @@ class AdminTrainingService:
             "training_snapshot_config_missing": self.settings.admin_training_config_path.is_file(),
             "training_warmstart_projection_missing": (
                 self.settings.classifier_weights_dir / "projection.pt"
+            ).is_file(),
+            "training_warmstart_prototypes_missing": (
+                self.settings.classifier_weights_dir / "prototypes.pt"
             ).is_file(),
         }
         errors.extend(name for name, present in required.items() if not present)
@@ -752,6 +818,15 @@ class AdminTrainingService:
         )
         if not info["ready_for_training"]:
             errors.append("training_snapshot_not_ready")
+
+        try:
+            usage = live_annotation_usage(manifest)
+            info["live_split_counts"] = usage["split_counts"]
+            info["live_train_count"] = usage["split_counts"]["train"]
+            if any(usage["split_counts"][split] for split in ("dev", "locked_test", "excluded")):
+                errors.append("training_snapshot_annotations_not_in_train: rebuild with --train-live-annotations")
+        except (ValueError, TypeError, KeyError):
+            errors.append("training_snapshot_live_usage_invalid")
 
         try:
             manifest_live_records = _manifest_live_annotation_records(manifest)

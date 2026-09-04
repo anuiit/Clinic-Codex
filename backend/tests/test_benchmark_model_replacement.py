@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import torch
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "benchmark_model_replacement.py"
@@ -20,6 +21,11 @@ from backend.codex_pipeline.models.projection_head import ProjectionHead
 
 
 CLASS_COUNT = 286
+
+
+def test_snapshot_row_identity_takes_priority_over_annotation_index_and_relative_path():
+    rows = [{"row_id": "b", "index": 0, "output_path": "Elements/b.bmp"}]
+    assert benchmark._resolve_indices(rows, features_len=2, image_paths=["/snapshot/Elements/a.bmp", "/snapshot/Elements/b.bmp"], row_ids=["a", "b"]) == [1]
 
 
 def _write_package(root: Path, *, nested_runtime: bool = False) -> Path:
@@ -51,7 +57,15 @@ def _write_package(root: Path, *, nested_runtime: bool = False) -> Path:
         second.bias.zero_()
         second.weight.copy_(torch.eye(CLASS_COUNT))
     torch.save(head.state_dict(), weights_dir / "projection.pt")
-    torch.save({"prototypes": torch.eye(CLASS_COUNT)}, weights_dir / "prototypes.pt")
+    torch.save(
+        {
+            "prototypes": torch.eye(CLASS_COUNT),
+            "class_labels": torch.arange(CLASS_COUNT, dtype=torch.long),
+            "class_names": {idx: name for idx, name in enumerate(class_names)},
+            "embedding_dim": CLASS_COUNT,
+        },
+        weights_dir / "prototypes.pt",
+    )
     return package_root
 
 
@@ -95,6 +109,7 @@ def _write_features(path: Path) -> Path:
         )
 
     payload = {
+        "preprocessing": benchmark.PREPROCESSING_VERSION,
         "features": torch.stack(features),
         "labels": torch.tensor(labels, dtype=torch.long),
         "image_paths": image_paths,
@@ -111,7 +126,19 @@ def _write_features(path: Path) -> Path:
     return manifest_path
 
 
-def test_benchmark_model_replacement_builds_train_only_prototypes_and_writes_json(tmp_path: Path) -> None:
+@pytest.mark.parametrize("preprocessing", [None, "old-bilinear"])
+def test_stored_benchmark_rejects_old_preprocessing(tmp_path, preprocessing):
+    features = tmp_path / "features.pt"
+    manifest = _write_features(features)
+    payload = torch.load(features, weights_only=True)
+    payload["preprocessing"] = preprocessing
+    torch.save(payload, features)
+    with pytest.raises(ValueError, match="preprocessing.*rebuild"):
+        benchmark.benchmark_model_replacement(features_path=features, split_manifest_path=manifest,
+                                             runtime_dir=tmp_path, candidate_dir=tmp_path)
+
+
+def test_benchmark_model_replacement_uses_exported_prototypes_and_writes_json(tmp_path: Path) -> None:
     features_path = tmp_path / "features.pt"
     split_manifest_path = _write_features(features_path)
     runtime_dir = _write_package(tmp_path / "runtime")
@@ -130,7 +157,10 @@ def test_benchmark_model_replacement_builds_train_only_prototypes_and_writes_jso
 
     written = json.loads(output_path.read_text(encoding="utf-8"))
     assert report == written
-    assert report["schema_version"] == "benchmark-model-replacement.v1"
+    assert report["schema_version"] == "benchmark-model-replacement.v2"
+    assert report["prototype_mode"] == "stored"
+    assert report["models"]["runtime"]["prototype_source"]["sha256"]
+    assert report["numeric_label_contract"]["equal"] is True
     assert report["class_count"] == CLASS_COUNT
     assert report["eval_split"] == "test"
     assert report["train_examples"] == CLASS_COUNT
@@ -159,3 +189,38 @@ def test_benchmark_model_replacement_builds_train_only_prototypes_and_writes_jso
     assert candidate["train_examples"] == CLASS_COUNT
     assert candidate["eval_examples"] == CLASS_COUNT
     assert output_path.is_file()
+
+
+def test_benchmark_model_replacement_detects_degraded_exported_prototypes(tmp_path: Path) -> None:
+    features_path = tmp_path / "features.pt"
+    split_manifest_path = _write_features(features_path)
+    runtime_dir = _write_package(tmp_path / "runtime")
+    candidate_root = _write_package(tmp_path / "candidate", nested_runtime=True)
+    prototypes_path = candidate_root / "weights" / "prototypes.pt"
+    package = torch.load(prototypes_path, map_location="cpu", weights_only=True)
+    package["prototypes"] = torch.roll(package["prototypes"], shifts=1, dims=0)
+    torch.save(package, prototypes_path)
+
+    stored = benchmark.benchmark_model_replacement(
+        features_path=features_path,
+        split_manifest_path=split_manifest_path,
+        runtime_dir=runtime_dir,
+        candidate_dir=candidate_root,
+        batch_size=64,
+        device="cpu",
+    )
+    refit = benchmark.benchmark_model_replacement(
+        features_path=features_path,
+        split_manifest_path=split_manifest_path,
+        runtime_dir=runtime_dir,
+        candidate_dir=candidate_root,
+        batch_size=64,
+        device="cpu",
+        prototype_mode="refit",
+    )
+
+    assert stored["models"]["runtime"]["top1_micro"] == 1.0
+    assert stored["models"]["candidate"]["top1_micro"] == 0.0
+    assert stored["comparison"]["top1_micro_delta"] == -1.0
+    assert refit["models"]["candidate"]["top1_micro"] == 1.0
+    assert stored["paired_predictions"][0]["truth_class_name"] == "class_000"

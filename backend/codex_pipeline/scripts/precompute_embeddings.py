@@ -33,7 +33,6 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch
 import yaml
@@ -52,6 +51,7 @@ from codex_pipeline.data.class_order import (
 )
 from codex_pipeline.data.metadata import filter_classes, load_metadata
 from scripts.pin_dinov2 import sha256_tree
+from codex_model.classifier import PREPROCESSING_VERSION, _preprocess_image
 
 
 def sha256_file(path: str | Path) -> str:
@@ -204,76 +204,8 @@ def validate_snapshot_contract(
     }
 
 
-def load_backbone(backbone_name: str, device: torch.device, backbone_manifest: str | Path | None = None):
-    if backbone_manifest is None:
-        print("Loading DINOv2-S/14 backbone from torch.hub...")
-        backbone = torch.hub.load(
-            "facebookresearch/dinov2",
-            backbone_name,
-            pretrained=True,
-        )
-        return backbone.to(device).eval(), {
-            "mode": "torch_hub_pretrained",
-            "backbone": backbone_name,
-        }
-
-    manifest_path = Path(backbone_manifest)
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict):
-        raise ValueError(f"backbone manifest must be a JSON object: {manifest_path}")
-    if manifest.get("schema_version") != "dinov2-local-pin.v1":
-        raise ValueError(f"backbone manifest has an unsupported schema: {manifest_path}")
-    if manifest.get("backbone") != backbone_name:
-        raise ValueError(
-            f"backbone manifest targets {manifest.get('backbone')!r}, expected {backbone_name!r}"
-        )
-
-    repository_raw = manifest.get("repository_path")
-    weights_raw = manifest.get("weights_path")
-    if not isinstance(repository_raw, str) or not repository_raw:
-        raise ValueError("backbone manifest repository_path must be a non-empty string")
-    if not isinstance(weights_raw, str) or not weights_raw:
-        raise ValueError("backbone manifest weights_path must be a non-empty string")
-    repository_path = Path(repository_raw)
-    weights_path = Path(weights_raw)
-    if not repository_path.is_dir():
-        raise FileNotFoundError(f"backbone repository path missing: {repository_path}")
-    if not (repository_path / "hubconf.py").is_file():
-        raise FileNotFoundError(f"backbone repository is not a torch.hub checkout: {repository_path}")
-    if not weights_path.is_file():
-        raise FileNotFoundError(f"backbone weights file missing: {weights_path}")
-
-    expected_weights_sha = manifest.get("weights_sha256")
-    actual_weights_sha = sha256_file(weights_path)
-    if expected_weights_sha != actual_weights_sha:
-        raise ValueError(
-            "backbone weights checksum mismatch: "
-            f"expected {expected_weights_sha}, got {actual_weights_sha}"
-        )
-    expected_source_sha = manifest.get("source_tree_sha256")
-    actual_source_sha = sha256_tree(repository_path)
-    if expected_source_sha != actual_source_sha:
-        raise ValueError(
-            "backbone source tree checksum mismatch: "
-            f"expected {expected_source_sha}, got {actual_source_sha}"
-        )
-
-    print("Loading DINOv2-S/14 backbone from local pin...")
-    backbone = torch.hub.load(str(repository_path), backbone_name, source="local", pretrained=False)
-    state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
-    backbone.load_state_dict(state_dict, strict=True)
-    backbone = backbone.to(device).eval()
-    return backbone, {
-        "mode": "local_pin",
-        "backbone": backbone_name,
-        "manifest_path": str(manifest_path.resolve()),
-        "manifest_sha256": sha256_file(manifest_path),
-        "repository_path": str(repository_path),
-        "repository_sha256": actual_source_sha,
-        "weights_path": str(weights_path),
-        "weights_sha256": actual_weights_sha,
-    }
-
+# Shared with runtime inference: identical pin validation and local loading.
+from scripts.pin_dinov2 import load_backbone
 
 class SimpleImageDataset(Dataset):
     """Minimal dataset: load image, resize, normalize. No augmentation."""
@@ -281,40 +213,14 @@ class SimpleImageDataset(Dataset):
     def __init__(self, metadata, image_size=224):
         self.metadata = metadata.reset_index(drop=True)
         self.image_size = image_size
-        # ImageNet normalization (DINOv2 pretrained stats)
-        self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
     def __len__(self):
         return len(self.metadata)
 
     def __getitem__(self, idx):
         row = self.metadata.iloc[idx]
-        img = Image.open(row["image_path"]).convert("RGB")
-
-        # Resize maintaining aspect ratio, then center-crop/pad to square
-        img = self._resize_and_pad(img, self.image_size)
-
-        # To float tensor and normalize
-        img = np.array(img, dtype=np.float32) / 255.0
-        img = (img - self.mean) / self.std
-        img = torch.from_numpy(img).permute(2, 0, 1)  # (3, H, W)
-
-        return img, row["class_label"]
-
-    def _resize_and_pad(self, img, size):
-        """Resize longest side to `size`, pad shorter side with white."""
-        w, h = img.size
-        scale = size / max(w, h)
-        new_w, new_h = int(w * scale), int(h * scale)
-        img = img.resize((new_w, new_h), Image.BILINEAR)
-
-        # Pad to square
-        padded = Image.new("RGB", (size, size), (255, 255, 255))
-        offset_x = (size - new_w) // 2
-        offset_y = (size - new_h) // 2
-        padded.paste(img, (offset_x, offset_y))
-        return padded
+        with Image.open(row["image_path"]) as image:
+            return _preprocess_image(image, self.image_size).squeeze(0), row["class_label"]
 
 
 def get_device(device_str):
@@ -480,10 +386,12 @@ def main():
         "backbone": cfg["model"]["backbone"],
         "hidden_dim": hidden_dim,
         "image_size": cfg["data"]["image_size"],
+        "preprocessing": PREPROCESSING_VERSION,
     }, out_path)
 
     provenance = {
         "schema_version": "features-cache.v1",
+        "preprocessing": PREPROCESSING_VERSION,
         "config_path": str(Path(args.config).resolve()),
         "config_sha256": sha256_file(args.config),
         "metadata_csv_path": str(Path(metadata_csv).resolve()),

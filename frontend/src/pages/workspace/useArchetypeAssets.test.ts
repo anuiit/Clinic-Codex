@@ -68,6 +68,7 @@ describe('useArchetypeAssets', () => {
     expect(result.current.assets.get('calli')).toBeNull();
     expect(result.current.covered).toBe(1);
     expect(result.current.total).toBe(2);
+    expect(mockedGetSimilar).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces an error state when the similar call fails', async () => {

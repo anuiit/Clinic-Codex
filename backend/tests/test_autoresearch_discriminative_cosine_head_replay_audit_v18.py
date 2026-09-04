@@ -71,6 +71,10 @@ def test_head_set_mismatch_is_rejected(tmp_path: Path) -> None:
         module.compare_required_artifacts(canonical, replay)
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/iteration-0001/heads").exists(),
+    reason="requires unshipped research artifact: iteration-0001/heads",
+)
 def test_real_canonical_replay_audit_passes() -> None:
     module = load_module()
 

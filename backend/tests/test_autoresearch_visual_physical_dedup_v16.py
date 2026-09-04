@@ -24,6 +24,10 @@ def _built() -> tuple[list[dict], list[dict], dict, dict]:
     return module.build_gate_zero_bis(contract, module.load_inputs(contract))
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_contract_is_hash_pinned_and_forbids_sensitive_operations() -> None:
     contract = module.validate_contract()
     assert contract["spec_sha256"] == module.EXPECTED_SPEC_SHA256
@@ -36,6 +40,10 @@ def test_contract_is_hash_pinned_and_forbids_sensitive_operations() -> None:
     assert integrity["labels_or_final_test_read_allowed"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_all_50_terms_remain_traceable_and_v12_exclusions_are_preserved() -> None:
     dispositions, _, _, _ = _built()
     assert len(dispositions) == 50
@@ -46,6 +54,10 @@ def test_all_50_terms_remain_traceable_and_v12_exclusions_are_preserved() -> Non
     ) == 9
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_same_archival_signature_folios_form_one_component() -> None:
     dispositions, _, _, _ = _built()
     by_id = {row["term_id"]: row for row in dispositions}
@@ -53,6 +65,10 @@ def test_same_archival_signature_folios_form_one_component() -> None:
     assert by_id[292]["component_id"] == "agn_tierras_1735_exp_2"
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_lienzo_witnesses_form_one_provenance_component() -> None:
     dispositions, components, _, _ = _built()
     by_id = {row["term_id"]: row for row in dispositions}
@@ -66,6 +82,10 @@ def test_lienzo_witnesses_form_one_provenance_component() -> None:
     assert component["component_kind"] == "shared_original_provenance"
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_two_new_ambiguities_are_excluded_but_specific_agn_records_stay_distinct() -> None:
     dispositions, _, _, _ = _built()
     by_id = {row["term_id"]: row for row in dispositions}
@@ -76,6 +96,10 @@ def test_two_new_ambiguities_are_excluded_but_specific_agn_records_stay_distinct
     assert by_id[367]["component_id"] is not None
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_corrected_strict_ceiling_is_37_and_all_admitted_terms_are_pending_collision() -> None:
     dispositions, components, _, audit = _built()
     admitted = [row for row in dispositions if row["component_id"] is not None]
@@ -94,6 +118,10 @@ def test_corrected_strict_ceiling_is_37_and_all_admitted_terms_are_pending_colli
     )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_codex_49_aliases_and_future_telleriano_candidates_are_frozen() -> None:
     _, _, envelope, _ = _built()
     aliases = next(
@@ -107,6 +135,10 @@ def test_codex_49_aliases_and_future_telleriano_candidates_are_frozen() -> None:
     assert "Codex Ríos" in future["aliases"]
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_group_and_exclusion_overlap_is_rejected() -> None:
     contract = module.validate_contract()
     changed = copy.deepcopy(contract)
@@ -115,6 +147,10 @@ def test_group_and_exclusion_overlap_is_rejected() -> None:
         module.build_gate_zero_bis(changed, module.load_inputs(contract))
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/visual-physical-dedup-rules.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/visual-physical-dedup-rules.json",
+)
 def test_replay_is_exact_and_runtime_remains_untouched(tmp_path: Path) -> None:
     contract = module.validate_contract()
     first_outputs = module.build_audit(contract)

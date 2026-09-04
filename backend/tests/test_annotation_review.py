@@ -184,7 +184,7 @@ def test_metadata_crop_path_must_resolve_inside_analysis_folder(tmp_path):
     [element] = queue["analyses"][0]["elements"]
 
     assert element["crop_exists"] is True
-    assert element["crop_path"].endswith("path-guard-1/elements/0.png")
+    assert Path(element["crop_path"]).parts[-3:] == ("path-guard-1", "elements", "0.png")
     assert str(outside) != element["crop_path"]
 
 

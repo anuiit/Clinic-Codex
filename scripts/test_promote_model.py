@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import torch
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -17,7 +19,15 @@ import scripts.promote_model as promote_model  # noqa: E402
 
 def _write_runtime(runtime_dir: Path, label: str) -> None:
     (runtime_dir / "weights").mkdir(parents=True, exist_ok=True)
-    (runtime_dir / "weights" / "prototypes.pt").write_bytes(f"{label}-prototypes".encode("utf-8"))
+    torch.save(
+        {
+            "prototypes": torch.tensor([[1.0]]),
+            "class_names": {0: "class-a"},
+            "class_labels": torch.tensor([0]),
+            "embedding_dim": 1,
+        },
+        runtime_dir / "weights" / "prototypes.pt",
+    )
     (runtime_dir / "weights" / "projection.pt").write_bytes(f"{label}-projection".encode("utf-8"))
     (runtime_dir / "config.json").write_text(
         json.dumps({"model_version": label, "num_classes": 1, "class_names": ["class-a"]}),
@@ -111,6 +121,34 @@ def test_promote_model_rejects_candidate_class_order_drift(tmp_path):
     assert result.returncode == 2
     assert "class order differs" in json.loads(result.stdout)["error"]
     assert json.loads((runtime / "config.json").read_text(encoding="utf-8"))["model_version"] == "original"
+
+
+def test_promote_model_rejects_candidate_numeric_label_drift(tmp_path):
+    runtime = tmp_path / "backend" / "codex_model"
+    _write_runtime(runtime, "original")
+    registry = ModelRegistry(
+        tmp_path / "backend" / "model_registry", repo_root=tmp_path, runtime_model_dir=runtime
+    )
+    version_id = "20260527T010203Z-label-drift"
+    source = tmp_path / "candidate-source" / version_id
+    _write_runtime(source, "candidate")
+    candidate_prototypes = torch.load(source / "weights" / "prototypes.pt", map_location="cpu", weights_only=True)
+    candidate_prototypes["class_labels"] = torch.tensor([7])
+    candidate_prototypes["class_names"] = {7: "class-a"}
+    torch.save(candidate_prototypes, source / "weights" / "prototypes.pt")
+    registry.create_version_from_artifacts(
+        version_id,
+        artifact_sources={
+            "runtime/weights/prototypes.pt": source / "weights" / "prototypes.pt",
+            "runtime/weights/projection.pt": source / "weights" / "projection.pt",
+            "runtime/config.json": source / "config.json",
+        },
+    )
+
+    result = _run_promote(tmp_path, version_id, "--dry-run")
+
+    assert result.returncode == 2
+    assert "numeric class label mapping differs" in json.loads(result.stdout)["error"]
 
 
 def test_promote_model_rejects_explicit_p3_snapshot_block_before_copy(tmp_path):
@@ -295,9 +333,10 @@ def test_toctou_validation_inside_lock(tmp_path, monkeypatch):
     version_id = "20260527T010203Z-test-candidate"
     _create_candidate(registry, tmp_path, version_id)
 
-    calls = {"load_manifest": 0, "validate_artifacts": 0}
+    calls = {"load_manifest": 0, "validate_artifacts": 0, "label_contract": 0}
     real_load = promote_model._load_manifest
     real_validate = promote_model._validate_manifest_artifacts
+    real_label_contract = promote_model._read_numeric_label_contract
 
     def spy_load(registry_arg, vid):
         calls["load_manifest"] += 1
@@ -307,8 +346,13 @@ def test_toctou_validation_inside_lock(tmp_path, monkeypatch):
         calls["validate_artifacts"] += 1
         return real_validate(registry_arg, manifest)
 
+    def spy_label_contract(*args, **kwargs):
+        calls["label_contract"] += 1
+        return real_label_contract(*args, **kwargs)
+
     monkeypatch.setattr(promote_model, "_load_manifest", spy_load)
     monkeypatch.setattr(promote_model, "_validate_manifest_artifacts", spy_validate)
+    monkeypatch.setattr(promote_model, "_read_numeric_label_contract", spy_label_contract)
 
     result = promote_model.promote_or_rollback(
         registry=registry,
@@ -323,3 +367,6 @@ def test_toctou_validation_inside_lock(tmp_path, monkeypatch):
     # before any runtime file is copied, closing the TOCTOU window.
     assert calls["load_manifest"] == 2
     assert calls["validate_artifacts"] == 2
+    # Candidate and reference numeric mappings are checked before and inside
+    # the lock, so an ABI swap in the TOCTOU window cannot reach runtime copy.
+    assert calls["label_contract"] == 4

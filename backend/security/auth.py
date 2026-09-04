@@ -166,6 +166,13 @@ class AuthStore:
             row = conn.execute("SELECT 1 FROM users LIMIT 1").fetchone()
         return row is None
 
+    def is_initial_admin(self, user_id: str) -> bool:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT id, role, active FROM users ORDER BY created_at, rowid LIMIT 1"
+            ).fetchone()
+        return bool(row and row["id"] == user_id and row["role"] == "org_admin" and row["active"])
+
     def create_first_admin(self, email: object, password: object) -> dict[str, Any]:
         normalized_email, validated_password = validate_bootstrap_credentials(email, password)
         return self._create_first_user(normalized_email, validated_password, "org_admin")

@@ -58,6 +58,7 @@ class Settings:
     testing: bool = False
     mobile_sam_checkpoint: str = ""
     enable_admin_training_jobs: bool = False
+    allow_local_admin_self_review: bool = False
     admin_training_log_tail_lines: int = 80
     admin_training_max_batch_size: int = 256
     admin_training_allowed_devices: tuple[str, ...] = ("auto", "cpu", "mps", "cuda")
@@ -164,7 +165,7 @@ class Settings:
 
     @property
     def admin_training_script_path(self) -> Path:
-        return self.backend_root.parent / "scripts" / "retrain.sh"
+        return self.backend_root.parent / "scripts" / ("retrain.ps1" if os.name == "nt" else "retrain.sh")
 
     @property
     def admin_training_snapshot_path(self) -> Path | None:
@@ -196,6 +197,7 @@ class Settings:
             max_image_dimension=_positive_int(os.environ.get("MAX_IMAGE_DIMENSION"), 10_000),
             enable_legacy_endpoints=_truthy(os.environ.get("ENABLE_LEGACY_ENDPOINTS"), True),
             enable_admin_training_jobs=_truthy(os.environ.get("ENABLE_ADMIN_TRAINING_JOBS"), False),
+            allow_local_admin_self_review=_truthy(os.environ.get("ALLOW_LOCAL_ADMIN_SELF_REVIEW"), False),
             admin_training_snapshot_dir=os.environ.get("ADMIN_TRAINING_SNAPSHOT_DIR", "").strip(),
             admin_training_backbone_manifest=os.environ.get(
                 "ADMIN_TRAINING_BACKBONE_MANIFEST", ""

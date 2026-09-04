@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import torch
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -196,6 +198,35 @@ def _read_class_order(config_path: Path, *, label: str) -> list[str]:
     return class_names
 
 
+def _read_numeric_label_contract(config_path: Path, prototypes_path: Path, *, label: str) -> dict[str, int]:
+    class_names = _read_class_order(config_path, label=label)
+    try:
+        data = torch.load(prototypes_path, map_location="cpu", weights_only=True)
+    except Exception as exc:
+        raise PromotionError(f"{label} prototype artifact cannot be safely loaded: {prototypes_path}") from exc
+    if not isinstance(data, dict):
+        raise PromotionError(f"{label} prototype artifact must be a mapping")
+    raw_labels, raw_names = data.get("class_labels"), data.get("class_names")
+    if not isinstance(raw_labels, torch.Tensor) or raw_labels.ndim != 1 or raw_labels.numel() != len(class_names):
+        raise PromotionError(f"{label} prototype class_labels do not match config")
+    if raw_labels.dtype not in {torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8}:
+        raise PromotionError(f"{label} prototype class_labels must be integers")
+    labels = [int(value) for value in raw_labels.tolist()]
+    if labels != sorted(labels) or len(set(labels)) != len(labels):
+        raise PromotionError(f"{label} prototype class_labels must be unique and sorted")
+    if not isinstance(raw_names, dict) or set(raw_names) != set(labels):
+        raise PromotionError(f"{label} prototype class_names and class_labels disagree")
+    if any(
+        isinstance(key, bool) or not isinstance(key, int) or not isinstance(value, str) or not value
+        for key, value in raw_names.items()
+    ):
+        raise PromotionError(f"{label} prototype class_names mapping is invalid")
+    names = [raw_names[numeric_label] for numeric_label in labels]
+    if names != class_names:
+        raise PromotionError(f"{label} prototype taxonomy does not match config class_names")
+    return dict(zip(names, labels))
+
+
 def _validate_runtime_class_order(registry: ModelRegistry, version_id: str) -> None:
     target_path = registry.version_dir(version_id) / "runtime" / "config.json"
     target_order = _read_class_order(target_path, label="candidate")
@@ -203,6 +234,7 @@ def _validate_runtime_class_order(registry: ModelRegistry, version_id: str) -> N
     original_version = index["aliases"].get("original")
     if original_version:
         reference_path = registry.version_dir(original_version) / "runtime" / "config.json"
+        reference_prototypes_path = registry.version_dir(original_version) / "runtime" / "weights" / "prototypes.pt"
     else:
         missing = [
             str(registry.runtime_model_dir.joinpath(*runtime_parts))
@@ -212,11 +244,26 @@ def _validate_runtime_class_order(registry: ModelRegistry, version_id: str) -> N
         if missing:
             raise PromotionError("missing required artifact(s) in current runtime: " + ", ".join(missing))
         reference_path = registry.runtime_model_dir / "config.json"
+        reference_prototypes_path = registry.runtime_model_dir / "weights" / "prototypes.pt"
     reference_order = _read_class_order(reference_path, label="reference")
     if target_order != reference_order:
         raise PromotionError(
             "candidate runtime class order differs from the historical ABI "
             f"({len(target_order)} candidate classes vs {len(reference_order)} reference classes)"
+        )
+    target_contract = _read_numeric_label_contract(
+        target_path,
+        registry.version_dir(version_id) / "runtime" / "weights" / "prototypes.pt",
+        label="candidate",
+    )
+    reference_contract = _read_numeric_label_contract(
+        reference_path,
+        reference_prototypes_path,
+        label="reference",
+    )
+    if target_contract != reference_contract:
+        raise PromotionError(
+            "candidate numeric class label mapping differs from the historical ABI"
         )
 
 

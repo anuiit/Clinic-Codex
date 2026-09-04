@@ -8,6 +8,7 @@ import ctypes
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -70,6 +71,8 @@ def _write_training_snapshot(settings: Settings) -> None:
         rows.append(
             {
                 "source_kind": "live_annotation",
+                "row_id": f"row-{item['analysis_id']}-{item['index']}",
+                "dataset_split": "train",
                 "source_id": f"{item['analysis_id']}:{item['index']}",
                 "class_name": item["class_name"],
                 "bbox": item["bbox"],
@@ -148,6 +151,7 @@ def _settings(tmp_path: Path, *, enabled: bool = False, model_dir: str = ""):
     script = scripts_dir / "retrain.sh"
     script.write_text("#!/usr/bin/env bash\necho retrain $@\n", encoding="utf-8")
     script.chmod(0o755)
+    (scripts_dir / "retrain.ps1").write_text("Write-Output 'retrain'\n", encoding="utf-8")
     (backend_root / "codex_model" / "weights").mkdir(parents=True, exist_ok=True)
     (backend_root / "codex_model" / "config.json").write_text(
         '{"class_names":["atl"]}\n',
@@ -156,6 +160,7 @@ def _settings(tmp_path: Path, *, enabled: bool = False, model_dir: str = ""):
     (backend_root / "codex_model" / "weights" / "projection.pt").write_bytes(
         b"projection"
     )
+    (backend_root / "codex_model" / "weights" / "prototypes.pt").write_bytes(b"prototypes")
     backbone_manifest = tmp_path / "dinov2-pin.json"
     backbone_manifest.write_text("{}\n", encoding="utf-8")
     settings = Settings(
@@ -206,7 +211,7 @@ def test_training_summary_is_visible_but_launch_disabled_by_default(tmp_path):
     assert body["data"]["split_counts"]["excluded"] == 0
     assert body["parameters"]["editable"]["device"] == ["auto", "cpu", "mps", "cuda"]
     assert body["paths"]["model_registry_dir"] == str(settings.model_registry_dir)
-    assert body["paths"]["promote_script"].endswith("scripts/promote_model.py")
+    assert Path(body["paths"]["promote_script"]).parts[-2:] == ("scripts", "promote_model.py")
     assert body["artifacts"]["model_registry"]["status"] == "not_initialized"
     assert body["artifacts"]["model_registry"]["aliases"]["promoted"] is None
 
@@ -229,7 +234,25 @@ def test_training_summary_enabled_loopback_allows_launch(tmp_path):
     assert body["launch_disabled_reasons"] == []
     assert body["training_snapshot"]["snapshot_id"] == "snapshot-test"
     assert body["training_snapshot"]["live_annotation_count"] == 1
+    assert body["training_snapshot"]["live_train_count"] == 1
     assert body["training_snapshot"]["valid"] is True
+
+
+def test_training_rejects_annotations_present_only_in_holdout(tmp_path):
+    settings = _settings(tmp_path, enabled=True)
+    _app, client = _client(settings)
+    _approve_one(client)
+    path = settings.admin_training_snapshot_path / "snapshot_manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["rows"][0]["dataset_split"] = "locked_test"
+    manifest["live_train_count"] = 1  # Forged counters must not be trusted.
+    path.write_text(json.dumps(manifest))
+    _refresh_snapshot_checksums(settings)
+    body = client.get("/admin/training/summary").get_json()
+    assert body["training_snapshot"]["live_train_count"] == 0
+    assert body["launch_allowed_for_request"] is False
+    assert any("annotations_not_in_train" in reason for reason in body["launch_disabled_reasons"])
+    assert client.post("/admin/training/jobs", json={"dry_run": False}).status_code == 403
 
 
 def test_training_summary_blocks_a_snapshot_older_than_current_reviews(tmp_path):
@@ -478,9 +501,8 @@ def test_training_summary_surfaces_model_registry_candidate_health(tmp_path):
     assert registry_body["status"] == "ok"
     assert registry_body["aliases"]["candidate"] == "20260527T010203Z-test-candidate"
     assert registry_body["latest_candidate"]["manifest_health"]["status"] == "healthy"
-    assert body["paths"]["candidate_version_dir"].endswith(
-        "backend/model_registry/versions/20260527T010203Z-test-candidate"
-    )
+    assert Path(body["paths"]["candidate_version_dir"]) == (
+        settings.model_registry_dir / "versions/20260527T010203Z-test-candidate")
 
 
 def test_training_summary_marks_registry_candidate_unhealthy_on_checksum_drift(tmp_path):
@@ -630,9 +652,12 @@ def test_training_start_rejects_when_launch_guard_is_already_held(tmp_path):
     assert "launch already in progress" in resp.get_json()["error"]
 
 
-def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch):
-    settings = _settings(tmp_path, enabled=True)
+@pytest.mark.parametrize("script_name", ["retrain.sh", "retrain.ps1"])
+def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(tmp_path, monkeypatch, script_name):
+    settings = _settings(tmp_path / "repo with spaces", enabled=True)
     _app, client = _client(settings)
+    script = settings.backend_root.parent / "scripts" / script_name
+    _app.extensions["clinic_services"].admin_training_service().script_path = script
     _approve_one(client, "training-start-1")
     calls = []
 
@@ -660,9 +685,9 @@ def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(t
     assert job["device"] == "cpu"
     assert job["batch_size"] == 8
     assert job["pid"] == 4242
-    assert job["command"] == [
+    expected = [
         "bash",
-        str(settings.admin_training_script_path),
+        str(script),
         "--elements-dir",
         str(settings.admin_training_snapshot_path / "Elements"),
         "--approved-manifest",
@@ -675,15 +700,28 @@ def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(t
         str(settings.admin_training_config_path),
         "--init-projection",
         str(settings.classifier_weights_dir / "projection.pt"),
+        "--update-annotated-prototypes",
         "--dry-run",
     ]
+    if script_name == "retrain.ps1":
+        expected = [
+            "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+            "-ElementsDirOverride", str(settings.admin_training_snapshot_path / "Elements"),
+            "-ApprovedManifestOverride", str(settings.admin_training_snapshot_path / "snapshot_manifest.json"),
+            "-MetadataCsvOverride", str(settings.admin_training_snapshot_path / "metadata.csv"),
+            "-BackboneManifestOverride", str(settings.admin_training_backbone_manifest_path),
+            "-TrainingConfigOverride", str(settings.admin_training_config_path),
+            "-InitProjection", str(settings.classifier_weights_dir / "projection.pt"),
+            "-UpdateAnnotatedPrototypes", "-DryRun",
+        ]
+    assert job["command"] == expected
     assert "--allow-runtime-write" not in job["command"]
     assert job["training_snapshot"]["snapshot_id"] == "snapshot-test"
     assert job["training_snapshot"]["live_annotation_count"] == 1
     assert job["training_snapshot_manifest_hash"]
     assert job["model_version_id"].startswith("20")
     assert job["candidate_version_dir"].endswith(job["model_version_id"])
-    assert job["candidate_manifest_path"].endswith(f"{job['model_version_id']}/manifest.json")
+    assert Path(job["candidate_manifest_path"]).parts[-2:] == (job["model_version_id"], "manifest.json")
     assert job["env"] == {
         "BATCH_SIZE": "8",
         "DEVICE": "cpu",
@@ -693,6 +731,8 @@ def test_training_start_records_allowlisted_dry_run_and_blocks_concurrent_runs(t
     }
     assert calls[0]["env"]["BATCH_SIZE"] == "8"
     assert calls[0]["env"]["DEVICE"] == "cpu"
+    if "USERNAME" in os.environ:
+        assert calls[0]["env"]["USERNAME"] == os.environ["USERNAME"]
     assert calls[0]["env"]["MODEL_VERSION_ID"] == job["model_version_id"]
     assert calls[0]["env"]["MODEL_REGISTRY_DIR"] == str(settings.model_registry_dir)
     assert "--allow-runtime-write" not in calls[0]["command"]

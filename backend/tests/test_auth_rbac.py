@@ -303,3 +303,43 @@ def test_review_mutations_keep_independent_concurrent_decisions(tmp_path):
     decisions = reviews._load_manifest()["decisions"]
     assert decisions["concurrent:0"]["status"] == "approved"
     assert decisions["concurrent:1"]["status"] == "approved"
+
+
+@pytest.mark.parametrize("action", ["review", "modify"])
+@pytest.mark.parametrize("case", ["local_admin", "disabled", "later_admin", "reviewer", "remote", "network_host", "no_csrf"])
+def test_local_initial_admin_self_review_is_scoped_and_audited(tmp_path, case, action):
+    settings = replace(
+        _settings(tmp_path), allow_local_admin_self_review=case != "disabled",
+        host="0.0.0.0" if case == "network_host" else "127.0.0.1",
+    )
+    app = create_app(settings)
+    store = app.extensions["clinic_auth_store"]
+    email, password = "admin@example.test", "admin-password"
+    if case in {"later_admin", "reviewer"}:
+        email = "second@example.test"
+        store.create_user(email, password, "reviewer" if case == "reviewer" else "org_admin")
+    actor = store.authenticate(email, password)
+    save_annotation(
+        "own", Image.new("RGB", (8, 8)),
+        [{"index": 0, "class_name": "atl", "bbox": [0, 0, 4, 4]}],
+        settings.annotations_dir, settings.elements_dir, author_id=actor["id"],
+    )
+    body = {"status": "approved"}
+    if action == "modify":
+        body.update(class_name="calli", bbox=[1, 1, 4, 4])
+    # A client-supplied permission must never enable the exception.
+    body["allow_self_review"] = True
+    with app.test_client() as client:
+        csrf = _login(client, email, password)
+        response = client.post(
+            f"/admin/annotations/own/0/{action}", json=body,
+            headers={} if case == "no_csrf" else {"X-CSRF-Token": csrf},
+            environ_overrides={"REMOTE_ADDR": "203.0.113.9"} if case == "remote" else {},
+        )
+    assert response.status_code == (200 if case == "local_admin" else 403)
+    decisions = app.extensions["clinic_services"].annotation_review_store()._load_manifest()["decisions"]
+    if case == "local_admin":
+        assert decisions["own:0"]["reviewed_by"] == actor["id"]
+        assert decisions["own:0"]["status"] == "approved"
+    else:
+        assert "own:0" not in decisions

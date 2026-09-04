@@ -74,6 +74,8 @@ def _snapshot_provenance(path: Path | None) -> dict[str, Any] | None:
         "manifest_sha256": _sha256_file(path),
         "checksums_sha256": _optional_hash(checksums_path),
         "split_counts": payload.get("split_counts"),
+        "live_train_count": payload.get("live_train_count"),
+        "live_annotation_usage": payload.get("live_annotation_usage"),
     }
 
 
@@ -109,6 +111,69 @@ def _refuse_runtime_write_unless_allowed(
     )
 
 
+def _prototype_contract(data: dict[str, Any], *, label: str) -> tuple[list[int], dict[int, str]]:
+    labels = data.get("class_labels")
+    names = data.get("class_names")
+    prototypes = data.get("prototypes")
+    if not isinstance(prototypes, torch.Tensor) or prototypes.ndim != 2:
+        raise ValueError(f"{label} prototypes must be a 2D tensor")
+    if not torch.is_floating_point(prototypes) or not torch.isfinite(prototypes).all() or not torch.allclose(prototypes.norm(dim=1), torch.ones(prototypes.size(0)), atol=1e-4):
+        raise ValueError(f"{label} prototypes must be finite normalized vectors")
+    if not isinstance(labels, torch.Tensor) or labels.ndim != 1 or labels.numel() != prototypes.size(0):
+        raise ValueError(f"{label} class_labels must align with prototype rows")
+    if labels.dtype not in {torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8}:
+        raise ValueError(f"{label} class_labels must be integer values")
+    values = [int(value) for value in labels.tolist()]
+    if values != sorted(values) or len(set(values)) != len(values):
+        raise ValueError(f"{label} class_labels must be unique and sorted")
+    if not isinstance(names, dict) or set(names) != set(values):
+        raise ValueError(f"{label} class_names and class_labels disagree")
+    if any(
+        isinstance(key, bool) or not isinstance(key, int) or not isinstance(name, str) or not name
+        for key, name in names.items()
+    ):
+        raise ValueError(f"{label} class_names mapping is invalid")
+    if len(set(names.values())) != len(names):
+        raise ValueError(f"{label} class_names must be unique")
+    return values, dict(names)
+
+
+def _preserve_base_numeric_contract(
+    data: dict[str, Any], *, base_model_dir: Path | None
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Reorder candidate rows to the active package's name-to-label contract.
+
+    Training labels are dense snapshot indices, while runtime labels may be
+    sparse historical ABI values.  Names are the only safe join key.
+    """
+    source_labels, source_names = _prototype_contract(data, label="candidate")
+    if base_model_dir is None:
+        return data, {"base_package": None, "preserved": False}
+    base_path = base_model_dir / "weights" / "prototypes.pt"
+    if not base_path.is_file():
+        return data, {"base_package": None, "preserved": False}
+    base_data = torch.load(base_path, map_location="cpu", weights_only=True)
+    if not isinstance(base_data, dict):
+        raise ValueError(f"base runtime prototype artifact must be a mapping: {base_path}")
+    base_labels, base_names = _prototype_contract(base_data, label="base runtime")
+    source_by_name = {source_names[label]: index for index, label in enumerate(source_labels)}
+    base_by_name = {name: label for label, name in base_names.items()}
+    if set(source_by_name) != set(base_by_name):
+        raise ValueError("candidate and base runtime taxonomies differ; cannot preserve numeric class labels")
+    ordered_names = [base_names[label] for label in base_labels]
+    row_indices = [source_by_name[name] for name in ordered_names]
+    rewritten = dict(data)
+    rewritten["prototypes"] = data["prototypes"][row_indices].clone()
+    rewritten["class_labels"] = torch.tensor(base_labels, dtype=data["class_labels"].dtype)
+    rewritten["class_names"] = {label: base_names[label] for label in base_labels}
+    return rewritten, {
+        "base_package": str(base_model_dir.resolve()),
+        "base_prototypes_path": str(base_path.resolve()),
+        "base_prototypes_sha256": _sha256_file(base_path),
+        "preserved": True,
+    }
+
+
 def export_model(
     src_path: Path,
     weights_dir: Path,
@@ -117,6 +182,7 @@ def export_model(
     config_out_path: Path | None = None,
     allow_runtime_write: bool = False,
     runtime_model_dir: Path | None = None,
+    base_model_dir: Path | None = None,
     manifest_out_path: Path | None = None,
     registry_dir: Path | None = None,
     version_id: str | None = None,
@@ -129,9 +195,12 @@ def export_model(
     init_projection_path: Path | None = None,
     training_manifest_path: Path | None = None,
     checkpoint_selection: str | None = None,
+    evaluate_candidate: bool = False,
 ) -> dict[str, Path]:
     if checkpoint_selection not in {None, "best", "latest"}:
         raise ValueError("checkpoint_selection must be 'best' or 'latest'")
+    if evaluate_candidate and (base_model_dir is None or features_path is None or approved_manifest_path is None):
+        raise ValueError("candidate evaluation requires base model, features and split manifest")
     project_root = Path(__file__).resolve().parents[2]  # backend/
     runtime_model_dir = runtime_model_dir or project_root / "codex_model"
     config_out_path = config_out_path or config_template_path
@@ -176,6 +245,13 @@ def export_model(
     if missing:
         print(f"ERROR: prototypes.pt is missing keys: {missing}", file=sys.stderr)
         sys.exit(1)
+
+    if not isinstance(data, dict):
+        raise ValueError("prototypes.pt must contain a mapping")
+    data, numeric_label_contract = _preserve_base_numeric_contract(
+        data,
+        base_model_dir=base_model_dir or runtime_model_dir,
+    )
 
     # -------------------------------------------------------- split and save
     # 1) Prototypes file — everything except the model weights
@@ -226,6 +302,7 @@ def export_model(
             "config_template": str(config_template_path),
             "config_out": str(config_out_path),
             "allow_runtime_write": allow_runtime_write,
+            "numeric_label_contract": numeric_label_contract,
             "data": data_provenance,
             "training": training_provenance,
             "artifacts": {
@@ -238,11 +315,27 @@ def export_model(
         manifest_out = manifest_out_path
         print(f"Wrote manifest    → {manifest_out_path}")
 
+    evaluation_paths = []
+    if evaluate_candidate:
+        sys.path.insert(0, str(project_root.parent))
+        from scripts.benchmark_model_replacement import benchmark_model_replacement
+
+        print("Final exported package metrics (earlier refit diagnostics do not score this candidate):")
+        for split in ("dev", "locked_test"):
+            output = config_out_path.parent.parent / "evaluation" / f"{split}.json"
+            report = benchmark_model_replacement(
+                features_path=features_path, split_manifest_path=approved_manifest_path,
+                runtime_dir=base_model_dir, candidate_dir=config_out_path.parent,
+                output_path=output, prototype_mode="stored", eval_split=split,
+            )
+            evaluation_paths.append(output)
+            print(f"  {split}: active={report['models']['runtime']['top1_micro']:.4f}, candidate={report['models']['candidate']['top1_micro']:.4f}")
+
     registry_manifest: Path | None = None
     if registry_dir is not None or version_id is not None:
         if registry_dir is None or version_id is None:
             raise RuntimeError("--registry-dir and --version-id must be supplied together")
-        registry_artifacts = [src_path, proto_dest, proj_dest, config_out_path]
+        registry_artifacts = [src_path, proto_dest, proj_dest, config_out_path, *evaluation_paths]
         if manifest_out_path is not None:
             registry_artifacts.append(manifest_out_path)
         registry_manifest = _write_registry_manifest(
@@ -260,6 +353,7 @@ def export_model(
             init_projection_path=init_projection_path,
             training_manifest_path=training_manifest_path,
             checkpoint_selection=checkpoint_selection,
+            numeric_label_contract=numeric_label_contract,
         )
         print(f"Wrote registry    → {registry_manifest}")
 
@@ -301,6 +395,7 @@ def _write_registry_manifest(
     init_projection_path: Path | None,
     training_manifest_path: Path | None,
     checkpoint_selection: str | None,
+    numeric_label_contract: dict[str, Any],
 ) -> Path:
     repo_root = project_root.parent
     if str(repo_root) not in sys.path:
@@ -355,6 +450,7 @@ def _write_registry_manifest(
                 training_manifest_path, label="training manifest"
             ),
         },
+        "numeric_label_contract": numeric_label_contract,
         "metrics": {"prototype_export": "completed"},
     }
     if snapshot is not None:
@@ -416,6 +512,7 @@ def main() -> None:
     )
     parser.add_argument("--registry-dir", default=None, help="Optional model registry root for candidate manifest/index.")
     parser.add_argument("--version-id", default=None, help="Version ID to register when --registry-dir is supplied.")
+    parser.add_argument("--evaluate-candidate", action="store_true", help="Compare exported weights on dev and locked_test before registering; seal both reports.")
     parser.add_argument("--metadata-csv", default=None, help="Approved metadata CSV path for registry provenance.")
     parser.add_argument(
         "--approved-manifest",
@@ -448,6 +545,11 @@ def main() -> None:
         help="Optional warm-start projection recorded with its SHA-256.",
     )
     parser.add_argument(
+        "--base-model-dir",
+        default=None,
+        help="Base runtime package whose name-to-numeric-label ABI must be preserved.",
+    )
+    parser.add_argument(
         "--training-manifest",
         default=None,
         help="Optional training_manifest.json recorded with its SHA-256.",
@@ -470,9 +572,11 @@ def main() -> None:
             config_out_path=config_out,
             allow_runtime_write=args.allow_runtime_write,
             runtime_model_dir=project_root / "codex_model",
+            base_model_dir=Path(args.base_model_dir) if args.base_model_dir else None,
             manifest_out_path=Path(args.manifest_out) if args.manifest_out else None,
             registry_dir=Path(args.registry_dir) if args.registry_dir else None,
             version_id=args.version_id,
+            evaluate_candidate=args.evaluate_candidate,
             metadata_csv_path=Path(args.metadata_csv) if args.metadata_csv else None,
             approved_manifest_path=Path(args.approved_manifest) if args.approved_manifest else None,
             training_config_path=Path(args.training_config) if args.training_config else None,

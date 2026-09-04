@@ -24,6 +24,9 @@ function Write-Classification([string]$status, [string]$reason) {
 }
 
 function Invoke-ScriptCaptured([string]$Path, [string[]]$Arguments = @()) {
+    # Windows PowerShell 5.1 wraps native stderr warnings as ErrorRecords.
+    # Keep capturing them; only the native exit code decides success.
+    $ErrorActionPreference = 'Continue'
     $shell = (Get-Process -Id $PID).Path
     $command = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $Path) + $Arguments
     $output = & $shell @command 2>&1 | ForEach-Object { "$PSItem" }

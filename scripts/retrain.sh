@@ -49,6 +49,7 @@ BACKBONE_MANIFEST_OVERRIDE=""
 CONFIG_OVERRIDE=""
 INIT_PROJECTION=""
 EVAL_ONLY=0
+UPDATE_ANNOTATED_PROTOTYPES=0
 CHECKPOINT_SELECTION_CLI=""
 
 usage() {
@@ -75,6 +76,8 @@ this path is config/snapshot.yaml (persisted train/dev/locked_test split), and
 --backbone-manifest must bind the local DINOv2-S/14 source and weights.
 --eval-only requires --init-projection and performs descriptive dev evaluation
 without fitting. --checkpoint-selection defaults to best for compatibility.
+--update-annotated-prototypes keeps the active projection and unannotated class
+prototypes; requires a prepared snapshot and the active weights/projection.pt.
 EOF
 }
 
@@ -118,6 +121,11 @@ while [[ $# -gt 0 ]]; do
       EVAL_ONLY=1
       shift
       ;;
+    --update-annotated-prototypes)
+      UPDATE_ANNOTATED_PROTOTYPES=1
+      EVAL_ONLY=1
+      shift
+      ;;
     --checkpoint-selection)
       [[ $# -ge 2 ]] || { echo "ERROR: --checkpoint-selection requires best or latest" >&2; exit 2; }
       CHECKPOINT_SELECTION_CLI="$2"
@@ -141,6 +149,10 @@ if [[ -n "$CHECKPOINT_SELECTION_CLI" && "$CHECKPOINT_SELECTION_CLI" != "best" &&
 fi
 if [[ "$EVAL_ONLY" -eq 1 && -z "$INIT_PROJECTION" ]]; then
   echo "ERROR: --eval-only requires --init-projection" >&2
+  exit 2
+fi
+if [[ "$UPDATE_ANNOTATED_PROTOTYPES" -eq 1 && -z "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  echo "ERROR: --update-annotated-prototypes requires --elements-dir" >&2
   exit 2
 fi
 
@@ -318,6 +330,10 @@ fi
 run_step "[4/6] train" "${TRAIN_COMMAND[@]}"
 
 if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
+  UPDATE_ARGUMENTS=()
+  if [[ "$UPDATE_ANNOTATED_PROTOTYPES" -eq 1 ]]; then
+    UPDATE_ARGUMENTS=(--base-prototypes "$(dirname "$INIT_PROJECTION")/prototypes.pt" --snapshot-manifest "$APPROVED_MANIFEST")
+  fi
   run_step "[5/6] evaluate_export_prototypes" \
     "$PYTHON" "$PIPELINE/evaluate.py" \
     --checkpoint "$SELECTED_CHECKPOINT" \
@@ -326,7 +342,7 @@ if [[ -n "$ELEMENTS_DIR_OVERRIDE" ]]; then
     --prototype-split train \
     --skip-few-shot \
     --export-prototypes \
-    --prototype-dir "$PROTOTYPE_DIR"
+    --prototype-dir "$PROTOTYPE_DIR" "${UPDATE_ARGUMENTS[@]}"
 else
   run_step "[5/6] evaluate_export_prototypes" \
     "$PYTHON" "$PIPELINE/evaluate.py" \
@@ -356,6 +372,10 @@ EXPORT_COMMAND=(
 )
 if [[ -n "$INIT_PROJECTION" ]]; then
   EXPORT_COMMAND+=(--init-projection "$INIT_PROJECTION")
+  EXPORT_COMMAND+=(--base-model-dir "$(dirname "$(dirname "$INIT_PROJECTION")")")
+fi
+if [[ "$UPDATE_ANNOTATED_PROTOTYPES" -eq 1 ]]; then
+  EXPORT_COMMAND+=(--evaluate-candidate)
 fi
 run_step "[6/6] export_model" "${EXPORT_COMMAND[@]}"
 

@@ -95,6 +95,17 @@ export function TrainingJobPanel({ job }: { job: AdminTrainingJob | null }) {
           <dd>{job.exit_code ?? "—"}</dd>
         </div>
       </dl>
+      {job.error ? <p role="alert" className="ui-alert ui-alert--danger p-3">{job.error}</p> : null}
+      {job.result ? (
+        <section aria-label="Résultat du candidat" className="mt-3">
+          <h4 className="ui-title-sm">Candidat créé — non activé</h4>
+          <p>{job.result.unique_count} images uniques, {job.result.duplicate_count} doublons ignorés ; {job.result.updated_classes.length} classes mises à jour.</p>
+          <p>Sur les images apprises : base {job.result.base_correct}/{job.result.unique_count}, candidat {job.result.candidate_correct}/{job.result.unique_count}.</p>
+          <p className="ui-alert ui-alert--accent p-2">Diagnostic d'apprentissage uniquement : aucune amélioration sur de nouvelles images n'est démontrée.</p>
+          <p>Version : <code>{job.model_version_id}</code></p>
+          <p>Fichiers locaux : <code>{job.candidate_version_dir}</code></p>
+        </section>
+      ) : null}
       <details className="admin-audit-details mt-3">
         <summary>Détails support/admin</summary>
         {job.command?.length ? (
@@ -124,75 +135,29 @@ export function TrainingConsole({
   const split = summary.training_snapshot.split_counts;
   return (
     <section className="admin-training-console" aria-label="Console d'entraînement">
-      <div><span className="ok">✓</span> snapshot loaded: {summary.training_snapshot.row_count ?? "—"} images cumulées</div>
-      <div><span className="ok">✓</span> warm-start: modèle existant + {summary.training_snapshot.live_annotation_count ?? "—"} validations live</div>
+      <div><span className={summary.training_snapshot.valid ? "ok" : "warn"}>{summary.training_snapshot.valid ? "✓" : "!"}</span> {summary.training_snapshot.mode === "local_prior" ? "Capture automatique au lancement" : "Snapshot cumulatif"} : {summary.training_snapshot.row_count ?? "—"} images</div>
+      <div><span className={summary.training_snapshot.live_train_count ? "ok" : "warn"}>{summary.training_snapshot.live_train_count ? "✓" : "!"}</span> projection conservée · {summary.training_snapshot.live_train_count ?? "—"} validations utilisées pour les prototypes</div>
       {split ? <div><span className="ok">✓</span> split locked: train {split.train} · dev {split.dev} · locked test {split.locked_test}</div> : null}
       {summary.data.pending > 0 ? <div><span className="warn">!</span> {summary.data.pending} images restent à vérifier</div> : null}
-      <div><span className="run">→</span> {job?.status === "running" ? "training run active" : "ready to train"}</div>
+      <div><span className="run">→</span> {job?.status === "running" ? "training run active" : summary.launch_allowed_for_request ? "ready to train" : "lancement bloqué"}</div>
     </section>
   );
 }
 
-function TrendLine({
-  points,
-  tone,
-}: {
-  points: string;
-  tone: "gold" | "violet";
-}) {
-  return (
-    <svg viewBox="0 0 240 120" preserveAspectRatio="none" aria-hidden="true">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        className={tone === "gold" ? "text-[color:var(--accent)]" : "text-[color:var(--violet)]"}
-      />
-    </svg>
-  );
-}
-
-function MetricUnavailable({ label }: { label: string }) {
-  return (
-    <div className="flex h-full min-h-24 items-center justify-center px-3 text-center ui-text-caption">
-      {label}
-    </div>
-  );
-}
-
-function hasLogMetric(job: AdminTrainingJob | null, pattern: RegExp) {
-  return Boolean(job?.log_tail?.some((line) => pattern.test(line)));
-}
-
 export function LossMetricPreview({ job }: { job: AdminTrainingJob | null }) {
-  const hasLoss = hasLogMetric(job, /loss/i);
   return (
-    <MetricPane label="Perte" value={hasLoss ? "journal" : "—"} testId="LossMetricPreview">
-      {hasLoss ? (
-        <TrendLine
-          tone="gold"
-          points="0,22 30,38 62,51 90,60 120,74 150,82 180,91 210,99 240,105"
-        />
-      ) : (
-        <MetricUnavailable label="Métrique indisponible pour ce run" />
-      )}
+    <MetricPane label="Images apprises" value={job?.result?.unique_count ?? "—"} testId="LossMetricPreview">
+      <p className="ui-text-caption p-3">Projection figée : aucune courbe de perte d'optimisation.</p>
     </MetricPane>
   );
 }
 
 export function ValidationAccuracyMetricPreview({ job }: { job: AdminTrainingJob | null }) {
-  const hasAccuracy = hasLogMetric(job, /acc/i);
   return (
-    <MetricPane label="Validation" value={hasAccuracy ? "journal" : "—"} testId="ValidationAccuracyMetricPreview">
-      {hasAccuracy ? (
-        <TrendLine
-          tone="violet"
-          points="0,104 30,88 62,80 90,72 120,61 150,48 180,38 210,31 240,26"
-        />
-      ) : (
-        <MetricUnavailable label="Métrique indisponible pour ce run" />
-      )}
+    <MetricPane label="Validation indépendante" value="—" testId="ValidationAccuracyMetricPreview">
+      <p className="ui-text-caption p-3">{job?.result
+        ? "Non mesurée : les annotations servent à l'apprentissage."
+        : "Métrique indisponible pour ce run"}</p>
     </MetricPane>
   );
 }
@@ -217,7 +182,7 @@ export function ClassDistributionBars({
         <svg viewBox="0 0 240 120" preserveAspectRatio="none" aria-hidden="true">
           {bars.map((bar, index) => {
             const value = splitCounts[bar.key] ?? 0;
-            const height = Math.max(8, Math.round((value / max) * 96));
+            const height = Math.round((value / max) * 96);
             return (
               <rect
                 key={bar.key}

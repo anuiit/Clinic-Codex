@@ -21,6 +21,10 @@ sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_contract_is_hash_pinned_with_two_sources_and_four_queries_each() -> None:
     contract = module.validate_contract()
     assert {
@@ -39,6 +43,10 @@ def test_contract_is_hash_pinned_with_two_sources_and_four_queries_each() -> Non
     ] == 26
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_manifest_queries_use_only_exact_search_paths_and_never_image_resources() -> None:
     contract = module.validate_contract()
     expected = {
@@ -57,6 +65,10 @@ def test_manifest_queries_use_only_exact_search_paths_and_never_image_resources(
             assert "/resource/" not in lowered
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_budget_persists_before_issue_and_refuses_out_of_scope_path(
     tmp_path: Path,
 ) -> None:
@@ -268,6 +280,10 @@ def _complete_journal(contract: dict, tmp_path: Path) -> dict:
     }
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_replay_enforces_atomic_sources_and_t_tepeuc_reserve(tmp_path: Path) -> None:
     contract = module.validate_contract()
     results, audit = module.evaluate_journal(contract, _complete_journal(contract, tmp_path))
@@ -282,6 +298,10 @@ def test_replay_enforces_atomic_sources_and_t_tepeuc_reserve(tmp_path: Path) -> 
     assert audit["decision"] == "not_reached"
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_replay_detects_stage_two_without_stage_one(tmp_path: Path) -> None:
     contract = module.validate_contract()
     journal = _complete_journal(contract, tmp_path)
@@ -304,6 +324,10 @@ def test_replay_detects_stage_two_without_stage_one(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_replay_detects_tampered_raw_bytes_and_validation_claim(tmp_path: Path) -> None:
     contract = module.validate_contract()
     journal = _complete_journal(contract, tmp_path)
@@ -322,6 +346,10 @@ def test_replay_detects_tampered_raw_bytes_and_validation_claim(tmp_path: Path) 
     )
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_local_alias_match_excludes_known_huexotzinco_component() -> None:
     contract = module.validate_contract()
     aliases = module.frozen_alias_signatures(contract)
@@ -344,6 +372,10 @@ def test_local_alias_match_excludes_known_huexotzinco_component() -> None:
     assert disposition["pre_dedup_strict"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/metadata-feasibility-manifest-iteration-0005.json",
+)
 def test_recorded_iteration_0005_replays_to_published_not_reached_result() -> None:
     contract = module.validate_contract()
     output_dir = module.DEFAULT_OUTPUT_DIR

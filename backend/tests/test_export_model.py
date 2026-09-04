@@ -48,6 +48,24 @@ def _write_config(config_path: Path, model_version: str = "test") -> None:
     )
 
 
+def _write_sparse_runtime_contract(runtime_dir: Path) -> None:
+    _write_config(runtime_dir / "config.json", model_version="runtime-original")
+    config = json.loads((runtime_dir / "config.json").read_text(encoding="utf-8"))
+    config["class_names"] = ["atl", "calli"]
+    config["num_classes"] = 2
+    (runtime_dir / "config.json").write_text(json.dumps(config), encoding="utf-8")
+    (runtime_dir / "weights").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            "prototypes": torch.eye(2),
+            "class_names": {4: "atl", 9: "calli"},
+            "class_labels": torch.tensor([4, 9]),
+            "embedding_dim": 2,
+        },
+        runtime_dir / "weights" / "prototypes.pt",
+    )
+
+
 def test_export_model_writes_backend_loadable_classifier_artifacts(tmp_path):
     prototype_src = tmp_path / "prototypes" / "prototypes.pt"
     weights_dir = tmp_path / "codex_model" / "weights"
@@ -55,7 +73,7 @@ def test_export_model_writes_backend_loadable_classifier_artifacts(tmp_path):
     _write_prototype_fixture(prototype_src)
     _write_config(config_path)
 
-    outputs = export_model(prototype_src, weights_dir, config_path)
+    outputs = export_model(prototype_src, weights_dir, config_path, base_model_dir=tmp_path / "base_model")
 
     assert outputs["prototypes"].is_file()
     assert outputs["projection"].is_file()
@@ -107,6 +125,46 @@ def test_export_model_candidate_config_out_does_not_mutate_runtime_template(tmp_
     assert manifest["config_template"] == str(runtime_config)
 
 
+def test_export_model_preserves_sparse_base_numeric_labels_by_class_name(tmp_path):
+    prototype_src = tmp_path / "prototypes" / "prototypes.pt"
+    runtime_dir = tmp_path / "backend" / "codex_model"
+    candidate_dir = tmp_path / "candidate" / "runtime"
+    _write_prototype_fixture(prototype_src)
+    _write_sparse_runtime_contract(runtime_dir)
+
+    export_model(
+        prototype_src,
+        candidate_dir / "weights",
+        runtime_dir / "config.json",
+        config_out_path=candidate_dir / "config.json",
+        runtime_model_dir=runtime_dir,
+    )
+
+    exported = torch.load(candidate_dir / "weights" / "prototypes.pt", map_location="cpu", weights_only=True)
+    assert exported["class_labels"].tolist() == [4, 9]
+    assert exported["class_names"] == {4: "atl", 9: "calli"}
+    assert json.loads((candidate_dir / "config.json").read_text(encoding="utf-8"))["class_names"] == ["atl", "calli"]
+
+
+def test_export_model_refuses_taxonomy_mismatch_against_base_numeric_contract(tmp_path):
+    prototype_src = tmp_path / "prototypes" / "prototypes.pt"
+    runtime_dir = tmp_path / "backend" / "codex_model"
+    _write_prototype_fixture(prototype_src)
+    _write_sparse_runtime_contract(runtime_dir)
+    candidate = torch.load(prototype_src, map_location="cpu", weights_only=True)
+    candidate["class_names"] = {0: "atl", 1: "other"}
+    torch.save(candidate, prototype_src)
+
+    with pytest.raises(ValueError, match="taxonomies differ"):
+        export_model(
+            prototype_src,
+            tmp_path / "candidate" / "weights",
+            runtime_dir / "config.json",
+            config_out_path=tmp_path / "candidate" / "config.json",
+            runtime_model_dir=runtime_dir,
+        )
+
+
 def test_export_model_can_register_candidate_manifest(tmp_path):
     prototype_src = tmp_path / "backend" / "model_registry" / "versions" / "v1" / "prototypes" / "prototypes.pt"
     runtime_dir = tmp_path / "backend" / "codex_model"
@@ -130,6 +188,49 @@ def test_export_model_can_register_candidate_manifest(tmp_path):
     assert (version_dir / "model-card.md").is_file()
     index = json.loads((tmp_path / "backend" / "model_registry" / "index.json").read_text(encoding="utf-8"))
     assert index["aliases"]["candidate"] == "v1"
+
+
+@pytest.mark.parametrize("evaluation_fails", [False, True])
+def test_candidate_is_registered_only_after_sealed_evaluations(tmp_path, monkeypatch, evaluation_fails):
+    from scripts import benchmark_model_replacement as benchmark
+
+    registry = tmp_path / "model_registry"
+    version = registry / "versions" / "evaluated"
+    source = version / "prototypes" / "prototypes.pt"
+    base = tmp_path / "active"
+    _write_prototype_fixture(source)
+    _write_sparse_runtime_contract(base)
+    features = tmp_path / "features.pt"
+    torch.save({}, features)
+    split_manifest = tmp_path / "split.json"
+    split_manifest.write_text("{}")
+    calls = []
+
+    def compare(**kwargs):
+        assert not (registry / "index.json").exists()
+        calls.append(kwargs["eval_split"])
+        if evaluation_fails and kwargs["eval_split"] == "locked_test":
+            raise ValueError("evaluation failed")
+        output = kwargs["output_path"]
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text('{"checked": true}')
+        return {"models": {"runtime": {"top1_micro": 1.0}, "candidate": {"top1_micro": 1.0}}}
+
+    monkeypatch.setattr(benchmark, "benchmark_model_replacement", compare)
+    kwargs = dict(config_out_path=version / "runtime" / "config.json", base_model_dir=base,
+                  registry_dir=registry, version_id="evaluated", features_path=features,
+                  approved_manifest_path=split_manifest, evaluate_candidate=True)
+    if evaluation_fails:
+        with pytest.raises(ValueError, match="evaluation failed"):
+            export_model(source, version / "runtime" / "weights", base / "config.json", **kwargs)
+        assert not (registry / "index.json").exists()
+        assert not (version / "manifest.json").exists()
+    else:
+        export_model(source, version / "runtime" / "weights", base / "config.json", **kwargs)
+        inventory = {item["path"] for item in json.loads((version / "manifest.json").read_text())["artifacts"]}
+        assert {"evaluation/dev.json", "evaluation/locked_test.json"} <= inventory
+        assert json.loads((registry / "index.json").read_text())["aliases"]["candidate"] == "evaluated"
+    assert calls == ["dev", "locked_test"]
 
 
 def test_export_model_binds_snapshot_v2_provenance_and_blocks_promotion(tmp_path):

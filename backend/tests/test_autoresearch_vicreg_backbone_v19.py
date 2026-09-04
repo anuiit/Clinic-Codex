@@ -28,6 +28,10 @@ def default_args(module):
     return module.build_parser().parse_args(["validate-contract"])
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-self-supervised-v9/test-spec.json").exists(),
+    reason="requires unshipped research artifact: 20260803-self-supervised-v9/test-spec.json",
+)
 def test_static_contract_hashes_every_frozen_input_without_data_operations() -> None:
     module = load_module()
     result = module.validate_static_contract(default_args(module))
@@ -310,6 +314,7 @@ def test_replay_normalization_removes_only_path_dependent_fields() -> None:
     assert module.normalized_replay_sha256(left) != module.normalized_replay_sha256(right)
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="historical Linux ext4 workspace audit")
 def test_workspace_cache_target_is_real_ext4() -> None:
     module = load_module()
 
@@ -345,4 +350,3 @@ def test_candidate_checkpoint_serialization_is_byte_deterministic(
 
     assert first["sha256"] == second["sha256"]
     assert first["bytes"] == second["bytes"]
-

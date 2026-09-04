@@ -233,6 +233,18 @@ export interface AdminTrainingFileInfo {
 
 export interface AdminTrainingJob {
   run_id: string;
+  model_version_id?: string;
+  candidate_version_dir?: string;
+  error?: string;
+  result?: {
+    unique_count: number;
+    duplicate_count: number;
+    updated_classes: string[];
+    base_correct: number;
+    active_correct: number;
+    candidate_correct: number;
+    generalization_validated: false;
+  };
   status: 'running' | 'succeeded' | 'failed' | 'disabled' | 'rejected';
   local_only?: boolean;
   dry_run: boolean;
@@ -255,6 +267,7 @@ export interface AdminTrainingJob {
 }
 
 export interface AdminTrainingSnapshot {
+  mode?: 'local_prior';
   configured: boolean;
   valid: boolean;
   snapshot_id: string | null;
@@ -262,6 +275,8 @@ export interface AdminTrainingSnapshot {
   row_count: number | null;
   class_count: number | null;
   live_annotation_count: number | null;
+  live_train_count?: number | null;
+  live_split_counts?: Record<"train" | "dev" | "locked_test" | "excluded", number> | null;
   live_annotations_sha256?: string | null;
   ready_for_training: boolean;
   promotion_evaluation_ready: boolean;

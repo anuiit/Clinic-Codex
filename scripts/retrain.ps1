@@ -23,11 +23,13 @@ param(
     [string]$TrainingConfigOverride,
     [string]$InitProjection,
     [switch]$EvalOnly,
+    [switch]$UpdateAnnotatedPrototypes,
     [ValidateSet('best', 'latest')]
     [string]$CheckpointSelection
 )
 
 $ErrorActionPreference = 'Stop'
+$env:PYTHONUTF8 = '1'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
@@ -74,6 +76,13 @@ $Config = Join-Path $BackendDir 'codex_pipeline/config/default.yaml'
 $BatchSize = if ($env:BATCH_SIZE) { $env:BATCH_SIZE } else { '16' }
 # Training is GPU-first. Set DEVICE=cpu only for an intentional CPU fallback.
 $Device = if ($env:DEVICE) { $env:DEVICE } else { 'cuda' }
+
+if ($UpdateAnnotatedPrototypes) {
+    if (-not $ElementsDirOverride -or -not $InitProjection) {
+        throw 'UpdateAnnotatedPrototypes requires ElementsDirOverride and InitProjection.'
+    }
+    $EvalOnly = $true
+}
 
 if (($ApprovedManifestOverride -or $MetadataCsvOverride -or $BackboneManifestOverride) -and -not $ElementsDirOverride) {
     Write-Error 'ERROR: snapshot provenance options require -ElementsDirOverride.'
@@ -176,7 +185,7 @@ if cli_selection and config_selection and cli_selection != config_selection:
     )
 print(cli_selection or config_selection or "best")
 '@
-    $selection = & $PythonPath -c $resolver $ConfigPath $cliArgument
+    $selection = $resolver | & $PythonPath - $ConfigPath $cliArgument
     if ($LASTEXITCODE -ne 0) {
         throw 'Training checkpoint selection resolution failed.'
     }
@@ -217,13 +226,13 @@ function Assert-CudaAvailable([string]$PythonPath, [string]$RequestedDevice) {
         return
     }
 
-    & $PythonPath -c @'
+    @'
 import sys
 import torch
 if not torch.cuda.is_available():
     sys.exit("ERROR: DEVICE=cuda was requested, but this Python environment cannot use CUDA. Install the CUDA PyTorch build with scripts/install_gpu_training.sh, or explicitly override with DEVICE=cpu.")
 print(f"CUDA training device: {torch.cuda.get_device_name(0)}")
-'@
+'@ | & $PythonPath -
     if ($LASTEXITCODE -ne 0) {
         throw 'CUDA preflight failed.'
     }
@@ -234,8 +243,14 @@ $Python = Get-PythonPath
 $CheckpointSelection = Resolve-CheckpointSelection $Python $Config $CheckpointSelection
 $SelectedCheckpoint = Join-Path $CheckpointDir ($CheckpointSelection + '.pt')
 
+$Guard = $null
+$OwnsLock = $false
+try {
 if (-not $DryRun -and -not $WhatIfPreference) {
     Assert-CudaAvailable $Python $Device
+    # Same first-byte OS lock as retrain_local.py; also released after a crash.
+    $Guard = [System.IO.File]::Open((Join-Path $BackendDir '.retrain.guard'), 'OpenOrCreate', 'ReadWrite', 'ReadWrite')
+    $Guard.Lock(0, 1)
     if (Test-Path $LockFile) {
         $oldPidText = (Get-Content $LockFile -Raw).Trim()
         $oldPid = 0
@@ -248,10 +263,10 @@ if (-not $DryRun -and -not $WhatIfPreference) {
     }
 
     Set-Content -Path $LockFile -Value $PID -Encoding ascii
+    $OwnsLock = $true
     New-Item -ItemType Directory -Force -Path $TrainingWorkDir | Out-Null
 }
 
-try {
     if ($ElementsDirOverride) {
         Write-Step '=== [1/6] use_prepared_elements_snapshot ==='
         Write-Host ("+ prepared Elements: " + $ElementsDir)
@@ -328,6 +343,9 @@ try {
         )
     }
     $EvaluateCommand += @('--export-prototypes', '--prototype-dir', $PrototypeDir)
+    if ($UpdateAnnotatedPrototypes) {
+        $EvaluateCommand += @('--base-prototypes', (Join-Path (Split-Path -Parent $InitProjection) 'prototypes.pt'), '--snapshot-manifest', $ApprovedManifest)
+    }
     Invoke-PipelineStep '[5/6] evaluate_export_prototypes' $EvaluateCommand
     $ExportCommand = @(
         $Python,
@@ -350,13 +368,20 @@ try {
     )
     if ($InitProjection) {
         $ExportCommand += @('--init-projection', $InitProjection)
+        $ExportCommand += @('--base-model-dir', (Split-Path -Parent (Split-Path -Parent $InitProjection)))
+    }
+    if ($UpdateAnnotatedPrototypes) {
+        $ExportCommand += '--evaluate-candidate'
     }
     Invoke-PipelineStep '[6/6] export_model' $ExportCommand
     Write-Step "=== Candidate model version created: $ModelVersionId ==="
     Write-Step "=== Inspect: $VersionDir ==="
     Write-Step "=== Promote explicitly: $Python scripts/promote_model.py $ModelVersionId --dry-run ==="
 } finally {
-    if (-not $DryRun -and -not $WhatIfPreference -and (Test-Path $LockFile)) {
-        Remove-Item $LockFile -Force -ErrorAction SilentlyContinue
+    if ($OwnsLock -and (Test-Path -LiteralPath $LockFile)) {
+        if ((Get-Content -LiteralPath $LockFile -Raw).Trim() -eq [string]$PID) {
+            Remove-Item -LiteralPath $LockFile -Force -ErrorAction SilentlyContinue
+        }
     }
+    if ($null -ne $Guard) { $Guard.Dispose() }
 }

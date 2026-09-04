@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +21,10 @@ def _built() -> tuple[dict, dict]:
     return module.build_outputs(module.validate_contract())
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_contract_manifest_and_observations_are_hash_pinned() -> None:
     contract = module.validate_contract()
     assert {
@@ -31,6 +36,10 @@ def test_contract_manifest_and_observations_are_hash_pinned() -> None:
     assert contract["evaluator"]["snapshot_authorized"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_all_fourteen_frozen_sources_are_accounted_exactly_once() -> None:
     results, audit = _built()
     names = [row["source_family"] for row in results["source_results"]]
@@ -39,6 +48,10 @@ def test_all_fourteen_frozen_sources_are_accounted_exactly_once() -> None:
     assert audit["gates"]["all_fourteen_sources_accounted_exactly_once"] is True
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_only_loc_and_bne_are_machine_auditable_strict_candidates() -> None:
     results, audit = _built()
     strict = {
@@ -53,6 +66,10 @@ def test_only_loc_and_bne_are_machine_auditable_strict_candidates() -> None:
     assert audit["gates"]["minimum_7_machine_auditable_sources_pass"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_evidence_summaries_have_reproducible_integrity_fields() -> None:
     results, _ = _built()
     assert results["evidence_register"]
@@ -64,6 +81,10 @@ def test_evidence_summaries_have_reproducible_integrity_fields() -> None:
         assert item["url"].startswith("https://")
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_budget_and_domain_violations_fail_iteration_closed() -> None:
     _, audit = _built()
     assert audit["metrics"]["logical_discovery_operation_count"] == 57
@@ -77,6 +98,10 @@ def test_budget_and_domain_violations_fail_iteration_closed() -> None:
     assert audit["decision"] == "invalid_discovery"
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_sensitive_model_and_dataset_counters_remain_zero() -> None:
     _, audit = _built()
     counters = audit["forbidden_operation_counters"]
@@ -90,6 +115,10 @@ def test_sensitive_model_and_dataset_counters_remain_zero() -> None:
     assert counters["runtime_writes"] == 0
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_contract_derivation_is_valid_but_execution_integrity_is_not() -> None:
     _, audit = _built()
     assert audit["contract_derivation_verified"] is True
@@ -99,6 +128,10 @@ def test_contract_derivation_is_valid_but_execution_integrity_is_not() -> None:
     assert audit["promotion_eligible"] is False
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260803-institutional-inventory-v16/endpoint-discovery-manifest.json").exists(),
+    reason="requires unshipped research artifact: 20260803-institutional-inventory-v16/endpoint-discovery-manifest.json",
+)
 def test_replay_is_exact_and_runtime_is_untouched(tmp_path: Path) -> None:
     contract = module.validate_contract()
     first = module.build_outputs(contract)

@@ -239,5 +239,5 @@ def test_generate_review_ui_html(tmp_path):
     html = output.read_text(encoding="utf-8")
     assert "External corpus review UI" in html
     assert "Exporter CSV" in html
-    assert "file:///tmp/conflict.bmp" in html
+    assert Path("/tmp/conflict.bmp").resolve().as_uri() in html
     assert "reviewer_decisions.csv" in html

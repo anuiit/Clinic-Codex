@@ -9,6 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnnotationsPage from "./AdminAnnotationsPage";
+import { ClassDistributionBars } from "./adminAnnotations/TrainingHelpers";
 import type {
   AdminAnnotationQueue,
   AdminTrainingJob,
@@ -27,6 +28,11 @@ const apiMock = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/api", () => apiMock);
+
+it("does not draw positive bars for empty dataset splits", () => {
+  const { container } = render(<ClassDistributionBars splitCounts={{ train: 1, val: 0, test: 0, excluded: 0 }} />);
+  expect([...container.querySelectorAll("rect")].map(rect => rect.getAttribute("height"))).toEqual(["96", "0", "0", "0"]);
+});
 
 function queueWithStatuses(
   status0: "pending" | "approved" | "rejected",
@@ -180,6 +186,7 @@ function trainingSummary(
       row_count: 9266,
       class_count: 286,
       live_annotation_count: 7,
+      live_train_count: 7,
       ready_for_training: true,
       promotion_evaluation_ready: false,
       split_counts: { train: 9128, dev: 56, locked_test: 82 },
@@ -502,6 +509,7 @@ describe("AdminAnnotationsPage", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/lancement bloqué/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/validations réellement utilisées dans le train/i).parentElement).toHaveTextContent("7 / 7");
     expect(screen.queryByText(/disabled_by_default/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/enable_admin_training_jobs=1/i),

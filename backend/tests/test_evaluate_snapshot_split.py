@@ -6,11 +6,55 @@ import sys
 from pathlib import Path
 
 import torch
+import pytest
 
 from backend.codex_pipeline.models.projection_head import ProjectionHead
+from backend.codex_pipeline.scripts.evaluate import update_annotated_prototypes
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_selective_update_preserves_untouched_prototypes_and_rejects_drift(tmp_path):
+    model = ProjectionHead(input_dim=2, embedding_dim=2)
+    checkpoint = {"model_state_dict": model.state_dict()}
+    (tmp_path / "weights").mkdir()
+    base_path = tmp_path / "weights" / "prototypes.pt"
+    (tmp_path / "config.json").write_text(json.dumps({"backbone": "test", "image_size": 224, "hidden_dim": 2}))
+    base = {"prototypes": torch.eye(2), "class_labels": torch.tensor([4, 9]),
+            "class_names": {4: "alpha", 9: "beta"}}
+    torch.save(base, base_path)
+    torch.save(model.state_dict(), base_path.with_name("projection.pt"))
+    manifest = {"rows": [
+        {"row_id": "a", "source_kind": "live_annotation", "class_name": "alpha", "dataset_split": "train"},
+        {"row_id": "b", "source_kind": "legacy", "class_name": "beta", "dataset_split": "train"},
+    ], "duplicates": [], "conflicts": []}
+    cache = {"row_ids": ["a", "b"], "labels": torch.tensor([0, 1]),
+             "preprocessing": "runtime-lanczos-whitepad-imagenet.v1",
+             "backbone": "test", "image_size": 224, "hidden_dim": 2,
+             "class_names": {0: "alpha", 1: "beta"}, "dataset_splits": ["train", "train"]}
+    fitted = torch.tensor([[0.6, 0.8], [-1.0, 0.0]])
+    analysis = {"prototypes": fitted.clone(), "class_labels": torch.tensor([0, 1])}
+    result = update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path)
+    assert torch.equal(analysis["prototypes"][0], fitted[0])
+    assert torch.equal(analysis["prototypes"][1], base["prototypes"][1])
+    assert result["updated_class_names"] == ["alpha"]
+    assert result["preserved_class_count"] == 1
+    cache["preprocessing"] = "old-bilinear"
+    with pytest.raises(ValueError, match="preprocessing.*rebuild"):
+        update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path)
+    cache["preprocessing"] = "runtime-lanczos-whitepad-imagenet.v1"
+    cache["backbone"] = "different"
+    with pytest.raises(ValueError, match="backbone"):
+        update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path)
+    cache["backbone"] = "test"
+    cache["dataset_splits"][0] = "locked_test"
+    with pytest.raises(ValueError, match="labels/splits"):
+        update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path)
+    cache["dataset_splits"][0] = "train"
+    checkpoint["model_state_dict"]["net.0.weight"] += 1
+    with pytest.raises(ValueError, match="unchanged base projection"):
+        update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path)
 
 
 def test_prototype_export_uses_only_persisted_train_rows(tmp_path: Path) -> None:

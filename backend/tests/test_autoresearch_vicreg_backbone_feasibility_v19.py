@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+import pytest
 
 import numpy as np
 
@@ -22,6 +23,10 @@ def load_module():
     return module
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omx/argos-council/elements-model-improvement/turns/043/synthesis.md").exists(),
+    reason="requires unshipped research artifact: 043/synthesis.md",
+)
 def test_frozen_history_runtime_and_b14_pin_are_unchanged() -> None:
     module = load_module()
 
@@ -36,6 +41,10 @@ def test_frozen_history_runtime_and_b14_pin_are_unchanged() -> None:
     assert pin["weights_bytes_verified"] == 346_378_731
 
 
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[2] / ".omc/autoresearch/elements-baseline-replacement/runs/20260804-discriminative-readout-v18/specs/iteration-0003-source-inventory.jsonl").exists(),
+    reason="requires unshipped research artifact: specs/iteration-0003-source-inventory.jsonl",
+)
 def test_inventory_cache_estimate_matches_frozen_five_fold_geometry() -> None:
     module = load_module()
 

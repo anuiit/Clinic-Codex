@@ -3,12 +3,36 @@ from __future__ import annotations
 import shutil
 import subprocess
 import os
+import sys
 from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def current_python(monkeypatch):
+    monkeypatch.setenv("PYTHON", sys.executable)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
+def test_retrain_sh_selective_update_wires_frozen_projection_and_snapshot():
+    result = subprocess.run(
+        ["bash", "scripts/retrain.sh", "--dry-run", "--elements-dir", "/snapshot/Elements",
+         "--approved-manifest", "/snapshot/snapshot_manifest.json", "--metadata-csv", "/snapshot/metadata.csv",
+         "--backbone-manifest", "/pin.json", "--init-projection", "/active/weights/projection.pt",
+         "--update-annotated-prototypes"], cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    )
+    assert "--eval-only" in result.stdout
+    assert "--base-prototypes /active/weights/prototypes.pt" in result.stdout
+    assert "--snapshot-manifest /snapshot/snapshot_manifest.json" in result.stdout
+    assert "--base-model-dir /active" in result.stdout
+    assert "--evaluate-candidate" in result.stdout
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_dry_run_uses_approved_only_explicit_paths():
     env = {
         **os.environ,
@@ -104,6 +128,7 @@ def test_retrain_defaults_to_cuda_with_an_explicit_cpu_override():
     assert "Assert-CudaAvailable" in powershell
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     result = subprocess.run(
         ["bash", "scripts/retrain.sh", "--dry-run"],
@@ -118,6 +143,7 @@ def test_retrain_sh_rejects_unsafe_model_version_id_before_paths_are_used():
     assert "model_registry/versions/../../codex_model" not in result.stdout
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance():
     result = subprocess.run(
         [
@@ -157,6 +183,7 @@ def test_retrain_sh_dry_run_accepts_prepared_snapshot_with_explicit_provenance()
     assert "--checkpoint" in result.stdout
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_prepared_snapshot_requires_explicit_metadata():
     result = subprocess.run(
         [
@@ -178,6 +205,7 @@ def test_retrain_sh_prepared_snapshot_requires_explicit_metadata():
     assert "requires --metadata-csv" in result.stderr
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_wires_eval_only_warmstart_and_fixed_latest_selection():
     result = subprocess.run(
         [
@@ -200,6 +228,7 @@ def test_retrain_sh_wires_eval_only_warmstart_and_fixed_latest_selection():
     assert "--training-manifest" in result.stdout
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_adopts_preregistered_checkpoint_selection(tmp_path):
     config = tmp_path / "latest.yaml"
     config.write_text("training:\n  checkpoint_selection: latest\n", encoding="utf-8")
@@ -215,6 +244,7 @@ def test_retrain_sh_adopts_preregistered_checkpoint_selection(tmp_path):
     assert "--checkpoint-selection latest" in result.stdout
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_rejects_checkpoint_selection_recipe_mismatch(tmp_path):
     config = tmp_path / "latest.yaml"
     config.write_text("training:\n  checkpoint_selection: latest\n", encoding="utf-8")
@@ -232,6 +262,7 @@ def test_retrain_sh_rejects_checkpoint_selection_recipe_mismatch(tmp_path):
     assert "conflicts with preregistered training.checkpoint_selection=latest" in result.stderr
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher; Windows executes retrain.ps1")
 def test_retrain_sh_rejects_eval_only_without_warmstart():
     result = subprocess.run(
         ["bash", "scripts/retrain.sh", "--dry-run", "--eval-only"],

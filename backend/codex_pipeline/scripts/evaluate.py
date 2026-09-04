@@ -33,6 +33,9 @@ from codex_pipeline.data.cached_dataset import (
 from codex_pipeline.determinism import configure_determinism
 from codex_pipeline.models.projection_head import ProjectionHead, get_device
 from codex_pipeline.models.prototypical import PrototypicalLoss, compute_prototypes
+from codex_pipeline.data.snapshot import live_annotation_usage
+from codex_pipeline.scripts.export_model import _prototype_contract
+from codex_model.classifier import PREPROCESSING_VERSION
 
 
 
@@ -119,11 +122,60 @@ def analyze_prototypes(embeddings, labels, class_names):
     }
 
 
+def update_annotated_prototypes(analysis, checkpoint, cache, manifest, base_path):
+    """Replace only annotated-class centroids; preserve the active embedding space."""
+    usage = live_annotation_usage(manifest)
+    if cache.get("preprocessing") != PREPROCESSING_VERSION:
+        raise ValueError("feature cache preprocessing is not runtime-aligned; rebuild the cache")
+    base_config = json.loads((base_path.parent.parent / "config.json").read_text(encoding="utf-8"))
+    for key in ("backbone", "image_size", "hidden_dim"):
+        if cache.get(key) is None or cache[key] != base_config.get(key):
+            raise ValueError(f"feature cache {key} differs from base runtime")
+    counts = usage["split_counts"]
+    if not counts["train"] or any(counts[key] for key in ("dev", "locked_test", "excluded")):
+        raise ValueError("all approved annotations must be represented in train")
+    rows = {row["row_id"]: row for row in manifest["rows"]}
+    row_ids = cache.get("row_ids") or []
+    splits = cache.get("dataset_splits") or []
+    if len(row_ids) != len(rows) or set(row_ids) != set(rows) or len(splits) != len(row_ids) or len(cache["labels"]) != len(row_ids):
+        raise ValueError("feature cache does not match the snapshot rows")
+    for index, row_id in enumerate(row_ids):
+        row = rows[row_id]
+        label = int(cache["labels"][index])
+        if splits[index] != row["dataset_split"] or cache["class_names"].get(label) != row["class_name"]:
+            raise ValueError("feature cache labels/splits disagree with snapshot")
+    base = torch.load(base_path, map_location="cpu", weights_only=True)
+    base_labels, base_names = _prototype_contract(base, label="base runtime")
+    base_projection = torch.load(base_path.with_name("projection.pt"), map_location="cpu", weights_only=True)
+    state = checkpoint["model_state_dict"]
+    if set(state) != set(base_projection) or any(not torch.equal(state[key].cpu(), base_projection[key]) for key in state):
+        raise ValueError("selective prototype update requires the unchanged base projection")
+    base_by_name = {base_names[label]: index for index, label in enumerate(base_labels)}
+    names = cache["class_names"]
+    if set(names.values()) != set(base_by_name) or base["prototypes"].shape != analysis["prototypes"].shape:
+        raise ValueError("base and snapshot prototype taxonomies/shapes disagree")
+    updated_classes = set(usage["training_class_names"])
+    for index, label in enumerate(analysis["class_labels"].tolist()):
+        name = names[label]
+        if name not in updated_classes:
+            analysis["prototypes"][index] = base["prototypes"][base_by_name[name]]
+    return {
+        "mode": "annotated_prototypes",
+        "base_prototypes_sha256": sha256_file(base_path),
+        "base_projection_sha256": sha256_file(base_path.with_name("projection.pt")),
+        "updated_class_names": sorted(updated_classes),
+        "preserved_class_count": len(base_labels) - len(updated_classes),
+        "live_annotation_usage": usage,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate projection head")
     parser.add_argument("--checkpoint", type=str, default="./checkpoints/best.pt")
     parser.add_argument("--features", type=str, default="./precomputed/features.pt")
     parser.add_argument("--export-prototypes", action="store_true")
+    parser.add_argument("--base-prototypes", type=Path, help="Keep base prototypes for classes without approved annotations (requires unchanged projection)")
+    parser.add_argument("--snapshot-manifest", type=Path)
     parser.add_argument(
         "--prototype-dir",
         type=str,
@@ -149,6 +201,8 @@ def main():
         help="Skip episodic evaluation (useful for sparse persisted dev splits).",
     )
     args = parser.parse_args()
+    if args.base_prototypes and (not args.snapshot_manifest or args.prototype_split != "train" or args.split_strategy != "persisted"):
+        parser.error("--base-prototypes requires --snapshot-manifest and persisted train-only prototypes")
 
     # Load checkpoint
     ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
@@ -264,6 +318,11 @@ def main():
 
     # --- Export prototypes ---
     if args.export_prototypes:
+        update_provenance = None
+        if args.base_prototypes:
+            manifest = json.loads(args.snapshot_manifest.read_text(encoding="utf-8"))
+            update_provenance = update_annotated_prototypes(analysis, ckpt, data_info, manifest, args.base_prototypes)
+            print(f"Selective update: {update_provenance['updated_class_names']}; {update_provenance['preserved_class_count']} prototypes preserved")
         proto_dir = Path(args.prototype_dir or paths_cfg["prototype_dir"])
         proto_dir.mkdir(parents=True, exist_ok=True)
 
@@ -298,6 +357,7 @@ def main():
             "class_count": len(analysis["class_labels"]),
             "prototype_split": args.prototype_split,
             "split_strategy": args.split_strategy,
+            "prototype_update": update_provenance,
         }
         (proto_dir / "provenance.json").write_text(
             json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"

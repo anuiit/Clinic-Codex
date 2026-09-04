@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import torch
 from pathlib import Path
 
 from backend.services.model_registry import ModelRegistry, sha256_file
@@ -117,7 +118,11 @@ def test_evaluate_r2_e2e_is_deterministic_and_passes_all_gates(tmp_path: Path) -
 
 def _write_runtime(runtime_dir: Path, label: str) -> None:
     (runtime_dir / "weights").mkdir(parents=True, exist_ok=True)
-    (runtime_dir / "weights" / "prototypes.pt").write_bytes(f"{label}-prototypes".encode())
+    torch.save(
+        {"prototypes": torch.tensor([[1.0]]), "class_names": {0: "class-a"},
+         "class_labels": torch.tensor([0]), "embedding_dim": 1},
+        runtime_dir / "weights" / "prototypes.pt",
+    )
     (runtime_dir / "weights" / "projection.pt").write_bytes(f"{label}-projection".encode())
     _write_json(
         runtime_dir / "config.json",
